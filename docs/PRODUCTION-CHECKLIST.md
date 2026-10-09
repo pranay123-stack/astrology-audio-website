@@ -43,8 +43,8 @@ Status labels:
 | `.gitignore` excludes env files, local data, build output, test artefacts | Complete. Checked with `git check-ignore`. |
 | `.env.example` with placeholders only | Complete |
 | Secret scan of the files that would be committed | Complete. No keys found. |
-| Work committed | **Pending (owner authorisation)** |
-| Private repository created and pushed | **Pending (owner)** |
+| Work committed | Complete |
+| Private repository created and pushed | Complete: [pranay123-stack/astrology-audio-website](https://github.com/pranay123-stack/astrology-audio-website) (private, `main`) |
 
 ## Hostinger
 

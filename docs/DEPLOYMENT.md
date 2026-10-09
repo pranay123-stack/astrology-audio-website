@@ -74,7 +74,7 @@ Sources: [Hostinger: How to add a Node.js web app](https://www.hostinger.com/sup
 
 ## 4. GitHub
 
-The repository is already a git repository (one initial commit from `create-next-app`). All project work is currently **uncommitted**.
+The code is in the **private** repository <https://github.com/pranay123-stack/astrology-audio-website> (branch `main`). The steps below are for reference, or for recreating it elsewhere.
 
 **Before committing, check:**
 
