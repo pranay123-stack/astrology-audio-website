@@ -47,6 +47,7 @@ beforeAll(async () => {
 afterAll(async () => {
   if (cleanup.length) await service.from("episodes").delete().in("id", cleanup);
   await service.from("competitions").delete().eq("slug", "tmp-league");
+  await service.from("contact_messages").delete().eq("email", "s@example.com");
   if (memberId) await service.auth.admin.deleteUser(memberId);
 });
 

@@ -30,11 +30,13 @@ Status labels:
 | Schema, constraints, indexes, RLS, storage buckets (migration) | Complete. Verified on local Supabase. |
 | Function privileges hardened (visitors cannot call admin or entitlement functions) | Complete. Covered by RLS tests. |
 | Public sign-up disabled, email login enabled (local `config.toml`) | Complete |
-| Hosted project created | **Pending (owner)** |
-| Migration applied to the hosted project | Blocked (needs the project) |
-| Sign-up disabled in the hosted dashboard, Site URL set | Blocked (needs the project) |
-| Reference data seeded (no sample episodes), first admin created | Blocked (needs the project) |
-| RLS and storage behaviour on the hosted project | Not Tested |
+| Hosted project created | Complete: `astrology-audio`, Southeast Asia (Singapore, ap-southeast-1), Free plan |
+| Migration applied to the hosted project | Complete: one transaction; recorded in `supabase_migrations` |
+| Sign-up disabled in the hosted dashboard | **Pending (owner)**: a probe on 9 Oct suggested sign-ups were still on |
+| Supabase Site URL set to the live domain | Blocked (needs the domain) |
+| Reference data seeded (no sample episodes), first admin created | Complete: 8 categories, BBL + 8 clubs; admin account created |
+| RLS and storage behaviour on the hosted project | Complete: 13/13 RLS tests pass on the live project; test data cleaned up |
+| App against the live project (local build): login, signed uploads, draft hidden, publish, playback, cover image, delete and cleanup | Complete |
 
 ## GitHub
 
