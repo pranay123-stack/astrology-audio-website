@@ -1,26 +1,54 @@
 {
-  "name": "astrology-website",
+  "name": "astrology-audio-website",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3460",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit -p tsconfig.check.json",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "seed": "tsx scripts/seed.ts",
+    "setup:local": "tsx scripts/setup-local.ts",
+    "admin:hash": "tsx scripts/hash-password.ts",
+    "admin:create": "tsx scripts/create-admin.ts",
+    "db:start": "npx --yes supabase@2.120.0 start -x studio,mailpit,imgproxy,edge-runtime,logflare,vector,supavisor,realtime,postgres-meta",
+    "db:stop": "npx --yes supabase@2.120.0 stop",
+    "db:reset": "npx --yes supabase@2.120.0 db reset",
+    "test:supabase": "vitest run --config vitest.supabase.config.mts",
+    "start:local": "next start -p 3460",
+    "test:e2e:supabase": "bash scripts/e2e-supabase.sh"
   },
   "dependencies": {
-    "next": "16.4.0",
-    "react": "19.3.0",
-    "react-dom": "19.3.0"
-  },
-  "devDependencies": {
+    "@hookform/resolvers": "^5.9.1",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.117.3",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.53.0",
+    "next": "16.4.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-hook-form": "^7.89.0",
+    "server-only": "^0.0.1",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.0",
     "eslint": "^9",
     "eslint-config-next": "16.4.0",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "sharp": "^0.35.5",
+    "tsx": "^4.23.15",
+    "vitest": "^4.1.11"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   }
 }

@@ -1,0 +1,16 @@
+import { getDataBackend } from "../config";
+
+/** Public URL of an image in storage. Safe to call from client and server code. */
+export function imageUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (getDataBackend() === "supabase" && supabaseUrl) {
+    return `${supabaseUrl.replace(/\/$/, "")}/storage/v1/object/public/images/${path}`;
+  }
+  return `/api/media/image/${path}`;
+}
+
+/** Audio is never addressed by its storage path; this route checks access first. */
+export function audioUrl(episodeId: string): string {
+  return `/api/media/audio/${episodeId}`;
+}

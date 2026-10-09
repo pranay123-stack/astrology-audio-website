@@ -1,26 +1,153 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-night: #060818;
+  --color-navy: #0c1230;
+  --color-navy-2: #121a3f;
+  --color-plum: #24134a;
+  --color-plum-2: #351c66;
+  --color-gold: #d4af37;
+  --color-gold-soft: #f3d27a;
+  --color-gold-deep: #a8841f;
+  --color-ink: #ece9f7;
+  --color-muted: #a8a3c7;
+  --color-line: rgb(212 175 55 / 0.18);
+  --color-danger: #f87171;
+  --color-success: #4ade80;
+
+  --font-display: var(--font-cormorant), "Cormorant Garamond", Georgia, serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --shadow-glow: 0 0 0 1px rgb(212 175 55 / 0.15), 0 20px 50px -20px rgb(124 58 237 / 0.45);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    color-scheme: dark;
+    scroll-behavior: smooth;
+  }
+  body {
+    background-color: var(--color-night);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection {
+    background: rgb(212 175 55 / 0.35);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-gold-soft);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@utility container-page {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+}
+
+@utility btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition
+      disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+@utility btn-gold {
+    @apply btn bg-gradient-to-r from-gold-soft to-gold text-night shadow-[0_8px_30px_-10px_rgb(212_175_55/0.7)] hover:brightness-110;
+}
+
+@utility btn-ghost {
+    @apply btn border border-line bg-white/5 text-ink hover:border-gold/50 hover:bg-white/10;
+}
+
+@utility btn-danger {
+    @apply btn border border-red-400/40 bg-red-500/10 text-red-200 hover:bg-red-500/20;
+}
+
+@utility card {
+    @apply rounded-2xl border border-line bg-gradient-to-b from-navy-2/80 to-navy/80 backdrop-blur-sm;
+}
+
+@utility chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase;
+}
+
+@utility eyebrow {
+    @apply text-xs font-semibold tracking-[0.25em] text-gold uppercase;
+}
+
+@utility input {
+    @apply w-full rounded-xl border border-line bg-night/60 px-3.5 py-2.5 text-sm text-ink placeholder:text-muted/60
+      focus:border-gold/60 focus:outline-none focus:ring-2 focus:ring-gold/25;
+}
+
+@utility label {
+    @apply mb-1.5 block text-sm font-medium text-ink;
+}
+
+@utility prose-cosmic {
+    @apply space-y-4 leading-relaxed text-ink/90;
+}
+
+@layer components {
+  .prose-cosmic h2 {
+    @apply mt-10 font-display text-3xl text-gold-soft;
+  }
+  .prose-cosmic h3 {
+    @apply mt-6 text-2xl text-ink;
+  }
+  .prose-cosmic ul {
+    @apply list-disc space-y-1 pl-6;
+  }
+  .prose-cosmic a {
+    @apply text-gold-soft underline underline-offset-4;
+  }
+}
+
+/* Range inputs used by the audio player */
+.range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--color-gold) var(--pct, 0%), rgb(255 255 255 / 0.15) var(--pct, 0%));
+  cursor: pointer;
+}
+.range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--color-gold-soft);
+  box-shadow: 0 0 0 4px rgb(212 175 55 / 0.25);
+}
+.range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-gold-soft);
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+@keyframes slow-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+.animate-twinkle { animation: twinkle 4s ease-in-out infinite; }
+.animate-slow-spin { animation: slow-spin 180s linear infinite; }
+.animate-rise { animation: rise 0.7s ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-twinkle, .animate-slow-spin, .animate-rise { animation: none; }
+  html { scroll-behavior: auto; }
 }

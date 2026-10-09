@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseHost = supabaseUrl ? new URL(supabaseUrl) : null;
+
 const nextConfig: NextConfig = {
-  /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {
@@ -11,6 +13,43 @@ const nextConfig: NextConfig = {
         as: "*.css",
       },
     },
+  },
+  images: {
+    formats: ["image/avif", "image/webp"],
+    // Local mode serves uploaded images through this route.
+    localPatterns: [{ pathname: "/api/media/image/**" }],
+    // Supabase mode serves them from the public `images` bucket. Hosted projects are
+    // always https://<ref>.supabase.co, allowed statically so images keep working even
+    // if the host only provides NEXT_PUBLIC_* variables at build time (this file is
+    // evaluated again when the server starts).
+    remotePatterns: [
+      { protocol: "https", hostname: "*.supabase.co", pathname: "/storage/v1/object/public/images/**" },
+      ...(supabaseHost
+        ? [
+            {
+              protocol: supabaseHost.protocol.replace(":", "") as "http" | "https",
+              hostname: supabaseHost.hostname,
+              port: supabaseHost.port,
+              pathname: "/storage/v1/object/public/images/**",
+            },
+          ]
+        : []),
+    ],
+    // Next.js refuses to optimise images from private IPs unless allowed (local Supabase runs on 127.0.0.1).
+    dangerouslyAllowLocalIP: !!supabaseHost && ["127.0.0.1", "localhost"].includes(supabaseHost.hostname),
+  },
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+        ],
+      },
+    ];
   },
 };
 
