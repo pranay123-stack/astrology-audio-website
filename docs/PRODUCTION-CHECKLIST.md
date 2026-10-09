@@ -32,7 +32,7 @@ Status labels:
 | Public sign-up disabled, email login enabled (local `config.toml`) | Complete |
 | Hosted project created | Complete: `astrology-audio`, Southeast Asia (Singapore, ap-southeast-1), Free plan |
 | Migration applied to the hosted project | Complete: one transaction; recorded in `supabase_migrations` |
-| Sign-up disabled in the hosted dashboard | **Pending (owner)**: a probe on 9 Oct suggested sign-ups were still on |
+| Sign-up disabled in the hosted dashboard | Complete: verified, signup API returns `signup_disabled`; admin login still works |
 | Supabase Site URL set to the live domain | Blocked (needs the domain) |
 | Reference data seeded (no sample episodes), first admin created | Complete: 8 categories, BBL + 8 clubs; admin account created |
 | RLS and storage behaviour on the hosted project | Complete: 13/13 RLS tests pass on the live project; test data cleaned up |
