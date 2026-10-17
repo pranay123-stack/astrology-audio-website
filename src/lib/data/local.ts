@@ -3,9 +3,10 @@ import path from "node:path";
 import type { Category, Competition, Episode, EpisodeListing, EpisodeQuery, Profile, Team } from "../types";
 import type { CompetitionData, ProfileData, TeamData } from "../validation";
 import { slugify, uniqueSlug } from "../slug";
-import { LocalDb, type LocalDatabase } from "./local-db";
+import { LocalDb, type LocalDatabase, type LocalEpisode } from "./local-db";
 import {
   filterAndSort,
+  hasContent,
   isLive,
   RepositoryError,
   type DashboardStats,
@@ -45,6 +46,11 @@ export function buildListings(db: LocalDatabase): EpisodeListing[] {
   });
 }
 
+/** Public reads never include premium article text (mirrors the RLS policy in Supabase mode). */
+function forPublic(rows: EpisodeListing[]): EpisodeListing[] {
+  return rows.map((r) => (r.is_premium && r.article ? { ...r, article: "" } : r));
+}
+
 export class LocalRepository implements Repository {
   readonly db: LocalDb;
 
@@ -72,19 +78,20 @@ export class LocalRepository implements Repository {
   }
 
   async queryEpisodes(query: EpisodeQuery) {
-    return filterAndSort(buildListings(await this.db.read()), query);
+    const rows = buildListings(await this.db.read());
+    return filterAndSort(query.includeUnpublished ? rows : forPublic(rows), query);
   }
 
   async getEpisodeBySlug(slug: string, opts?: { includeUnpublished?: boolean }) {
     const row = buildListings(await this.db.read()).find((r) => r.slug === slug);
     if (!row || (!opts?.includeUnpublished && !isLive(row))) return null;
-    return row;
+    return opts?.includeUnpublished ? row : forPublic([row])[0];
   }
 
   async getEpisodeById(id: string, opts?: { includeUnpublished?: boolean }) {
     const row = buildListings(await this.db.read()).find((r) => r.id === id);
     if (!row || (!opts?.includeUnpublished && !isLive(row))) return null;
-    return row;
+    return opts?.includeUnpublished ? row : forPublic([row])[0];
   }
 
   async listEpisodeSlugs() {
@@ -136,8 +143,10 @@ export class LocalRepository implements Repository {
       const now = new Date().toISOString();
       const { match: _match, ...fields } = data;
       void _match;
-      const episode: Episode = {
+      const episode: LocalEpisode = {
         ...fields,
+        article: fields.article.trim(),
+        has_article: fields.article.trim().length > 0,
         id: randomUUID(),
         is_demo: false,
         play_count: 0,
@@ -157,7 +166,11 @@ export class LocalRepository implements Repository {
       const cat = this.assertReferences(db, { ...data, id } as EpisodeWrite);
       const { match: _match, ...fields } = data;
       void _match;
-      Object.assign(episode, fields, { updated_at: new Date().toISOString() });
+      Object.assign(episode, fields, {
+        article: fields.article.trim(),
+        has_article: fields.article.trim().length > 0,
+        updated_at: new Date().toISOString(),
+      });
       this.writeMatch(db, id, data, cat.section === "cricket");
       return episode;
     });
@@ -167,8 +180,8 @@ export class LocalRepository implements Repository {
     return this.db.mutate((db) => {
       const episode = db.episodes.find((e) => e.id === id);
       if (!episode) throw new RepositoryError("Episode not found", "not_found");
-      if (published && !episode.audio_storage_path) {
-        throw new RepositoryError("Upload an audio file before publishing", "invalid");
+      if (published && !hasContent(episode)) {
+        throw new RepositoryError("Add an audio file or an article before publishing", "invalid");
       }
       episode.is_published = published;
       if (published && !episode.published_at) episode.published_at = new Date().toISOString();

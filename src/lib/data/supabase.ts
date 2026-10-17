@@ -15,12 +15,13 @@ import type {
 import type { CompetitionData, ProfileData, TeamData } from "../validation";
 import { dayBounds } from "../dates";
 import { slugify, uniqueSlug } from "../slug";
-import { RepositoryError, type DashboardStats, type EpisodeWrite, type Repository } from "./repository";
+import { hasContent, RepositoryError, type DashboardStats, type EpisodeWrite, type Repository } from "./repository";
 
 const EPISODE_COLUMNS =
-  "id,title,slug,excerpt,description,category_id,audio_storage_path,audio_mime_type,cover_image_path,duration_seconds,is_published,is_premium,is_demo,play_count,published_at,created_at,updated_at";
+  "id,title,slug,excerpt,description,has_article,article_lang,category_id,audio_storage_path,audio_mime_type,cover_image_path,duration_seconds,is_published,is_premium,is_demo,play_count,published_at,created_at,updated_at";
 
 type ListingRow = Episode & {
+  article: string | null;
   category_name: string;
   category_slug: string;
   category_section: Section;
@@ -51,6 +52,8 @@ function toListing(r: ListingRow): EpisodeListing {
     slug: r.slug,
     excerpt: r.excerpt,
     description: r.description,
+    has_article: r.has_article ?? false,
+    article_lang: r.article_lang ?? "hi",
     category_id: r.category_id,
     audio_storage_path: r.audio_storage_path,
     audio_mime_type: r.audio_mime_type,
@@ -99,6 +102,7 @@ function toListing(r: ListingRow): EpisodeListing {
       : null;
   return {
     ...episode,
+    article: r.article ?? "",
     category: { id: r.category_id, name: r.category_name, slug: r.category_slug, section: r.category_section },
     match,
   };
@@ -256,7 +260,7 @@ export class SupabaseRepository implements Repository {
     if (error) fail(error, "setEpisodePublished");
     if (!current) throw new RepositoryError("Episode not found", "not_found");
     const ep = current as unknown as Episode;
-    if (published && !ep.audio_storage_path) throw new RepositoryError("Upload an audio file before publishing", "invalid");
+    if (published && !hasContent(ep)) throw new RepositoryError("Add an audio file or an article before publishing", "invalid");
     const patch: Partial<Episode> = { is_published: published };
     if (published && !ep.published_at) patch.published_at = new Date().toISOString();
     const { data, error: upErr } = await this.db.from("episodes").update(patch).eq("id", id).select(EPISODE_COLUMNS).single();

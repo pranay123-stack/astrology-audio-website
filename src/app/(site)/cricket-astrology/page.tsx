@@ -3,6 +3,7 @@ import Form from "next/form";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Search, Trophy } from "lucide-react";
+import { HeroMatch } from "@/components/episodes/HeroMatch";
 import { LoadMore } from "@/components/episodes/LoadMore";
 import { ListingSkeleton } from "@/components/episodes/ListingSkeleton";
 import { MatchCard } from "@/components/episodes/MatchCard";
@@ -32,17 +33,20 @@ export default function CricketAstrologyPage({ searchParams }: PageProps<"/crick
     <>
       <section className="relative isolate overflow-hidden border-b border-line">
         <Starfield />
-        <div className="container-page relative py-14 sm:py-20">
-          <div className="flex items-center gap-3 text-gold-soft">
-            <Trophy className="h-6 w-6" aria-hidden />
-            <p className="eyebrow">Big Bash League</p>
+        <div className="container-page relative grid items-center gap-10 py-14 sm:py-20 lg:grid-cols-[1.1fr_1fr]">
+          <div>
+            <div className="flex items-center gap-3 text-gold-soft">
+              <Trophy className="h-6 w-6" aria-hidden />
+              <p className="eyebrow">Big Bash League</p>
+            </div>
+            <h1 className="mt-3 text-5xl font-semibold sm:text-6xl">Cricket Astrology</h1>
+            <p className="mt-4 max-w-2xl text-lg text-ink/80">
+              Audio readings that look at each BBL fixture through an astrological lens. Upcoming matches are listed first, and past
+              readings stay in the archive.
+            </p>
+            <CricketDisclaimer className="mt-8 max-w-3xl" />
           </div>
-          <h1 className="mt-3 text-5xl font-semibold sm:text-6xl">Cricket Astrology</h1>
-          <p className="mt-4 max-w-2xl text-lg text-ink/80">
-            Audio readings that look at each BBL fixture through an astrological lens. Upcoming matches are listed first, and past
-            readings stay in the archive.
-          </p>
-          <CricketDisclaimer className="mt-8 max-w-3xl" />
+          <NextMatch />
         </div>
       </section>
       <section className="container-page py-10">
@@ -51,6 +55,21 @@ export default function CricketAstrologyPage({ searchParams }: PageProps<"/crick
         </Suspense>
       </section>
     </>
+  );
+}
+
+/** The next upcoming match reading (or the latest one), with a live countdown. Cached data only, so it is part of the static shell. */
+async function NextMatch() {
+  const [upcoming, recent] = await Promise.all([
+    getEpisodes({ section: "cricket", timing: "upcoming", sort: "match_date_asc", limit: 1 }),
+    getEpisodes({ section: "cricket", sort: "latest", limit: 1 }),
+  ]);
+  const episode = upcoming.items[0] ?? recent.items[0];
+  if (!episode?.match) return null;
+  return (
+    <div className="mx-auto w-full max-w-md lg:max-w-lg">
+      <HeroMatch episode={episode} upcoming={upcoming.items.length > 0} />
+    </div>
   );
 }
 

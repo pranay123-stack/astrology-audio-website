@@ -2,8 +2,8 @@ import { randomBytes, scryptSync } from "node:crypto";
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * End-to-end tests run against a production build (`npm run build` first) in local
- * mode with their own throwaway data directory, so they never touch .data/.
+ * End-to-end tests seed a throwaway data directory (.data-e2e), build the app
+ * against it, and run against that production build in local mode. Never touches .data/.
  */
 export const E2E_ADMIN = { email: "e2e-admin@example.com", password: "e2e-Password-123" };
 
@@ -21,10 +21,11 @@ export default defineConfig({
   use: { baseURL: `http://localhost:${PORT}`, trace: "retain-on-failure" },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
-    command: `npx tsx scripts/seed.ts --reset && npx next start -p ${PORT}`,
+    // Build against the freshly seeded test data so prerendered pages match the data under test.
+    command: `npx tsx scripts/seed.ts --reset && npx next build && npx next start -p ${PORT}`,
     url: `http://localhost:${PORT}`,
     reuseExistingServer: false,
-    timeout: 120_000,
+    timeout: 300_000,
     env: {
       NEXT_PUBLIC_DATA_BACKEND: "local",
       ALLOW_LOCAL_BACKEND_IN_PRODUCTION: "true",

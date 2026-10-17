@@ -133,6 +133,53 @@ test("cricket episode requires match details and appears on the cricket page", a
   await expect(card).toContainText("Sydney Sixers");
 });
 
+test("admin publishes a Hindi article-only post; premium article text never reaches visitors", async ({ page, request }) => {
+  const ARTICLE = "## शनि ग्रह\n\nयह **परीक्षण** लेख है।\n\n- पहला बिंदु\n- दूसरा बिंदु";
+  await login(page);
+  await gotoReady(page, "/admin/episodes/new");
+  await page.getByLabel("Title").fill("E2E Shani Lekh");
+  await page.getByLabel("Category").selectOption({ label: "Planets (Grahas)" });
+  await page.getByLabel("Short description").fill("A Hindi article about Shani, no audio.");
+  await page.getByLabel("Article text").fill(ARTICLE);
+  await page.getByTestId("article-preview-toggle").click();
+  await expect(page.getByTestId("article-preview").locator("h2")).toHaveText("शनि ग्रह");
+  await expect(page.getByTestId("article-preview").locator("li")).toHaveCount(2);
+  await page.getByTestId("publish-checkbox").check();
+  await page.getByTestId("save-episode").click();
+  await expect(page).toHaveURL(/\/admin\/episodes\/[0-9a-f-]{36}/);
+
+  // Listing: Article badge and a Read button instead of play.
+  await gotoReady(page, "/astrology-audios?category=planets-grahas");
+  const card = page.getByTestId("episode-card").filter({ visible: true, hasText: "E2E Shani Lekh" });
+  await expect(card.getByTestId("article-badge")).toBeVisible();
+  await expect(card.getByTestId("read-button")).toBeVisible();
+  await expect(card.getByTestId("play-button")).toHaveCount(0);
+
+  // Post page: formatted Hindi article, marked lang="hi", no audio player.
+  await card.getByTestId("read-button").click();
+  const body = page.getByTestId("article-body").filter({ visible: true });
+  await expect(body).toHaveAttribute("lang", "hi");
+  await expect(body.locator("h2")).toHaveText("शनि ग्रह");
+  await expect(body.locator("strong")).toHaveText("परीक्षण");
+  await expect(page.getByTestId("episode-play")).toHaveCount(0);
+
+  // Premium article: visitors see the lock, and the text is not anywhere in the page.
+  await gotoReady(page, "/admin/episodes/new");
+  await page.getByLabel("Title").fill("E2E Premium Lekh");
+  await page.getByLabel("Category").selectOption({ label: "Planets (Grahas)" });
+  await page.getByLabel("Short description").fill("A premium Hindi article.");
+  await page.getByLabel("Article text").fill("गुप्तप्रीमियमपाठ केवल पैकेज के लिए");
+  await page.getByLabel(/Premium episode/).check();
+  await page.getByTestId("publish-checkbox").check();
+  await page.getByTestId("save-episode").click();
+  await expect(page).toHaveURL(/\/admin\/episodes\/[0-9a-f-]{36}/);
+  const html = await (await request.get("/astrology-audios/e2e-premium-lekh")).text();
+  expect(html).not.toContain("गुप्तप्रीमियमपाठ");
+  await gotoReady(page, "/astrology-audios/e2e-premium-lekh");
+  await expect(page.getByTestId("locked-article").filter({ visible: true })).toContainText("full premium package");
+  expect(await page.content()).not.toContain("गुप्तप्रीमियमपाठ");
+});
+
 test("profile edits appear on the public about page", async ({ page }) => {
   await login(page);
   await gotoReady(page, "/admin/profile");

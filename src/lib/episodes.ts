@@ -1,10 +1,28 @@
 import type { Track } from "@/components/audio/AudioPlayerProvider";
+import { readingMinutes } from "./article";
 import { premiumConfig } from "./config";
+import { formatDurationLabel } from "./dates";
 import { audioUrl, imageUrl } from "./media/urls";
 import type { EpisodeListing } from "./types";
 
 export function episodeHref(e: Pick<EpisodeListing, "slug" | "category">): string {
   return e.category.section === "cricket" ? `/cricket-astrology/${e.slug}` : `/astrology-audios/${e.slug}`;
+}
+
+export function hasAudio(e: Pick<EpisodeListing, "audio_storage_path">): boolean {
+  return !!e.audio_storage_path;
+}
+
+export function hasArticle(e: Pick<EpisodeListing, "has_article">): boolean {
+  return e.has_article;
+}
+
+/** "48 sec", "3 min read", or both. Premium article text is not sent to visitors, so it shows just "Article". */
+export function lengthLabel(e: Pick<EpisodeListing, "audio_storage_path" | "article" | "has_article" | "duration_seconds">): string {
+  const parts: string[] = [];
+  if (hasAudio(e)) parts.push(formatDurationLabel(e.duration_seconds));
+  if (e.has_article) parts.push(e.article ? `${readingMinutes(e.article)} min read` : "Article");
+  return parts.join(" · ");
 }
 
 export function toTrack(e: EpisodeListing): Track {

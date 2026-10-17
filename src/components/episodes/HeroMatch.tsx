@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { CalendarClock, Headphones, MapPin } from "lucide-react";
-import { PlayButton } from "@/components/audio/PlayButton";
 import { AccessBadge, DemoBadge } from "@/components/ui/Badges";
-import { formatDateTime, formatDurationLabel } from "@/lib/dates";
-import { episodeHref, isLockedForVisitors, toTrack } from "@/lib/episodes";
+import { formatDateTime } from "@/lib/dates";
+import { episodeHref, hasAudio, lengthLabel } from "@/lib/episodes";
 import type { EpisodeListing } from "@/lib/types";
 import { ZodiacWheel } from "@/components/layout/ZodiacWheel";
 import { Countdown } from "./Countdown";
+import { MediaAction } from "./MediaAction";
 import { TeamBadge } from "./TeamBadge";
 
 /** The featured match prediction shown in the homepage hero. */
@@ -64,13 +64,13 @@ export function HeroMatch({ episode, upcoming }: { episode: EpisodeListing; upco
       </div>
 
       <div className="relative mt-6 flex items-center gap-4 rounded-2xl border border-line bg-night/50 p-4">
-        <PlayButton track={toTrack(episode)} locked={isLockedForVisitors(episode)} size="lg" label={episode.title} />
+        <MediaAction episode={episode} size="lg" label={episode.title} />
         <div className="min-w-0 flex-1">
           <Link href={href} className="line-clamp-2 text-sm leading-snug font-semibold hover:text-gold-soft">
             {episode.title}
           </Link>
           <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted">
-            <Headphones className="h-3.5 w-3.5" aria-hidden /> Audio reading · {formatDurationLabel(episode.duration_seconds)}
+            <Headphones className="h-3.5 w-3.5" aria-hidden /> {hasAudio(episode) ? "Audio reading" : "Article"} · {lengthLabel(episode)}
           </p>
         </div>
       </div>

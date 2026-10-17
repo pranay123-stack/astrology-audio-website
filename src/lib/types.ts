@@ -1,4 +1,6 @@
 export type Section = "cricket" | "general";
+export const ARTICLE_LANGS = ["hi", "en"] as const;
+export type ArticleLang = (typeof ARTICLE_LANGS)[number];
 
 export const MATCH_STATUSES = [
   "scheduled",
@@ -42,6 +44,9 @@ export interface Episode {
   slug: string;
   excerpt: string;
   description: string;
+  /** True when the post has a written article (the body is stored separately, see EpisodeListing.article). */
+  has_article: boolean;
+  article_lang: ArticleLang;
   category_id: string;
   audio_storage_path: string | null;
   audio_mime_type: string | null;
@@ -115,6 +120,11 @@ export interface TeamSummary {
 
 /** An episode joined with its category and (for cricket) match details. */
 export interface EpisodeListing extends Episode {
+  /**
+   * Article body (light formatting, often Hindi). Empty when there is no article, and also
+   * for premium posts in public reads: visitors never receive premium article text.
+   */
+  article: string;
   category: Pick<Category, "id" | "name" | "slug" | "section">;
   match: (CricketMatch & {
     competition: Pick<Competition, "id" | "name" | "short_name" | "slug">;

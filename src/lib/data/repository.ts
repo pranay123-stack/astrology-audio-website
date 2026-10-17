@@ -1,4 +1,5 @@
 import type {
+  ArticleLang,
   Category,
   Competition,
   ContactMessage,
@@ -19,6 +20,8 @@ export interface EpisodeWrite {
   slug: string;
   excerpt: string;
   description: string;
+  article: string;
+  article_lang: ArticleLang;
   category_id: string;
   audio_storage_path: string | null;
   audio_mime_type: string | null;
@@ -86,6 +89,11 @@ export class RepositoryError extends Error {
   }
 }
 
+/** A published episode needs something to consume: audio, an article, or both. */
+export function hasContent(e: Pick<Episode, "audio_storage_path" | "has_article">): boolean {
+  return !!e.audio_storage_path || e.has_article;
+}
+
 export function isLive(e: Pick<Episode, "is_published" | "published_at">, now = Date.now()): boolean {
   return e.is_published && !!e.published_at && Date.parse(e.published_at) <= now;
 }
@@ -129,6 +137,7 @@ export function filterAndSort(rows: EpisodeListing[], q: EpisodeQuery, now = Dat
         r.title,
         r.excerpt,
         r.description,
+        r.article,
         r.category.name,
         r.match?.team_a.name,
         r.match?.team_a.short_name,

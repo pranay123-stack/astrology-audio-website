@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MATCH_STATUSES } from "./types";
+import { ARTICLE_LANGS, MATCH_STATUSES } from "./types";
 
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
@@ -41,6 +41,8 @@ export const episodeInputSchema = z.object({
     .default(""),
   excerpt: z.string().trim().min(10, "Add a short description (10+ characters)").max(280),
   description: z.string().trim().max(10000).default(""),
+  article: z.string().trim().max(60000, "Article is too long (60,000 characters max)").default(""),
+  article_lang: z.enum(ARTICLE_LANGS).default("hi"),
   category_id: z.string().min(1, "Choose a category"),
   audio_storage_path: storagePathSchema.nullable(),
   cover_image_path: storagePathSchema.nullable(),

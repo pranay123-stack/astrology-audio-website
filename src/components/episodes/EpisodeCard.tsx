@@ -1,18 +1,18 @@
 import Image from "next/image";
 import Link from "next/link";
 import { CalendarDays, Clock } from "lucide-react";
-import { PlayButton } from "@/components/audio/PlayButton";
-import { AccessBadge, CategoryChip, DemoBadge } from "@/components/ui/Badges";
-import { formatDate, formatDurationLabel } from "@/lib/dates";
-import { episodeHref, isLockedForVisitors, toTrack } from "@/lib/episodes";
+import { AccessBadge, CategoryChip, DemoBadge, FormatBadges } from "@/components/ui/Badges";
+import { formatDate } from "@/lib/dates";
+import { episodeHref, hasArticle, hasAudio, lengthLabel } from "@/lib/episodes";
 import { imageUrl } from "@/lib/media/urls";
+import { MediaAction } from "./MediaAction";
 import type { EpisodeListing } from "@/lib/types";
 
 export function EpisodeCard({ episode, priority = false }: { episode: EpisodeListing; priority?: boolean }) {
   const href = episodeHref(episode);
   const cover = imageUrl(episode.cover_image_path);
   return (
-    <article className="card group flex flex-col overflow-hidden transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-glow)]" data-testid="episode-card">
+    <article className="card group flex flex-col overflow-hidden transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-glow)]" data-testid="episode-card" data-episode-id={episode.id}>
       <div className="relative aspect-[16/10] overflow-hidden bg-plum">
         <Link href={href} tabIndex={-1} aria-hidden className="absolute inset-0">
         {cover && (
@@ -32,11 +32,14 @@ export function EpisodeCard({ episode, priority = false }: { episode: EpisodeLis
           {episode.is_demo && <DemoBadge />}
         </div>
         <div className="absolute right-4 bottom-4">
-          <PlayButton track={toTrack(episode)} locked={isLockedForVisitors(episode)} />
+          <MediaAction episode={episode} />
         </div>
       </div>
       <div className="flex flex-1 flex-col gap-3 p-5">
-        <CategoryChip>{episode.category.name}</CategoryChip>
+        <div className="flex flex-wrap gap-1.5">
+          <CategoryChip>{episode.category.name}</CategoryChip>
+          <FormatBadges audio={hasAudio(episode)} article={hasArticle(episode)} />
+        </div>
         <h3 className="text-2xl leading-tight font-semibold">
           <Link href={href} className="hover:text-gold-soft">
             {episode.title}
@@ -49,7 +52,7 @@ export function EpisodeCard({ episode, priority = false }: { episode: EpisodeLis
             <time dateTime={episode.published_at ?? undefined}>{formatDate(episode.published_at)}</time>
           </span>
           <span className="inline-flex items-center gap-1">
-            <Clock className="h-3.5 w-3.5" aria-hidden /> {formatDurationLabel(episode.duration_seconds)}
+            <Clock className="h-3.5 w-3.5" aria-hidden /> {lengthLabel(episode)}
           </span>
         </div>
       </div>

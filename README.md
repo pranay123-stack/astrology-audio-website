@@ -196,7 +196,7 @@ To try a production build locally in local mode, run `npm run build && npm run s
 | `npm run typecheck` / `npm run lint` | TypeScript and ESLint (Next.js core-web-vitals) | clean |
 | `npm test` | 63 unit tests: session token signing and tampering, scrypt passwords, HTTP Range parsing, file-signature sniffing (disguised files), access rules, timezone/DST maths, slugs, validation, query parsing, the launch checklist, and the local repository (visibility, filters, search, sorting, transactions, concurrency, referential rules) | 63/63 pass |
 | `npm run test:supabase` | 13 tests run against a real **local** Supabase: RLS for visitors, signed-in non-admins and admins; storage privacy; atomic save rollback; DB constraints; sign-up disabled | 13/13 pass |
-| `npm run build && npm run test:e2e` | 15 Playwright tests in Chromium against a production build in **local mode** | 15/15 pass |
+| `npm run test:e2e` (seeds, builds, then tests) | 15 Playwright tests in Chromium against a production build in **local mode** | 15/15 pass |
 | `npm run test:e2e:supabase` | Resets and seeds the **local** Supabase (refuses to run against a remote one), builds in Supabase mode, then runs the same 15 browser tests plus the 13 RLS tests | 15/15 + 13/13 pass |
 
 The browser tests check:
@@ -292,6 +292,7 @@ tests/unit, tests/supabase, tests/e2e
   - category chips, keyword search, free/premium filter
   - latest and popular (by play count)
   - Load more, detail pages, related audios
+- [x] Articles: a post can have audio, a written article (Hindi or English), or both. Light formatting (paragraphs, `##` headings, `-` bullets, `**bold**`), admin preview, Devanagari fonts, `lang` set for accessibility, article text searchable. Premium article text is stored in a separate RLS-protected table, so visitors can never read it, not even through the public API.
 - [x] Premium labels and locked players that send visitors to the astrologer ("Contact for full package", contact form pre-filled with the episode), with server-side refusal of premium audio.
 - [x] Admin:
   - secure login

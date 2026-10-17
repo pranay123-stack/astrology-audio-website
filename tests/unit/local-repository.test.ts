@@ -81,6 +81,8 @@ const write = (over: Partial<EpisodeWrite> = {}): EpisodeWrite => ({
   slug: "new-episode",
   excerpt: "A new excerpt",
   description: "",
+  article: "",
+  article_lang: "hi",
   category_id: "c-gen",
   audio_storage_path: "audio/00000000-0000-4000-a000-000000000002.mp3",
   audio_mime_type: "audio/mpeg",
@@ -135,6 +137,46 @@ describe("filters", () => {
     const page = await repo.queryEpisodes({ sort: "latest", limit: 2, offset: 1 });
     expect(page.items).toHaveLength(2);
     expect(page.total).toBe(4);
+  });
+});
+
+describe("articles", () => {
+  const ARTICLE = "## शनि\n\nशनि ग्रह पर एक लेख।";
+
+  it("publishes an article-only post (no audio needed)", async () => {
+    const e = await repo.createEpisode(write({ slug: "shani-lekh", audio_storage_path: null, audio_mime_type: null, article: ARTICLE }));
+    expect(e.has_article).toBe(true);
+    const row = await repo.getEpisodeBySlug("shani-lekh");
+    expect(row?.article).toBe(ARTICLE);
+    expect(row?.audio_storage_path).toBeNull();
+  });
+
+  it("refuses to publish a post with neither audio nor article", async () => {
+    const draft = await repo.createEpisode(write({ slug: "empty", is_published: false, published_at: null, audio_storage_path: null, article: "   " }));
+    expect(draft.has_article).toBe(false);
+    await expect(repo.setEpisodePublished(draft.id, true)).rejects.toThrow(/audio file or an article/);
+  });
+
+  it("finds posts by words inside the article", async () => {
+    await repo.createEpisode(write({ slug: "shukra", article: "शुक्र ग्रह का प्रभाव" }));
+    expect((await repo.queryEpisodes({ search: "प्रभाव" })).items.map((e) => e.slug)).toEqual(["shukra"]);
+  });
+
+  it("never returns premium article text in public reads, but admins see it", async () => {
+    await repo.createEpisode(write({ slug: "premium-lekh", is_premium: true, article: "गुप्त प्रीमियम लेख" }));
+    const pub = await repo.getEpisodeBySlug("premium-lekh");
+    expect(pub?.has_article).toBe(true);
+    expect(pub?.article).toBe("");
+    expect((await repo.queryEpisodes({ search: "गुप्त" })).total).toBe(0);
+    expect((await repo.queryEpisodes({ access: "premium" })).items.find((e) => e.slug === "premium-lekh")?.article).toBe("");
+    const admin = await repo.getEpisodeBySlug("premium-lekh", { includeUnpublished: true });
+    expect(admin?.article).toBe("गुप्त प्रीमियम लेख");
+  });
+
+  it("clears the article when it is emptied on update", async () => {
+    const e = await repo.createEpisode(write({ slug: "will-clear", article: "कुछ पाठ" }));
+    const updated = await repo.updateEpisode(e.id, write({ slug: "will-clear", article: "" }));
+    expect(updated.has_article).toBe(false);
   });
 });
 

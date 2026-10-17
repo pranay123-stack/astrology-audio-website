@@ -10,18 +10,20 @@ const audioState = (page: Page) =>
 
 test("home page shows the main sections and the sample-content notice", async ({ page }) => {
   await gotoReady(page, "/");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("BBL Match Predictions");
-  // The hero leads with the next BBL match prediction, with a live countdown and a play button.
-  const hero = page.getByTestId("hero-match").filter({ visible: true });
-  await expect(hero).toContainText("Next match prediction");
-  await expect(hero).toContainText("Demo Team A");
-  await expect(hero.getByTestId("countdown")).toBeVisible();
-  await expect(hero.getByTestId("play-button")).toBeVisible();
+  // General astrology leads; cricket is further down the page for visitors who scroll.
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Discover Astrology");
+  await expect(page.getByTestId("hero-latest").filter({ visible: true })).toContainText("Latest reading");
+  const order = await page.evaluate(() =>
+    ["general-heading", "featured-heading", "about-heading", "cricket-heading"].map((id) => document.getElementById(id)?.getBoundingClientRect().top ?? -1),
+  );
+  expect(order.every((y, i) => y > 0 && (i === 0 || y > order[i - 1]))).toBe(true);
+  const nav = await page.getByRole("navigation", { name: "Main" }).filter({ visible: true }).getByRole("link").allInnerTexts();
+  expect(nav.indexOf("General Astrology")).toBeLessThan(nav.indexOf("Cricket Astrology"));
   await expect(page.getByTestId("demo-banner")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Featured Audio" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Cricket Astrology Predictions" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Latest Astrology Audio" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Cricket Astrology", exact: true })).toBeVisible();
   await expect(page.getByTestId("match-card").filter({ visible: true })).toHaveCount(3);
-  await expect(page.getByTestId("category-tile").filter({ visible: true })).toHaveCount(7);
+  await expect(page.getByTestId("category-tile").filter({ visible: true })).toHaveCount(8);
   await expect(page.getByText(/not guarantee match outcomes/).first()).toBeVisible();
 });
 
@@ -67,13 +69,15 @@ test("premium audio is locked in the UI and refused by the server", async ({ pag
 
   // Hiding the button is not the protection: the audio route itself refuses premium audio.
   // Filtered listings render at request time, so these ids reflect the current data.
-  let html = "";
+  // Only the filtered listing cards: banners elsewhere on the page come from the build-time prerender.
+  const ids = new Set<string>();
   for (const url of ["/astrology-audios?access=premium", "/cricket-astrology?access=premium&when=all"]) {
     await gotoReady(page, url);
-    html += await page.content();
+    for (const card of await page.locator("[data-testid=match-card], [data-testid=episode-card]").filter({ visible: true }).all()) {
+      ids.add((await card.getAttribute("data-episode-id"))!);
+    }
   }
-  const ids = [...new Set([...html.matchAll(/\/api\/media\/audio\/([0-9a-f-]{36})/g)].map((m) => m[1]))];
-  expect(ids.length).toBeGreaterThan(0);
+  expect(ids.size).toBe(2); // the two sample premium episodes
   for (const id of ids) {
     const res = await request.get(`/api/media/audio/${id}`, { maxRedirects: 0 });
     expect(res.status()).toBe(403);
@@ -82,6 +86,10 @@ test("premium audio is locked in the UI and refused by the server", async ({ pag
 
 test("cricket page searches by team and splits upcoming and past matches", async ({ page }) => {
   await gotoReady(page, "/cricket-astrology");
+  // The next-match card with its countdown now leads the cricket page.
+  const next = page.getByTestId("hero-match").filter({ visible: true });
+  await expect(next).toContainText("Next match prediction");
+  await expect(next.getByTestId("countdown")).toBeVisible();
   await expect(page.getByTestId("match-card").filter({ visible: true })).toHaveCount(3);
   await page.getByLabel("Search team or match").fill("Demo Team C");
   await page.getByRole("button", { name: "Apply" }).click();

@@ -96,11 +96,14 @@ async function main() {
           slug: ep.slug,
           excerpt: ep.excerpt,
           description: ep.description,
+          article: ep.article ?? "",
+          has_article: !!ep.article,
+          article_lang: "hi",
           category_id: categories.find((c) => c.slug === ep.category)!.id,
-          audio_storage_path: audioPath[ep.audio],
-          audio_mime_type: "audio/mpeg",
+          audio_storage_path: ep.audio ? audioPath[ep.audio] : null,
+          audio_mime_type: ep.audio ? "audio/mpeg" : null,
           cover_image_path: coverPath[ep.slug],
-          duration_seconds: content.demoAudioDurations[ep.audio],
+          duration_seconds: ep.audio ? content.demoAudioDurations[ep.audio] : 0,
           is_published: true,
           is_premium: !!ep.premium,
           is_demo: true,
@@ -193,11 +196,13 @@ async function main() {
               slug: ep.slug,
               excerpt: ep.excerpt,
               description: ep.description,
+              has_article: !!ep.article,
+              article_lang: "hi",
               category_id: cats.find((c) => c.slug === ep.category)!.id,
-              audio_storage_path: audioPath[ep.audio],
-              audio_mime_type: "audio/mpeg",
+              audio_storage_path: ep.audio ? audioPath[ep.audio] : null,
+              audio_mime_type: ep.audio ? "audio/mpeg" : null,
               cover_image_path: coverPath[ep.slug],
-              duration_seconds: content.demoAudioDurations[ep.audio],
+              duration_seconds: ep.audio ? content.demoAudioDurations[ep.audio] : 0,
               is_published: true,
               is_premium: !!ep.premium,
               is_demo: true,
@@ -210,6 +215,9 @@ async function main() {
           .single(),
         `episode ${ep.slug}`,
       ) as { id: string };
+      if (ep.article) {
+        must(await sb.from("episode_articles").upsert({ episode_id: row.id, body: ep.article }, { onConflict: "episode_id" }), `article ${ep.slug}`);
+      }
       if (ep.match) {
         must(
           await sb.from("cricket_matches").upsert(

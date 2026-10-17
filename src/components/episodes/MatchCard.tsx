@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { CalendarClock, Clock, MapPin, Headphones } from "lucide-react";
-import { PlayButton } from "@/components/audio/PlayButton";
+import { BookOpen, CalendarClock, Clock, MapPin, Headphones } from "lucide-react";
 import { AccessBadge, DemoBadge } from "@/components/ui/Badges";
-import { formatDateTime, formatDurationLabel } from "@/lib/dates";
-import { episodeHref, isLockedForVisitors, toTrack } from "@/lib/episodes";
+import { formatDateTime } from "@/lib/dates";
+import { episodeHref, hasAudio, lengthLabel } from "@/lib/episodes";
 import type { EpisodeListing } from "@/lib/types";
+import { MediaAction } from "./MediaAction";
 import { TeamBadge } from "./TeamBadge";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -20,7 +20,7 @@ export function MatchCard({ episode }: { episode: EpisodeListing }) {
   if (!match) return null;
   const href = episodeHref(episode);
   return (
-    <article className="card relative flex flex-col gap-5 p-5 transition hover:shadow-[var(--shadow-glow)]" data-testid="match-card">
+    <article className="card relative flex flex-col gap-5 p-5 transition hover:shadow-[var(--shadow-glow)]" data-testid="match-card" data-episode-id={episode.id}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="eyebrow">{match.competition.name}</span>
         <div className="flex gap-1.5">
@@ -67,13 +67,14 @@ export function MatchCard({ episode }: { episode: EpisodeListing }) {
 
       <div className="mt-auto flex items-center justify-between gap-3">
         <span className="inline-flex items-center gap-1 text-xs text-muted">
-          <Clock className="h-3.5 w-3.5" aria-hidden /> {formatDurationLabel(episode.duration_seconds)}
+          <Clock className="h-3.5 w-3.5" aria-hidden /> {lengthLabel(episode)}
         </span>
         <div className="flex items-center gap-2">
           <Link href={href} className="btn-ghost px-4 py-2 text-xs">
-            <Headphones className="h-4 w-4" aria-hidden /> Listen now
+            {hasAudio(episode) ? <Headphones className="h-4 w-4" aria-hidden /> : <BookOpen className="h-4 w-4" aria-hidden />}
+            {hasAudio(episode) ? "Listen now" : "Read"}
           </Link>
-          <PlayButton track={toTrack(episode)} locked={isLockedForVisitors(episode)} label={episode.title} />
+          <MediaAction episode={episode} label={episode.title} />
         </div>
       </div>
     </article>

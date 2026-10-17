@@ -147,6 +147,66 @@ describe("visitors (anon key)", () => {
   });
 });
 
+describe("articles", () => {
+  async function postWithArticle(over: Record<string, unknown>, body: string) {
+    const id = await makeEpisode({ audio_storage_path: null, has_article: true, ...over });
+    const { error } = await service.from("episode_articles").insert({ episode_id: id, body });
+    if (error) throw error;
+    return id;
+  }
+  const live = { is_published: true, published_at: new Date(Date.now() - 1000).toISOString() };
+
+  it("visitors read articles of live free posts only", async () => {
+    const free = await postWithArticle(live, "शनि पर मुफ़्त लेख");
+    const premium = await postWithArticle({ ...live, is_premium: true }, "गुप्त प्रीमियम लेख");
+    const draft = await postWithArticle({ is_published: false }, "ड्राफ़्ट लेख");
+    const direct = await anon.from("episode_articles").select("episode_id, body").in("episode_id", [free, premium, draft]);
+    expect(direct.data).toEqual([{ episode_id: free, body: "शनि पर मुफ़्त लेख" }]);
+    // Through the listing view the premium post is visible, but its article body is empty.
+    const view = await anon.from("episode_listings").select("id, has_article, article").in("id", [free, premium]);
+    const byId = Object.fromEntries((view.data ?? []).map((r) => [r.id, r]));
+    expect(byId[free]).toMatchObject({ has_article: true, article: "शनि पर मुफ़्त लेख" });
+    expect(byId[premium]).toMatchObject({ has_article: true, article: "" });
+    // Premium text cannot be found by searching either.
+    expect((await anon.from("episode_listings").select("id").ilike("search_text", "%गुप्त%")).data).toEqual([]);
+    // Admins see everything.
+    expect((await admin.from("episode_articles").select("episode_id").in("episode_id", [free, premium, draft])).data).toHaveLength(3);
+  });
+
+  it("visitors and members cannot write articles", async () => {
+    const id = await makeEpisode({ is_published: false });
+    expect((await anon.from("episode_articles").insert({ episode_id: id, body: "spam" })).error).not.toBeNull();
+    expect((await member.from("episode_articles").insert({ episode_id: id, body: "spam" })).error).not.toBeNull();
+  });
+
+  it("a post can be published with an article and no audio, but not with neither", async () => {
+    expect((await service.from("episodes").insert({ title: "Lekh", slug: `lekh-${randomUUID().slice(0, 8)}`, category_id: generalCat, has_article: true, ...live }).select("id").single()).error).toBeNull();
+    const bad = await service.from("episodes").insert({ title: "Empty", slug: `empty-${randomUUID().slice(0, 8)}`, category_id: generalCat, ...live });
+    expect(bad.error?.code).toBe("23514");
+    await service.from("episodes").delete().like("slug", "lekh-%");
+  });
+
+  it("admin_save_episode stores, updates and removes the article atomically", async () => {
+    const episode = {
+      title: "Shani article", slug: `shani-${randomUUID().slice(0, 8)}`, excerpt: "article test", description: "", category_id: generalCat,
+      audio_storage_path: null, audio_mime_type: null, cover_image_path: null, duration_seconds: 0, is_published: true, is_premium: false,
+      published_at: new Date().toISOString(), article: "## शनि\n\nलेख", article_lang: "hi",
+    };
+    const { data: id, error } = await admin.rpc("admin_save_episode", { p_id: null, p_episode: episode, p_match: null });
+    expect(error).toBeNull();
+    cleanup.push(id);
+    expect((await admin.from("episodes").select("has_article, article_lang").eq("id", id).single()).data).toEqual({ has_article: true, article_lang: "hi" });
+    expect((await admin.from("episode_articles").select("body").eq("episode_id", id).single()).data?.body).toBe("## शनि\n\nलेख");
+    // Removing the article while it is the only content must fail (nothing left to publish).
+    const empty = await admin.rpc("admin_save_episode", { p_id: id, p_episode: { ...episode, article: "" }, p_match: null });
+    expect(empty.error).not.toBeNull();
+    // As a draft it is allowed, and the article row is deleted.
+    const asDraft = await admin.rpc("admin_save_episode", { p_id: id, p_episode: { ...episode, article: "", is_published: false }, p_match: null });
+    expect(asDraft.error).toBeNull();
+    expect((await admin.from("episode_articles").select("episode_id").eq("episode_id", id)).data).toEqual([]);
+  });
+});
+
 describe("signed-in non-admin user", () => {
   it("is not an admin and cannot write content or read messages", async () => {
     expect((await member.rpc("is_admin")).data).toBe(false);

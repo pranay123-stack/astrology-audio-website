@@ -81,8 +81,12 @@ export async function saveEpisode(input: EpisodeInput): Promise<ActionResult<{ i
     if (isCricket && !d.match) {
       return { ok: false, error: "Add the match details for cricket episodes.", fields: { "match.competition_id": "Choose a competition" } };
     }
-    if (d.is_published && !d.audio_storage_path) {
-      return { ok: false, error: "Upload an audio file before publishing.", fields: { audio_storage_path: "Audio is required to publish" } };
+    if (d.is_published && !d.audio_storage_path && !d.article.trim()) {
+      return {
+        ok: false,
+        error: "Add an audio file or an article before publishing.",
+        fields: { audio_storage_path: "Add audio or write an article to publish", article: "Add audio or write an article to publish" },
+      };
     }
 
     // Files must exist in storage and their bytes must match the declared type.
@@ -115,11 +119,13 @@ export async function saveEpisode(input: EpisodeInput): Promise<ActionResult<{ i
       slug,
       excerpt: d.excerpt,
       description: d.description,
+      article: d.article,
+      article_lang: d.article_lang,
       category_id: d.category_id,
       audio_storage_path: d.audio_storage_path,
       audio_mime_type: d.audio_storage_path ? (EXT_TO_MIME[ext] ?? null) : null,
       cover_image_path: d.cover_image_path,
-      duration_seconds: d.duration_seconds,
+      duration_seconds: d.audio_storage_path ? d.duration_seconds : 0,
       is_published: d.is_published,
       is_premium: d.is_premium,
       published_at: publishedAt,

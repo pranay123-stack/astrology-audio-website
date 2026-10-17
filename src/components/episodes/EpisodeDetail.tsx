@@ -1,17 +1,18 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
-import { CalendarClock, CalendarDays, ChevronLeft, Clock, MapPin } from "lucide-react";
+import { BookOpen, CalendarClock, CalendarDays, ChevronLeft, Clock, Lock, Mail, MapPin } from "lucide-react";
 import { EpisodePlayer } from "@/components/audio/EpisodePlayer";
 import { AccessBadge, CategoryChip, DemoBadge } from "@/components/ui/Badges";
 import { CricketDisclaimer } from "@/components/ui/Disclaimer";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { siteConfig } from "@/lib/config";
-import { formatDate, formatDateTime, formatDurationLabel } from "@/lib/dates";
-import { episodeHref, isLockedForVisitors, toTrack } from "@/lib/episodes";
+import { formatDate, formatDateTime } from "@/lib/dates";
+import { episodeHref, hasAudio, isLockedForVisitors, lengthLabel, premiumContactHref, toTrack } from "@/lib/episodes";
 import { imageUrl } from "@/lib/media/urls";
 import { getEpisodeBySlug, getEpisodes } from "@/lib/queries";
 import type { EpisodeListing, Section } from "@/lib/types";
+import { ArticleBody } from "./ArticleBody";
 import { EpisodeCard } from "./EpisodeCard";
 import { MatchCard } from "./MatchCard";
 import { TeamBadge } from "./TeamBadge";
@@ -27,18 +28,19 @@ function isoDuration(seconds: number): string {
 function JsonLd({ episode }: { episode: EpisodeListing }) {
   if (episode.is_demo) return null;
   const cover = imageUrl(episode.cover_image_path);
-  const data = {
+  const common = {
     "@context": "https://schema.org",
-    "@type": "PodcastEpisode",
-    name: episode.title,
     description: episode.excerpt,
     url: `${siteConfig.url}${episodeHref(episode)}`,
     datePublished: episode.published_at,
-    timeRequired: isoDuration(episode.duration_seconds),
     isAccessibleForFree: !episode.is_premium,
     ...(cover ? { image: cover.startsWith("http") ? cover : `${siteConfig.url}${cover}` } : {}),
     genre: episode.category.name,
   };
+  // An audio post is a podcast episode; an article-only post is an Article.
+  const data = hasAudio(episode)
+    ? { ...common, "@type": "PodcastEpisode", name: episode.title, timeRequired: isoDuration(episode.duration_seconds) }
+    : { ...common, "@type": "Article", headline: episode.title, inLanguage: episode.article_lang };
   return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, "\\u003c") }} />;
 }
 
@@ -82,11 +84,11 @@ export async function EpisodeDetail({ slug, section }: { slug: string; section: 
               <CalendarDays className="h-4 w-4" aria-hidden /> Published <time dateTime={episode.published_at ?? undefined}>{formatDate(episode.published_at)}</time>
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <Clock className="h-4 w-4" aria-hidden /> {formatDurationLabel(episode.duration_seconds)}
+              <Clock className="h-4 w-4" aria-hidden /> {lengthLabel(episode)}
             </span>
           </div>
 
-          <EpisodePlayer track={toTrack(episode)} locked={isLockedForVisitors(episode)} />
+          {hasAudio(episode) && <EpisodePlayer track={toTrack(episode)} locked={isLockedForVisitors(episode)} />}
 
           {match && (
             <section className="card p-6" aria-labelledby="match-heading">
@@ -121,6 +123,32 @@ export async function EpisodeDetail({ slug, section }: { slug: string; section: 
             </section>
           )}
 
+          {episode.has_article && (
+            <section aria-labelledby="article-heading" className="space-y-5" data-testid="article-section">
+              <h2 id="article-heading" className="flex items-center gap-2 font-display text-3xl text-gold-soft">
+                <BookOpen className="h-6 w-6" aria-hidden /> {episode.article_lang === "hi" ? "लेख" : "Article"}
+              </h2>
+              {episode.article ? (
+                <div className="card p-6 sm:p-8">
+                  <ArticleBody source={episode.article} lang={episode.article_lang} />
+                </div>
+              ) : (
+                // Premium: the article text is never sent to visitors (database policy), so only the lock is shown.
+                <div className="card flex flex-col items-start gap-4 p-6 sm:flex-row sm:items-center" data-testid="locked-article">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-gold/50 text-gold-soft">
+                    <Lock className="h-5 w-5" aria-hidden />
+                  </div>
+                  <p className="flex-1 text-sm text-muted">
+                    This article is part of the astrologer&apos;s full premium package. Get in touch with the astrologer to read it.
+                  </p>
+                  <Link href={premiumContactHref(episode.title)} className="btn-gold">
+                    <Mail className="h-4 w-4" aria-hidden /> Contact for full package
+                  </Link>
+                </div>
+              )}
+            </section>
+          )}
+
           {paragraphs.length > 0 && (
             <section aria-labelledby="notes-heading" className="prose-cosmic">
               <h2 id="notes-heading">Episode notes</h2>
@@ -148,8 +176,8 @@ export async function EpisodeDetail({ slug, section }: { slug: string; section: 
         <section className="mt-20" aria-labelledby="related-heading">
           <SectionHeading
             id="related-heading"
-            eyebrow="Keep listening"
-            title={section === "cricket" ? "Related Match Readings" : "Related Audios"}
+            eyebrow="Keep exploring"
+            title={section === "cricket" ? "Related Match Readings" : "Related Audio & Articles"}
             href={backHref}
           />
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

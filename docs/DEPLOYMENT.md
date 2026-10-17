@@ -39,6 +39,8 @@ Sources: [Hostinger: How to add a Node.js web app](https://www.hostinger.com/sup
    - **SQL editor:** paste `supabase/migrations/20261009000000_initial_schema.sql` and run it once.
    - **CLI:** `npx --yes supabase@2.120.0 login`, then `npx --yes supabase@2.120.0 link --project-ref <ref>`, then `npx --yes supabase@2.120.0 db push`.
 
+   Apply **every** file in `supabase/migrations/` in name order: `20261009000000_initial_schema.sql`, then `20261017000000_articles.sql` (articles + the "Planets (Grahas)" category). `db push` applies any missing ones automatically.
+
    This creates all tables, RLS policies, functions, the `episode_listings` view and the two storage buckets: `audio` (private, 200 MB/file) and `images` (public, 5 MB/file).
 3. **Authentication** → *Sign In / Providers*:
    - Turn **off** "Allow new users to sign up".

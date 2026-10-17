@@ -9,8 +9,9 @@ import { saveEpisode } from "@/app/admin/actions";
 import { formatDuration, fromZonedInputValue, toZonedInputValue } from "@/lib/dates";
 import { audioUrl, imageUrl } from "@/lib/media/urls";
 import { slugify } from "@/lib/slug";
-import { MATCH_STATUSES, type Category, type Competition, type EpisodeListing, type Team } from "@/lib/types";
+import { MATCH_STATUSES, type ArticleLang, type Category, type Competition, type EpisodeListing, type Team } from "@/lib/types";
 import { episodeInputSchema, fieldErrors, type EpisodeInput } from "@/lib/validation";
+import { ArticleBody } from "@/components/episodes/ArticleBody";
 import { FileField } from "./FileField";
 
 interface FormValues {
@@ -18,6 +19,8 @@ interface FormValues {
   slug: string;
   excerpt: string;
   description: string;
+  article: string;
+  article_lang: ArticleLang;
   category_id: string;
   duration_minutes: number;
   duration_secs: number;
@@ -60,6 +63,8 @@ export function EpisodeForm({
       slug: episode?.slug ?? "",
       excerpt: episode?.excerpt ?? "",
       description: episode?.description ?? "",
+      article: episode?.article ?? "",
+      article_lang: episode?.article_lang ?? "hi",
       category_id: episode?.category_id ?? "",
       duration_minutes: Math.floor(duration / 60),
       duration_secs: duration % 60,
@@ -78,6 +83,9 @@ export function EpisodeForm({
   const categoryId = useWatch({ control, name: "category_id" });
   const competitionId = useWatch({ control, name: "competition_id" });
   const isPublished = useWatch({ control, name: "is_published" });
+  const articleText = useWatch({ control, name: "article" });
+  const articleLang = useWatch({ control, name: "article_lang" });
+  const [showPreview, setShowPreview] = useState(false);
   const durationMinutes = useWatch({ control, name: "duration_minutes" });
   const durationSecs = useWatch({ control, name: "duration_secs" });
   const section = categories.find((c) => c.id === categoryId)?.section;
@@ -96,6 +104,8 @@ export function EpisodeForm({
       slug: v.slug,
       excerpt: v.excerpt,
       description: v.description,
+      article: v.article,
+      article_lang: v.article_lang,
       category_id: v.category_id,
       audio_storage_path: audioPath,
       cover_image_path: coverPath,
@@ -121,9 +131,9 @@ export function EpisodeForm({
       setMessage({ kind: "error", text: "Please fix the highlighted fields." });
       return;
     }
-    if (payload.is_published && !payload.audio_storage_path) {
-      setErrors({ audio_storage_path: "Audio is required to publish" });
-      setMessage({ kind: "error", text: "Upload an audio file before publishing." });
+    if (payload.is_published && !payload.audio_storage_path && !(payload.article ?? "").trim()) {
+      setErrors({ audio_storage_path: "Add audio or write an article to publish", article: "Add audio or write an article to publish" });
+      setMessage({ kind: "error", text: "Add an audio file or an article before publishing." });
       return;
     }
     setErrors({});
@@ -249,12 +259,53 @@ export function EpisodeForm({
         </section>
       )}
 
+      <section className="card space-y-5 p-6" data-testid="article-fields">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-2xl font-semibold">Article <span className="text-base font-normal text-muted">(optional)</span></h2>
+          <label className="flex items-center gap-2 text-sm">
+            <span className="text-muted">Language</span>
+            <select className="input w-auto py-1.5" {...register("article_lang")} aria-label="Article language">
+              <option value="hi">Hindi</option>
+              <option value="en">English</option>
+            </select>
+          </label>
+        </div>
+        <div>
+          <label htmlFor="article" className="label">Article text</label>
+          <textarea
+            id="article"
+            rows={14}
+            lang={articleLang}
+            className="input leading-relaxed"
+            placeholder={"Paste the article here, e.g. a Hindi piece on Shani or Shukra.\n\nBlank line = new paragraph · ## Heading · - Bullet point · **bold**"}
+            {...register("article")}
+          />
+          <p className="mt-1 text-xs text-muted">
+            A post can have audio, an article, or both. Blank line = new paragraph · <code>## </code>heading · <code>- </code>bullet ·{" "}
+            <code>**bold**</code>. Premium articles are shown only to the astrologer until the premium package is arranged.
+          </p>
+          {err("article")}
+        </div>
+        {articleText.trim() && (
+          <div>
+            <button type="button" className="btn-ghost px-4 py-2 text-xs" onClick={() => setShowPreview((v) => !v)} data-testid="article-preview-toggle">
+              {showPreview ? "Hide preview" : "Preview article"}
+            </button>
+            {showPreview && (
+              <div className="mt-4 rounded-2xl border border-line bg-night/50 p-5" data-testid="article-preview">
+                <ArticleBody source={articleText} lang={articleLang} />
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
       <section className="card space-y-5 p-6">
         <h2 className="text-2xl font-semibold">Media</h2>
         <FileField
           id="audio"
           kind="audio"
-          label="Audio file"
+          label="Audio file (optional if the post has an article)"
           hint="MP3, M4A, AAC, OGG or WAV. The duration is read from the file automatically."
           value={audioPath}
           previewUrl={episode?.audio_storage_path ? audioUrl(episode.id) : null}

@@ -19,6 +19,7 @@ export const categories = [
   { slug: "vedic-astrology", name: "Vedic Astrology", section: "general", description: "Jyotish concepts: nakshatras, dashas, houses and remedies." },
   { slug: "spirituality-and-meditation", name: "Spirituality and Meditation", section: "general", description: "Guided reflections and meditations inspired by astrological themes." },
   { slug: "astrology-learning", name: "Astrology Learning", section: "general", description: "Lessons for listeners who want to learn astrology themselves." },
+  { slug: "planets-grahas", name: "Planets (Grahas)", section: "general", description: "Shani, Shukra, Guru and the other grahas: their nature, influence and remedies." },
 ] as const;
 
 export const competitions = [
@@ -77,7 +78,9 @@ export interface DemoEpisode {
   excerpt: string;
   description: string;
   category: (typeof categories)[number]["slug"];
-  audio: DemoAudio;
+  /** Omit for an article-only sample. */
+  audio?: DemoAudio;
+  article?: string;
   cover: { hue: number; glyph: "sun" | "moon" | "wheel" | "star" | "planet" | "bat" };
   premium?: boolean;
   /** Days relative to seeding time. */
@@ -85,6 +88,21 @@ export interface DemoEpisode {
   playCount: number;
   match?: { teamA: string; teamB: string; inDays: number; hourLocal: number; venue: string; status: "scheduled" | "completed" };
 }
+
+/** Hindi placeholder showing the article layout. It deliberately makes no astrological claims. */
+const SAMPLE_HINDI_ARTICLE = `## नमूना लेख
+
+यह एक **नमूना लेख** है। इससे पता चलता है कि ज्योतिषी के लेख वेबसाइट पर कैसे दिखेंगे।
+
+ज्योतिषी शनि, शुक्र, गुरु जैसे ग्रहों पर अपने लेख यहाँ प्रकाशित कर सकते हैं। लेख के साथ ऑडियो भी जोड़ा जा सकता है, या केवल लेख भी प्रकाशित किया जा सकता है।
+
+### लेख में क्या-क्या हो सकता है
+
+- अनुच्छेद (खाली पंक्ति से नया अनुच्छेद)
+- छोटे शीर्षक
+- सूची के बिंदु
+
+यह पाठ केवल प्रदर्शन के लिए है। इसमें कोई ज्योतिषीय भविष्यवाणी नहीं है।`;
 
 export const demoEpisodes: DemoEpisode[] = [
   {
@@ -137,10 +155,22 @@ export const demoEpisodes: DemoEpisode[] = [
     match: { teamA: "Demo Team D", teamB: "Demo Team A", inDays: -3, hourLocal: 19, venue: "Sample Venue", status: "completed" },
   },
   {
+    slug: "sample-article-graha",
+    title: "Sample: Hindi Article (Planets)",
+    excerpt: "Placeholder showing how a written Hindi article on a graha such as Shani or Shukra appears, without audio.",
+    description: "",
+    article: SAMPLE_HINDI_ARTICLE,
+    category: "planets-grahas",
+    cover: { hue: 260, glyph: "planet" },
+    publishedDaysAgo: 0.05,
+    playCount: 0,
+  },
+  {
     slug: "sample-daily-astrology-reading",
     title: "Sample: Daily Astrology Reading",
     excerpt: "Placeholder episode showing how a short daily reading is presented.",
     description: "Daily readings usually run a few minutes and cover the day's lunar placement and major aspects." + DEMO_NOTE,
+    article: SAMPLE_HINDI_ARTICLE,
     category: "daily-astrology",
     audio: "demo-tone-a.mp3",
     cover: { hue: 40, glyph: "sun" },

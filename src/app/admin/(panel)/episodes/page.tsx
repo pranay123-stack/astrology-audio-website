@@ -78,7 +78,9 @@ async function EpisodeTable({ searchParams }: Pick<PageProps<"/admin/episodes">,
                     <div className="mt-0.5 flex gap-2 text-xs text-muted">
                       {e.is_premium && <span>Premium</span>}
                       {e.is_demo && <span className="text-sky-200">Sample</span>}
-                      {!e.audio_storage_path && <span className="text-red-300">No audio</span>}
+                      {e.audio_storage_path && <span>Audio</span>}
+                      {e.has_article && <span>Article</span>}
+                      {!e.audio_storage_path && !e.has_article && <span className="text-red-300">No audio or article</span>}
                     </div>
                   </td>
                   <td className="px-4 py-3 text-muted">{e.category.name}</td>

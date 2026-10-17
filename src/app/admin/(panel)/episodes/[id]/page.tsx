@@ -43,7 +43,7 @@ async function Editor({ params }: Pick<PageProps<"/admin/episodes/[id]">, "param
           This is a sample episode created by the seed script.
         </p>
       )}
-      <EpisodeForm key={episode.updated_at} episode={episode} categories={categories} competitions={competitions} teams={teams} timeZone={siteConfig.timeZone} />
+      <EpisodeForm episode={episode} categories={categories} competitions={competitions} teams={teams} timeZone={siteConfig.timeZone} />
     </div>
   );
 }

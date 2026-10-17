@@ -21,7 +21,7 @@ async function ProfileContent() {
   return (
     <div className="max-w-3xl space-y-6">
       <h1 className="text-4xl font-semibold">Astrologer profile</h1>
-      <ProfileForm key={profile.updated_at} profile={profile} />
+      <ProfileForm profile={profile} />
     </div>
   );
 }
