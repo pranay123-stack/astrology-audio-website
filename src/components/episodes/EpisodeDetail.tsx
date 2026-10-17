@@ -209,7 +209,7 @@ export async function episodeMetadata(slug: string) {
     description: episode.excerpt,
     alternates: { canonical: url },
     // Sample content should not be indexed as if it were a real episode.
-    robots: episode.is_demo ? { index: false, follow: true } : undefined,
+    robots: siteConfig.noIndex ? { index: false, follow: false } : episode.is_demo ? { index: false, follow: true } : undefined,
     openGraph: {
       type: "article" as const,
       title: episode.title,

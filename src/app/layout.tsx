@@ -17,6 +17,8 @@ const devanagariDisplay = Tiro_Devanagari_Hindi({ subsets: ["devanagari"], weigh
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
+  // Test deployments are hidden from search engines; pages without their own robots setting inherit this.
+  ...(siteConfig.noIndex ? { robots: { index: false, follow: false } } : {}),
   title: {
     default: `${siteConfig.name} — Astrology Through Audio`,
     template: `%s | ${siteConfig.name}`,

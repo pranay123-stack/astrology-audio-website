@@ -152,34 +152,6 @@ export default async function HomePage() {
         )}
       </section>
 
-      {/* About */}
-      <section className="container-page py-16" aria-labelledby="about-heading">
-        <div className="card grid overflow-hidden md:grid-cols-[minmax(0,320px)_1fr]">
-          <div className="relative aspect-square bg-plum md:aspect-auto">
-            {portrait && <Image src={portrait} alt={`Portrait of ${profile.display_name}`} fill sizes="(min-width: 768px) 320px, 100vw" className="object-cover" />}
-          </div>
-          <div className="space-y-4 p-8 sm:p-10">
-            <p className="eyebrow">About the astrologer</p>
-            <h2 id="about-heading" className="text-4xl font-semibold">
-              {profile.display_name}
-            </h2>
-            <p className="text-ink/85">{profile.biography}</p>
-            {profile.specializations.length > 0 && (
-              <ul className="flex flex-wrap gap-2" aria-label="Specialisations">
-                {profile.specializations.map((s) => (
-                  <li key={s} className="chip border border-line bg-white/5 py-1 text-ink/80 normal-case">
-                    {s}
-                  </li>
-                ))}
-              </ul>
-            )}
-            <Link href="/about" className="inline-flex items-center gap-1.5 text-sm font-semibold text-gold-soft">
-              Read more <ArrowRight className="h-4 w-4" aria-hidden />
-            </Link>
-          </div>
-        </div>
-      </section>
-
       {/* Cricket: further down for visitors who keep scrolling */}
       <section className="relative py-16" aria-labelledby="cricket-heading">
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-transparent via-plum/30 to-transparent" />
@@ -209,26 +181,34 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="container-page py-16">
-        <div className="relative isolate overflow-hidden rounded-3xl border border-gold/30 bg-gradient-to-br from-plum-2 via-plum to-navy px-6 py-14 text-center sm:px-12">
-          <Starfield />
-          <div className="relative mx-auto max-w-2xl space-y-5">
-            <h2 className="text-4xl font-semibold sm:text-5xl">Listen, follow, and ask your own question</h2>
-            <p className="text-ink/80">
-              Explore the full audio library, come back for new readings, or get in touch to ask about a personal consultation.
-            </p>
-            <div className="flex flex-wrap justify-center gap-3">
-              <Link href="/astrology-audios" className="btn-gold px-6 py-3">
-                <Headphones className="h-5 w-5" aria-hidden /> Explore more audio
-              </Link>
-              <Link href="/contact" className="btn-ghost px-6 py-3">
-                <Mail className="h-5 w-5" aria-hidden /> Contact the astrologer
-              </Link>
-            </div>
+      {/* About the astrologer: last section before the footer */}
+      <section className="container-page py-16" aria-labelledby="about-heading">
+        <div className="card grid overflow-hidden md:grid-cols-[minmax(0,320px)_1fr]">
+          <div className="relative aspect-square bg-plum md:aspect-auto">
+            {portrait && <Image src={portrait} alt={`Portrait of ${profile.display_name}`} fill sizes="(min-width: 768px) 320px, 100vw" className="object-cover" />}
+          </div>
+          <div className="space-y-4 p-8 sm:p-10">
+            <p className="eyebrow">About the astrologer</p>
+            <h2 id="about-heading" className="text-4xl font-semibold">
+              {profile.display_name}
+            </h2>
+            <p className="text-ink/85">{profile.biography}</p>
+            {profile.specializations.length > 0 && (
+              <ul className="flex flex-wrap gap-2" aria-label="Specialisations">
+                {profile.specializations.map((s) => (
+                  <li key={s} className="chip border border-line bg-white/5 py-1 text-ink/80 normal-case">
+                    {s}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Link href="/about" className="inline-flex items-center gap-1.5 text-sm font-semibold text-gold-soft">
+              Read more <ArrowRight className="h-4 w-4" aria-hidden />
+            </Link>
           </div>
         </div>
       </section>
+
     </>
   );
 }

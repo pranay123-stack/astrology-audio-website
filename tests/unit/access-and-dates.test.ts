@@ -85,7 +85,7 @@ describe("launch checklist", async () => {
     const stats = { total: 12, published: 12, drafts: 0, scheduled: 0, premium: 2, demo: 12, unreadMessages: 0, byCategory: [] };
     const seeded = { id: "p", updated_at: "", ...seedContent.profile, profile_image_path: PLACEHOLDER_PROFILE_IMAGE };
     const pending = launchChecks(seeded, stats).filter((c) => !c.done).map((c) => c.id);
-    expect(pending).toEqual(["name", "photo", "bio", "consult", "contact", "legal", "demo", "episodes", "brand", "url"]);
+    expect(pending).toEqual(["name", "photo", "bio", "consult", "contact", "legal", "demo", "episodes", "url"]);
 
     const real = {
       ...seeded,
@@ -99,6 +99,6 @@ describe("launch checklist", async () => {
       legal_jurisdiction: "NSW, Australia",
     };
     const done = launchChecks(real, { ...stats, demo: 0, published: 3 }).filter((c) => c.done).map((c) => c.id);
-    expect(done).toEqual(["name", "photo", "bio", "consult", "contact", "legal", "demo", "episodes"]);
+    expect(done).toEqual(["name", "photo", "bio", "consult", "contact", "legal", "demo", "episodes", "brand"]);
   });
 });

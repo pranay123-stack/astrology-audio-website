@@ -4,6 +4,7 @@ import type { Profile } from "./types";
 
 /** Storage path of the abstract placeholder portrait created by the seed script (stableUuid("placeholder-profile")). */
 export const PLACEHOLDER_PROFILE_IMAGE = "profile/7f4e22d9-e5e6-4e04-a823-6d9b7d4c0858.webp";
+/** The placeholder brand used before the real one was chosen; the launch check flags it if it ever comes back. */
 export const DEFAULT_SITE_NAME = "Celestial Voice Astrology";
 
 export interface LaunchCheck {

@@ -76,7 +76,7 @@ The admin dashboard's **"Before you launch"** panel tracks most of these live.
 
 | Item | Status |
 |---|---|
-| Real brand / site name (`NEXT_PUBLIC_SITE_NAME`). "Celestial Voice Astrology" is a placeholder. | **Pending** |
+| Real brand / site name (`NEXT_PUBLIC_SITE_NAME`) | Complete: "Astro Cricket" (code default; set the same value on the host) |
 | Astrologer's name, photograph and biography | **Pending** |
 | Experience and specialisations (verifiable claims only; no accuracy rates or testimonials unless real) | **Pending** |
 | Consultation and premium-package details | **Pending** |

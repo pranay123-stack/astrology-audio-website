@@ -14,7 +14,7 @@ test("home page shows the main sections and the sample-content notice", async ({
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Discover Astrology");
   await expect(page.getByTestId("hero-latest").filter({ visible: true })).toContainText("Latest reading");
   const order = await page.evaluate(() =>
-    ["general-heading", "featured-heading", "about-heading", "cricket-heading"].map((id) => document.getElementById(id)?.getBoundingClientRect().top ?? -1),
+    ["general-heading", "featured-heading", "cricket-heading", "about-heading"].map((id) => document.getElementById(id)?.getBoundingClientRect().top ?? -1),
   );
   expect(order.every((y, i) => y > 0 && (i === 0 || y > order[i - 1]))).toBe(true);
   const nav = await page.getByRole("navigation", { name: "Main" }).filter({ visible: true }).getByRole("link").allInnerTexts();

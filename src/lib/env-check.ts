@@ -50,6 +50,10 @@ export function checkProductionEnv(): EnvReport {
     }
   }
 
+  if (process.env.NEXT_PUBLIC_NOINDEX === "true") {
+    warnings.push("NEXT_PUBLIC_NOINDEX is on: the site is hidden from search engines. Remove it for the public launch.");
+  }
+
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
   if (!siteUrl || /localhost|127\.0\.0\.1/.test(siteUrl)) {
     warnings.push("NEXT_PUBLIC_SITE_URL points at localhost; canonical URLs, the sitemap and Open Graph links will be wrong. Rebuild with the real domain.");

@@ -18,11 +18,16 @@ function int(value: string | undefined, fallback: number): number {
 }
 
 export const siteConfig = {
-  name: process.env.NEXT_PUBLIC_SITE_NAME || "Celestial Voice Astrology",
+  name: process.env.NEXT_PUBLIC_SITE_NAME || "Astro Cricket",
   url: (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3460").replace(/\/$/, ""),
   /** IANA timezone used to display match start times and publication dates. */
-  timeZone: process.env.NEXT_PUBLIC_SITE_TIMEZONE || "Australia/Sydney",
-  locale: process.env.NEXT_PUBLIC_SITE_LOCALE || "en-AU",
+  timeZone: process.env.NEXT_PUBLIC_SITE_TIMEZONE || "Asia/Kolkata",
+  locale: process.env.NEXT_PUBLIC_SITE_LOCALE || "en-IN",
+  /**
+   * Hide the whole site from search engines (robots.txt, meta tag and X-Robots-Tag header).
+   * Use on test deployments such as a temporary *.vercel.app address; leave unset at launch.
+   */
+  noIndex: process.env.NEXT_PUBLIC_NOINDEX === "true",
 };
 
 /**

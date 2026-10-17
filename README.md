@@ -77,7 +77,8 @@ All variables are documented in [`.env.example`](.env.example). `NEXT_PUBLIC_*` 
 |---|---|---|
 | `NEXT_PUBLIC_SITE_NAME` | both | Brand name in the header, titles and OG image |
 | `NEXT_PUBLIC_SITE_URL` | both | Canonical URLs, sitemap, Open Graph (no trailing slash) |
-| `NEXT_PUBLIC_SITE_TIMEZONE` | both | Timezone for match times and dates (default `Australia/Sydney`) |
+| `NEXT_PUBLIC_SITE_TIMEZONE` | both | Timezone for match times and dates (default `Asia/Kolkata`, IST) |
+| `NEXT_PUBLIC_NOINDEX` | both | `true` hides the whole site from search engines; use on temporary test deployments only |
 | `NEXT_PUBLIC_DATA_BACKEND` | both | `supabase` or `local` |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase | Project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase | Anon/publishable key (browser-safe; RLS applies) |

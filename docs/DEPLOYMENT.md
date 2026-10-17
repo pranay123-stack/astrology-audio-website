@@ -119,9 +119,9 @@ git push -u origin main
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon / publishable key |
    | `SUPABASE_SERVICE_ROLE_KEY` | service-role key (**secret**) |
    | `NEXT_PUBLIC_SITE_URL` | the temporary Hostinger URL first, `https://your-domain` after step 6 |
-   | `NEXT_PUBLIC_SITE_NAME` | the real brand name |
-   | `NEXT_PUBLIC_SITE_TIMEZONE` | e.g. `Australia/Sydney` |
-   | `NEXT_PUBLIC_SITE_LOCALE` | e.g. `en-AU` |
+   | `NEXT_PUBLIC_SITE_NAME` | `Astro Cricket` |
+   | `NEXT_PUBLIC_SITE_TIMEZONE` | `Asia/Kolkata` (default; IST) |
+   | `NEXT_PUBLIC_SITE_LOCALE` | `en-IN` (default) |
    | `MAX_AUDIO_UPLOAD_MB`, `NEXT_PUBLIC_MAX_AUDIO_UPLOAD_MB` | `50` on the Supabase Free plan |
    | `PREMIUM_ENABLED` | `false` |
 
@@ -137,6 +137,19 @@ git push -u origin main
 ```bash
 git archive --format=zip -o astrology-site.zip HEAD
 ```
+
+## 5a. Optional: temporary test deployment on Vercel
+
+To try the site for a few days before buying hosting:
+
+1. On vercel.com, sign in with GitHub, then **Add New → Project** and import the repository.
+2. Add the same environment variables as in § 5 step 4. Add **`NEXT_PUBLIC_NOINDEX=true`** too, so search engines don't index the temporary `*.vercel.app` address.
+3. Deploy. Set `NEXT_PUBLIC_SITE_URL` to the `*.vercel.app` URL and redeploy.
+
+Notes:
+- Vercel's free Hobby plan is for **non-commercial** use, which is fine for private testing. Launch on Hostinger, or on a paid Vercel plan.
+- Vercel runs several instances of the app, so an admin edit can take up to about a minute to show for every visitor.
+- At launch, **do not** set `NEXT_PUBLIC_NOINDEX` on the real host. The server logs a `[config]` warning while it is on.
 
 ## 6. Custom domain and HTTPS
 
