@@ -12,7 +12,9 @@ import { episodeHref, hasAudio, isLockedForVisitors, lengthLabel, premiumContact
 import { imageUrl } from "@/lib/media/urls";
 import { getEpisodeBySlug, getEpisodes } from "@/lib/queries";
 import type { EpisodeListing, Section } from "@/lib/types";
+import { ZodiacWheel } from "@/components/layout/ZodiacWheel";
 import { ArticleBody } from "./ArticleBody";
+import { CategoryIcon } from "./categoryIcons";
 import { EpisodeCard } from "./EpisodeCard";
 import { MatchCard } from "./MatchCard";
 import { TeamBadge } from "./TeamBadge";
@@ -166,7 +168,15 @@ export async function EpisodeDetail({ slug, section }: { slug: string; section: 
             {cover ? (
               <Image src={cover} alt={`Cover art for ${episode.title}`} fill sizes="(min-width: 1024px) 380px, 100vw" className="object-cover" priority />
             ) : (
-              <div className="flex h-full items-center justify-center text-muted">No cover image</div>
+              // Posts without cover art (common for articles) get a themed panel instead of an empty box.
+              <div className="relative flex h-full flex-col items-center justify-center gap-5 bg-gradient-to-br from-plum-2 via-plum to-navy p-8 text-center" data-testid="cover-fallback">
+                <ZodiacWheel className="absolute inset-0 m-auto h-[85%] w-[85%] opacity-25" />
+                <span className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-gold/40 bg-night/60 text-gold-soft">
+                  <CategoryIcon slug={episode.category.slug} className="h-8 w-8" />
+                </span>
+                <p className="relative font-display text-3xl leading-tight text-ink">{episode.title}</p>
+                <p className="relative text-xs font-semibold tracking-[0.25em] text-gold uppercase">{episode.category.name}</p>
+              </div>
             )}
           </div>
         </aside>

@@ -1,4 +1,4 @@
-import { BookOpen, CalendarDays, Flower2, Moon, Orbit, Sparkles, Star, Trophy, type LucideIcon } from "lucide-react";
+import { BookOpen, CalendarDays, Flower2, Moon, Orbit, Sparkles, Star, Telescope, Trophy, type LucideIcon } from "lucide-react";
 
 export const CATEGORY_ICONS: Record<string, LucideIcon> = {
   "cricket-astrology": Trophy,
@@ -9,6 +9,7 @@ export const CATEGORY_ICONS: Record<string, LucideIcon> = {
   "vedic-astrology": Moon,
   "spirituality-and-meditation": Flower2,
   "astrology-learning": BookOpen,
+  "planets-grahas": Telescope,
 };
 
 export function CategoryIcon({ slug, className = "h-5 w-5" }: { slug: string; className?: string }) {

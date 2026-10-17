@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { Mail, MapPin, Phone } from "lucide-react";
 import { Starfield } from "@/components/layout/Starfield";
 import { getProfile } from "@/lib/queries";
+import { ContactChannels } from "@/components/layout/ContactChannels";
 import { ContactForm } from "./ContactForm";
 
 export const metadata: Metadata = {
@@ -29,31 +29,13 @@ export default async function ContactPage() {
         <Suspense fallback={<div className="card h-96 animate-pulse" />}>
           <ContactForm />
         </Suspense>
-        <aside className="space-y-6">
+        {/* On phones the direct channels (WhatsApp first) appear above the form. */}
+        <aside className="order-first space-y-6 lg:order-none">
+          <ContactChannels profile={profile} />
           {profile.consultation_info && (
             <div className="card space-y-3 p-6">
               <h2 className="text-2xl font-semibold">How consultations work</h2>
               <p className="text-sm whitespace-pre-line text-ink/80">{profile.consultation_info}</p>
-            </div>
-          )}
-          {(profile.contact_email || profile.contact_phone || profile.location) && (
-            <div className="card space-y-3 p-6 text-sm">
-              <h2 className="text-2xl font-semibold">Other ways to reach us</h2>
-              {profile.contact_email && (
-                <a href={`mailto:${profile.contact_email}`} className="flex items-center gap-2 hover:text-gold-soft">
-                  <Mail className="h-4 w-4" aria-hidden /> {profile.contact_email}
-                </a>
-              )}
-              {profile.contact_phone && (
-                <a href={`tel:${profile.contact_phone.replace(/\s+/g, "")}`} className="flex items-center gap-2 hover:text-gold-soft">
-                  <Phone className="h-4 w-4" aria-hidden /> {profile.contact_phone}
-                </a>
-              )}
-              {profile.location && (
-                <p className="flex items-center gap-2 text-muted">
-                  <MapPin className="h-4 w-4" aria-hidden /> {profile.location}
-                </p>
-              )}
             </div>
           )}
           <p className="text-xs text-muted">

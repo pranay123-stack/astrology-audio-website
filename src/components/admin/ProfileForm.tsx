@@ -117,7 +117,15 @@ export function ProfileForm({ profile }: { profile: Profile }) {
           {SOCIALS.map((s) => (
             <div key={s.key}>
               <label htmlFor={`social-${s.key}`} className="label">{s.label}</label>
-              <input id={`social-${s.key}`} placeholder="https://" className="input" {...register(`social_links.${s.key}` as const)} />
+              <input
+                id={`social-${s.key}`}
+                placeholder={s.key === "whatsapp" ? "https://wa.me/919876543210" : "https://"}
+                className="input"
+                {...register(`social_links.${s.key}` as const)}
+              />
+              {s.key === "whatsapp" && (
+                <p className="mt-1 text-xs text-muted">Use https://wa.me/ followed by the country code and number, without + or spaces.</p>
+              )}
               {err(`social_links.${s.key}`)}
             </div>
           ))}
