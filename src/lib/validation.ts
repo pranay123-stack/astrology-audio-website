@@ -83,8 +83,11 @@ export const profileInputSchema = z.object({
       x: optionalUrl,
       whatsapp: optionalUrl,
       spotify: optionalUrl,
+      telegram: optionalUrl,
+      amazon: optionalUrl,
+      linktree: optionalUrl,
     })
-    .default({ youtube: "", instagram: "", facebook: "", x: "", whatsapp: "", spotify: "" }),
+    .default({ youtube: "", instagram: "", facebook: "", x: "", whatsapp: "", spotify: "", telegram: "", amazon: "", linktree: "" }),
   legal_business_name: z.string().trim().max(160).default(""),
   legal_jurisdiction: z.string().trim().max(160).default(""),
 });

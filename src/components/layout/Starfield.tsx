@@ -16,7 +16,7 @@ const FIELD = stars(140, 42);
 export function Starfield({ className = "" }: { className?: string }) {
   return (
     <div className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`} aria-hidden>
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_20%_0%,rgb(76_29_149/0.45),transparent_60%),radial-gradient(ellipse_60%_50%_at_90%_20%,rgb(30_58_138/0.4),transparent_60%),radial-gradient(ellipse_70%_50%_at_50%_100%,rgb(212_175_55/0.08),transparent_70%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_20%_0%,rgb(220_38_38/0.4),transparent_60%),radial-gradient(ellipse_60%_50%_at_90%_20%,rgb(252_196_25/0.22),transparent_60%),radial-gradient(ellipse_70%_50%_at_50%_100%,rgb(252_196_25/0.12),transparent_70%)]" />
       <svg className="absolute inset-0 h-full w-full" preserveAspectRatio="none">
         {FIELD.map((st, i) => (
           <circle

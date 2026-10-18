@@ -79,6 +79,9 @@ export interface SocialLinks {
   x?: string;
   whatsapp?: string;
   spotify?: string;
+  telegram?: string;
+  amazon?: string;
+  linktree?: string;
 }
 
 /** The astrologer's public profile. There is exactly one row. */

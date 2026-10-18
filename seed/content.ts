@@ -57,7 +57,7 @@ export const profile = {
   location: "",
   consultation_info:
     "Placeholder: explain how personal consultations work (format, typical length, how to book). Pricing can be added here once it is decided.",
-  social_links: { youtube: "", instagram: "", facebook: "", x: "", whatsapp: "", spotify: "" },
+  social_links: { youtube: "", instagram: "", facebook: "", x: "", whatsapp: "", spotify: "", telegram: "", amazon: "", linktree: "" },
   legal_business_name: "",
   legal_jurisdiction: "",
 };

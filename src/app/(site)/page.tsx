@@ -66,7 +66,7 @@ export default async function HomePage() {
           </div>
 
           <div className="relative mx-auto w-full max-w-md lg:max-w-lg">
-            <ZodiacWheel className="w-full drop-shadow-[0_0_60px_rgb(124_58_237/0.35)]" />
+            <ZodiacWheel className="w-full drop-shadow-[0_0_60px_rgb(252_196_25/0.35)]" />
             {heroEpisode && (
               <div
                 className="absolute inset-x-4 -bottom-6 flex items-center gap-4 rounded-2xl border border-gold/30 bg-night/85 p-4 shadow-[var(--shadow-glow)] backdrop-blur-md sm:inset-x-10"

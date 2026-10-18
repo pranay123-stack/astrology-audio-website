@@ -15,7 +15,7 @@ export function HeroMatch({ episode, upcoming }: { episode: EpisodeListing; upco
   const href = episodeHref(episode);
   return (
     <article
-      className="relative overflow-hidden rounded-3xl border border-gold/40 bg-gradient-to-b from-plum/90 via-navy/95 to-night/95 p-6 shadow-[0_30px_80px_-30px_rgb(124_58_237/0.7)] backdrop-blur-md sm:p-7"
+      className="relative overflow-hidden rounded-3xl border border-gold/40 bg-gradient-to-b from-plum/90 via-navy/95 to-night/95 p-6 shadow-[0_30px_80px_-30px_rgb(220_38_38/0.7)] backdrop-blur-md sm:p-7"
       data-testid="hero-match"
     >
       {/* Pitch stripe */}

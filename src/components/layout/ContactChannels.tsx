@@ -1,4 +1,4 @@
-import { Mail, MapPin, Phone } from "lucide-react";
+import { Link2, Mail, MapPin, Phone, Send, ShoppingBag } from "lucide-react";
 import { InstagramIcon, WhatsAppIcon, YouTubeIcon } from "@/components/ui/BrandIcons";
 import type { Profile } from "@/lib/types";
 
@@ -12,10 +12,24 @@ export function handleFromUrl(url: string): string {
   }
 }
 
-/** The astrologer's direct contact channels: WhatsApp first, then Instagram, YouTube, email, phone and location. */
+/** "+91 89813 45111" from a wa.me link such as https://wa.me/918981345111; null when the link has no number. */
+export function whatsappNumber(url: string): string | null {
+  try {
+    const u = new URL(url);
+    const digits = (u.hostname.endsWith("wa.me") ? u.pathname : (u.searchParams.get("phone") ?? "")).replace(/\D/g, "");
+    if (digits.length === 12 && digits.startsWith("91")) return `+91 ${digits.slice(2, 7)} ${digits.slice(7)}`;
+    return digits.length >= 8 ? `+${digits}` : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The astrologer's direct contact channels: WhatsApp first, then social links, email, phone and location. */
 export function ContactChannels({ profile }: { profile: Profile }) {
-  const { whatsapp, instagram, youtube } = profile.social_links ?? {};
-  const hasAny = whatsapp || instagram || youtube || profile.contact_email || profile.contact_phone || profile.location;
+  const { whatsapp, instagram, youtube, telegram, amazon, linktree } = profile.social_links ?? {};
+  const waNumber = whatsapp ? whatsappNumber(whatsapp) : null;
+  const hasAny =
+    whatsapp || instagram || youtube || telegram || amazon || linktree || profile.contact_email || profile.contact_phone || profile.location;
   if (!hasAny) return null;
   return (
     <div className="card space-y-4 p-6" data-testid="contact-channels">
@@ -31,7 +45,7 @@ export function ContactChannels({ profile }: { profile: Profile }) {
           <WhatsAppIcon className="h-6 w-6" />
           <span className="flex flex-col leading-tight">
             Chat on WhatsApp
-            {profile.contact_phone && <span className="text-xs font-medium opacity-80">{profile.contact_phone}</span>}
+            {waNumber && <span className="text-xs font-medium opacity-80">{waNumber}</span>}
           </span>
         </a>
       )}
@@ -58,6 +72,45 @@ export function ContactChannels({ profile }: { profile: Profile }) {
               <span>
                 <span className="block font-medium">YouTube</span>
                 <span className="text-muted">{handleFromUrl(youtube)}</span>
+              </span>
+            </a>
+          </li>
+        )}
+        {telegram && (
+          <li>
+            <a href={telegram} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 hover:text-gold-soft" data-testid="telegram-link">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#229ED9] text-white">
+                <Send className="h-4 w-4" aria-hidden />
+              </span>
+              <span>
+                <span className="block font-medium">Telegram</span>
+                <span className="text-muted">{handleFromUrl(telegram)}</span>
+              </span>
+            </a>
+          </li>
+        )}
+        {amazon && (
+          <li>
+            <a href={amazon} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 hover:text-gold-soft" data-testid="amazon-link">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#ff9900] text-[#131921]">
+                <ShoppingBag className="h-4 w-4" aria-hidden />
+              </span>
+              <span>
+                <span className="block font-medium">Amazon</span>
+                <span className="text-muted">Shop on Amazon.in</span>
+              </span>
+            </a>
+          </li>
+        )}
+        {linktree && (
+          <li>
+            <a href={linktree} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 hover:text-gold-soft" data-testid="linktree-link">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#43e660] text-[#0b1f10]">
+                <Link2 className="h-4 w-4" aria-hidden />
+              </span>
+              <span>
+                <span className="block font-medium">All links</span>
+                <span className="text-muted">linktr.ee/{handleFromUrl(linktree).replace(/^@/, "")}</span>
               </span>
             </a>
           </li>

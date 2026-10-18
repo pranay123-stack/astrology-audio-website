@@ -16,14 +16,14 @@ export default function OpenGraphImage() {
           flexDirection: "column",
           justifyContent: "center",
           padding: 80,
-          background: "radial-gradient(circle at 25% 20%, #3b2470 0%, #0c1230 55%, #060818 100%)",
-          color: "#ece9f7",
+          background: "radial-gradient(circle at 80% 10%, #b8860b 0%, #8c2410 40%, #3d0606 100%)",
+          color: "#fff8e7",
           fontFamily: "serif",
         }}
       >
-        <div style={{ fontSize: 28, letterSpacing: 8, color: "#d4af37", textTransform: "uppercase" }}>Cricket astrology · Audio</div>
+        <div style={{ fontSize: 28, letterSpacing: 8, color: "#fcc419", textTransform: "uppercase" }}>Cricket astrology · Audio</div>
         <div style={{ fontSize: 84, fontWeight: 700, marginTop: 24, lineHeight: 1.05 }}>Discover Astrology Through Audio</div>
-        <div style={{ fontSize: 36, marginTop: 28, color: "#f3d27a" }}>{siteConfig.name}</div>
+        <div style={{ fontSize: 36, marginTop: 28, color: "#ffe066" }}>{siteConfig.name}</div>
       </div>
     ),
     size,

@@ -23,8 +23,8 @@ export function ZodiacWheel({ className = "", center = "sun" }: { className?: st
         </radialGradient>
         <radialGradient id={id("zw-core")} cx="50%" cy="50%" r="50%">
           <stop offset="0" stopColor="#f3d27a" stopOpacity=".55" />
-          <stop offset=".45" stopColor="#7c3aed" stopOpacity=".25" />
-          <stop offset="1" stopColor="#060818" stopOpacity="0" />
+          <stop offset=".45" stopColor="#dc2626" stopOpacity=".25" />
+          <stop offset="1" stopColor="#2a0505" stopOpacity="0" />
         </radialGradient>
       </defs>
       <circle cx={c} cy={c} r="190" fill={`url(#${id("zw-core")})`} />
@@ -109,8 +109,8 @@ export function ZodiacWheel({ className = "", center = "sun" }: { className?: st
         <circle cx={c} cy={c} r="34" fill={`url(#${id("zw-gold")})`} />
       )}
       <circle cx={c} cy={c} r="44" fill="none" stroke="#f3d27a" strokeOpacity=".5" />
-      <circle cx={c + 120} cy={c - 64} r="7" fill="#c4b5fd" />
-      <circle cx={c - 108} cy={c + 80} r="5" fill="#93c5fd" />
+      <circle cx={c + 120} cy={c - 64} r="7" fill="#fca5a5" />
+      <circle cx={c - 108} cy={c + 80} r="5" fill="#fde047" />
       <circle cx={c - 70} cy={c - 112} r="4" fill="#fbe7a1" />
     </svg>
   );

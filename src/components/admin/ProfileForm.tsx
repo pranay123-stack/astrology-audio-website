@@ -17,6 +17,9 @@ const SOCIALS: { key: keyof SocialLinks; label: string }[] = [
   { key: "x", label: "X (Twitter)" },
   { key: "whatsapp", label: "WhatsApp link" },
   { key: "spotify", label: "Spotify" },
+  { key: "telegram", label: "Telegram" },
+  { key: "amazon", label: "Amazon" },
+  { key: "linktree", label: "Linktree (all links)" },
 ];
 
 type Values = Omit<ProfileInput, "specializations" | "profile_image_path"> & { specializations_text: string };
@@ -38,7 +41,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
       contact_phone: profile.contact_phone,
       location: profile.location,
       consultation_info: profile.consultation_info,
-      social_links: { youtube: "", instagram: "", facebook: "", x: "", whatsapp: "", spotify: "", ...profile.social_links },
+      social_links: { youtube: "", instagram: "", facebook: "", x: "", whatsapp: "", spotify: "", telegram: "", amazon: "", linktree: "", ...profile.social_links },
       legal_business_name: profile.legal_business_name,
       legal_jurisdiction: profile.legal_jurisdiction,
     },
@@ -107,7 +110,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
         <h2 className="text-2xl font-semibold">Contact details</h2>
         <div className="grid gap-5 sm:grid-cols-2">
           {field("contact_email", "Public email", { type: "email" })}
-          {field("contact_phone", "Phone")}
+          {field("contact_phone", "Phone for calls (leave empty for WhatsApp only)")}
           {field("location", "Location")}
         </div>
       </section>
@@ -124,7 +127,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
                 {...register(`social_links.${s.key}` as const)}
               />
               {s.key === "whatsapp" && (
-                <p className="mt-1 text-xs text-muted">Use https://wa.me/ followed by the country code and number, without + or spaces.</p>
+                <p className="mt-1 text-xs text-muted">Use https://wa.me/ followed by the country code and number, without + or spaces. The number is shown on the WhatsApp button.</p>
               )}
               {err(`social_links.${s.key}`)}
             </div>

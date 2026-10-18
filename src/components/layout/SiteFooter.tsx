@@ -13,6 +13,9 @@ const SOCIAL_LABELS: Record<keyof SocialLinks, string> = {
   x: "X",
   whatsapp: "WhatsApp",
   spotify: "Spotify",
+  telegram: "Telegram",
+  amazon: "Amazon",
+  linktree: "All links",
 };
 
 export async function SiteFooter() {
