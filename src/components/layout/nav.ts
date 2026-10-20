@@ -1,8 +1,11 @@
+import type { Dict } from "@/lib/i18n";
+
+/** Main navigation: paths are language-free; labels come from the dictionary. */
 export const NAV_LINKS = [
-  { href: "/", label: "Home" },
-  { href: "/astrology-audios", label: "General Astrology" },
-  { href: "/cricket-astrology", label: "Cricket Astrology" },
-  { href: "/premium", label: "Premium Audios" },
-  { href: "/about", label: "About Astrologer" },
-  { href: "/contact", label: "Contact" },
-] as const;
+  { href: "/", key: "home" },
+  { href: "/astrology-audios", key: "general" },
+  { href: "/cricket-astrology", key: "cricket" },
+  { href: "/premium", key: "premium" },
+  { href: "/about", key: "about" },
+  { href: "/contact", key: "contact" },
+] as const satisfies readonly { href: string; key: keyof Dict["nav"] }[];

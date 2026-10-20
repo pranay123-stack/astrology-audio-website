@@ -81,7 +81,7 @@ export async function saveEpisode(input: EpisodeInput): Promise<ActionResult<{ i
     if (isCricket && !d.match) {
       return { ok: false, error: "Add the match details for cricket episodes.", fields: { "match.competition_id": "Choose a competition" } };
     }
-    if (d.is_published && !d.audio_storage_path && !d.article.trim()) {
+    if (d.is_published && !d.audio_storage_path && !d.article.trim() && !d.article_alt.trim()) {
       return {
         ok: false,
         error: "Add an audio file or an article before publishing.",
@@ -121,6 +121,10 @@ export async function saveEpisode(input: EpisodeInput): Promise<ActionResult<{ i
       description: d.description,
       article: d.article,
       article_lang: d.article_lang,
+      title_alt: d.title_alt,
+      excerpt_alt: d.excerpt_alt,
+      description_alt: d.description_alt,
+      article_alt: d.article_alt,
       category_id: d.category_id,
       audio_storage_path: d.audio_storage_path,
       audio_mime_type: d.audio_storage_path ? (EXT_TO_MIME[ext] ?? null) : null,

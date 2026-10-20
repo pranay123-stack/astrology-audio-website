@@ -13,6 +13,7 @@ export function SectionHeading({
   title: string;
   description?: string;
   href?: string;
+  /** Required with `href`: the link text in the page language. */
   linkLabel?: string;
   id?: string;
 }) {
@@ -27,7 +28,7 @@ export function SectionHeading({
       </div>
       {href && (
         <Link href={href} className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-gold-soft hover:gap-2.5 transition-all">
-          {linkLabel ?? "View all"} <ArrowRight className="h-4 w-4" aria-hidden />
+          {linkLabel} <ArrowRight className="h-4 w-4" aria-hidden />
         </Link>
       )}
     </div>

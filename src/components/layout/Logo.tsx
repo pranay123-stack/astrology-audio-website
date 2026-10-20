@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { useId } from "react";
 import { siteConfig } from "@/lib/config";
+import { getDict, localePath } from "@/lib/i18n";
+import type { Locale } from "@/lib/types";
 
 export function LogoMark({ className = "h-9 w-9" }: { className?: string }) {
   const gid = `logo-gold-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
@@ -20,9 +22,9 @@ export function LogoMark({ className = "h-9 w-9" }: { className?: string }) {
   );
 }
 
-export function Logo() {
+export function Logo({ lang }: { lang: Locale }) {
   return (
-    <Link href="/" className="group flex items-center gap-2.5" aria-label={`${siteConfig.name} — home`}>
+    <Link href={localePath(lang, "/")} className="group flex items-center gap-2.5" aria-label={getDict(lang).nav.homeAria(siteConfig.name)}>
       <LogoMark />
       <span className="font-display text-xl leading-none font-semibold tracking-wide text-ink group-hover:text-gold-soft sm:text-2xl">
         {siteConfig.name}

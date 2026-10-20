@@ -22,6 +22,10 @@ export interface EpisodeWrite {
   description: string;
   article: string;
   article_lang: ArticleLang;
+  title_alt: string;
+  excerpt_alt: string;
+  description_alt: string;
+  article_alt: string;
   category_id: string;
   audio_storage_path: string | null;
   audio_mime_type: string | null;
@@ -89,9 +93,9 @@ export class RepositoryError extends Error {
   }
 }
 
-/** A published episode needs something to consume: audio, an article, or both. */
-export function hasContent(e: Pick<Episode, "audio_storage_path" | "has_article">): boolean {
-  return !!e.audio_storage_path || e.has_article;
+/** A published episode needs something to consume: audio, an article (in either language), or both. */
+export function hasContent(e: Pick<Episode, "audio_storage_path" | "has_article" | "has_article_alt">): boolean {
+  return !!e.audio_storage_path || e.has_article || e.has_article_alt;
 }
 
 export function isLive(e: Pick<Episode, "is_published" | "published_at">, now = Date.now()): boolean {
@@ -138,7 +142,12 @@ export function filterAndSort(rows: EpisodeListing[], q: EpisodeQuery, now = Dat
         r.excerpt,
         r.description,
         r.article,
+        r.title_alt,
+        r.excerpt_alt,
+        r.description_alt,
+        r.article_alt,
         r.category.name,
+        r.category.name_hi,
         r.match?.team_a.name,
         r.match?.team_a.short_name,
         r.match?.team_b.name,

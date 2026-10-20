@@ -27,6 +27,40 @@ test("home page shows the main sections and the sample-content notice", async ({
   await expect(page.getByText(/not guarantee match outcomes/).first()).toBeVisible();
 });
 
+test("Hindi site: translated interface at /hi, and the switch keeps the page and filters", async ({ page }) => {
+  await gotoReady(page, "/hi");
+  await expect(page.locator("html")).toHaveAttribute("lang", "hi");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("ज्योतिष को जानिए");
+  const nav = await page.getByRole("navigation", { name: "मुख्य" }).filter({ visible: true }).getByRole("link").allInnerTexts();
+  expect(nav).toEqual(["होम", "सामान्य ज्योतिष", "क्रिकेट ज्योतिष", "प्रीमियम ऑडियो", "ज्योतिषी के बारे में", "संपर्क"]);
+  // Category names come from the database's Hindi columns; links stay inside /hi.
+  await expect(page.getByTestId("category-tile").filter({ visible: true }).first()).toContainText("दैनिक ज्योतिष");
+  await expect(page.getByRole("link", { name: "ज्योतिष ऑडियो सुनें" })).toHaveAttribute("href", "/hi/astrology-audios");
+
+  // English → Hindi on a filtered listing keeps the filters.
+  await gotoReady(page, "/astrology-audios?category=planets-grahas&sort=popular");
+  await page.getByTestId("language-switch").filter({ visible: true }).click();
+  await expect(page).toHaveURL(/\/hi\/astrology-audios\?category=planets-grahas&sort=popular$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("ज्योतिष ऑडियो");
+
+  // Hindi → English goes back to the plain address; /en/... is never used.
+  await page.getByTestId("language-switch").filter({ visible: true }).click();
+  await expect(page).toHaveURL(/\/astrology-audios\?category=planets-grahas&sort=popular$/);
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  const res = await page.request.get("/en/contact", { maxRedirects: 0 });
+  expect(res.status()).toBe(308);
+  expect(res.headers().location).toMatch(/\/contact$/);
+
+  // A Hindi-only post on the English site is labelled, and links to its Hindi page.
+  await gotoReady(page, "/astrology-audios/sample-article-graha");
+  await expect(page.getByTestId("language-note").filter({ visible: true })).toContainText("available in Hindi only");
+
+  // Unknown addresses get a 404 in the visitor's language.
+  const missing = await page.goto("/hi/does-not-exist");
+  expect(missing?.status()).toBe(404);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("यह पेज अपनी कक्षा से भटक गया है");
+});
+
 test("audio really plays, survives navigation, and honours speed and seek", async ({ page }) => {
   await gotoReady(page, "/astrology-audios/sample-daily-astrology-reading");
   await page.getByTestId("episode-play").filter({ visible: true }).click();

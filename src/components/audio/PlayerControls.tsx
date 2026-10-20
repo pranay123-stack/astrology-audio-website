@@ -2,6 +2,7 @@
 
 import { Loader2, Pause, Play, RotateCcw, RotateCw, Volume1, Volume2, VolumeX } from "lucide-react";
 import { formatDuration } from "@/lib/dates";
+import { useI18n } from "@/lib/i18n/client";
 import { PLAYBACK_RATES, useAudioPlayer } from "./AudioPlayerProvider";
 
 export function PlayPauseIcon({ status, className = "h-5 w-5" }: { status: string; className?: string }) {
@@ -12,6 +13,7 @@ export function PlayPauseIcon({ status, className = "h-5 w-5" }: { status: strin
 
 export function SeekBar({ compact = false }: { compact?: boolean }) {
   const { currentTime, duration, seek, track } = useAudioPlayer();
+  const { t } = useI18n();
   const max = duration > 0 ? duration : track?.durationHint || 0;
   const pct = max > 0 ? Math.min(100, (currentTime / max) * 100) : 0;
   return (
@@ -28,8 +30,8 @@ export function SeekBar({ compact = false }: { compact?: boolean }) {
         value={Math.min(currentTime, max || 1)}
         onChange={(e) => seek(Number(e.target.value))}
         style={{ ["--pct" as string]: `${pct}%` }}
-        aria-label="Seek"
-        aria-valuetext={`${formatDuration(currentTime)} of ${formatDuration(max)}`}
+        aria-label={t.player.seek}
+        aria-valuetext={t.player.of(formatDuration(currentTime), formatDuration(max))}
         disabled={!track}
       />
       <span className={`w-12 shrink-0 text-xs tabular-nums text-muted ${compact ? "" : ""}`} aria-hidden>
@@ -41,11 +43,12 @@ export function SeekBar({ compact = false }: { compact?: boolean }) {
 
 export function VolumeControl() {
   const { volume, muted, setVolume, toggleMute } = useAudioPlayer();
+  const { t } = useI18n();
   const effective = muted ? 0 : volume;
   const Icon = effective === 0 ? VolumeX : effective < 0.5 ? Volume1 : Volume2;
   return (
     <div className="flex items-center gap-2">
-      <button type="button" onClick={toggleMute} className="rounded-full p-1.5 text-muted hover:text-ink" aria-label={muted ? "Unmute" : "Mute"}>
+      <button type="button" onClick={toggleMute} className="rounded-full p-1.5 text-muted hover:text-ink" aria-label={muted ? t.player.unmute : t.player.mute}>
         <Icon className="h-5 w-5" aria-hidden />
       </button>
       <input
@@ -57,7 +60,7 @@ export function VolumeControl() {
         value={effective}
         onChange={(e) => setVolume(Number(e.target.value))}
         style={{ ["--pct" as string]: `${effective * 100}%` }}
-        aria-label="Volume"
+        aria-label={t.player.volume}
         aria-valuetext={`${Math.round(effective * 100)}%`}
       />
     </div>
@@ -66,14 +69,15 @@ export function VolumeControl() {
 
 export function SpeedControl() {
   const { rate, setRate } = useAudioPlayer();
+  const { t } = useI18n();
   return (
     <label className="flex items-center gap-1 text-xs text-muted">
-      <span className="sr-only">Playback speed</span>
+      <span className="sr-only">{t.player.speed}</span>
       <select
         value={rate}
         onChange={(e) => setRate(Number(e.target.value))}
         className="rounded-lg border border-line bg-night/70 px-2 py-1 text-xs font-semibold text-ink focus:border-gold/60 focus:outline-none"
-        aria-label="Playback speed"
+        aria-label={t.player.speed}
       >
         {PLAYBACK_RATES.map((r) => (
           <option key={r} value={r}>
@@ -87,6 +91,7 @@ export function SpeedControl() {
 
 export function SkipButton({ delta }: { delta: number }) {
   const { skip, track } = useAudioPlayer();
+  const { t } = useI18n();
   const Icon = delta < 0 ? RotateCcw : RotateCw;
   return (
     <button
@@ -94,7 +99,7 @@ export function SkipButton({ delta }: { delta: number }) {
       onClick={() => skip(delta)}
       disabled={!track}
       className="relative rounded-full p-2 text-muted transition hover:text-ink disabled:opacity-40"
-      aria-label={delta < 0 ? `Back ${-delta} seconds` : `Forward ${delta} seconds`}
+      aria-label={delta < 0 ? t.player.back(-delta) : t.player.forward(delta)}
     >
       <Icon className="h-5 w-5" aria-hidden />
       <span className="absolute inset-0 flex items-center justify-center pt-0.5 text-[8px] font-bold">{Math.abs(delta)}</span>

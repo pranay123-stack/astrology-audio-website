@@ -18,11 +18,13 @@ import { slugify, uniqueSlug } from "../slug";
 import { hasContent, RepositoryError, type DashboardStats, type EpisodeWrite, type Repository } from "./repository";
 
 const EPISODE_COLUMNS =
-  "id,title,slug,excerpt,description,has_article,article_lang,category_id,audio_storage_path,audio_mime_type,cover_image_path,duration_seconds,is_published,is_premium,is_demo,play_count,published_at,created_at,updated_at";
+  "id,title,slug,excerpt,description,has_article,article_lang,title_alt,excerpt_alt,description_alt,has_article_alt,category_id,audio_storage_path,audio_mime_type,cover_image_path,duration_seconds,is_published,is_premium,is_demo,play_count,published_at,created_at,updated_at";
 
 type ListingRow = Episode & {
   article: string | null;
+  article_alt: string | null;
   category_name: string;
+  category_name_hi: string | null;
   category_slug: string;
   category_section: Section;
   match_id: string | null;
@@ -54,6 +56,10 @@ function toListing(r: ListingRow): EpisodeListing {
     description: r.description,
     has_article: r.has_article ?? false,
     article_lang: r.article_lang ?? "hi",
+    title_alt: r.title_alt ?? "",
+    excerpt_alt: r.excerpt_alt ?? "",
+    description_alt: r.description_alt ?? "",
+    has_article_alt: r.has_article_alt ?? false,
     category_id: r.category_id,
     audio_storage_path: r.audio_storage_path,
     audio_mime_type: r.audio_mime_type,
@@ -103,7 +109,14 @@ function toListing(r: ListingRow): EpisodeListing {
   return {
     ...episode,
     article: r.article ?? "",
-    category: { id: r.category_id, name: r.category_name, slug: r.category_slug, section: r.category_section },
+    article_alt: r.article_alt ?? "",
+    category: {
+      id: r.category_id,
+      name: r.category_name,
+      name_hi: r.category_name_hi ?? "",
+      slug: r.category_slug,
+      section: r.category_section,
+    },
     match,
   };
 }

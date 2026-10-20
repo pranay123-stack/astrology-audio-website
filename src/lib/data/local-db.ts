@@ -2,8 +2,8 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { Category, Competition, ContactMessage, CricketMatch, Episode, Profile, Team } from "../types";
 
-/** Local mode keeps the article body on the episode record itself. */
-export type LocalEpisode = Episode & { article: string };
+/** Local mode keeps the article bodies on the episode record itself. */
+export type LocalEpisode = Episode & { article: string; article_alt: string };
 
 export interface LocalDatabase {
   version: 1;
@@ -43,12 +43,22 @@ export class LocalDb {
       throw err;
     }
     const db = JSON.parse(raw) as LocalDatabase;
-    // Databases created before articles existed lack these fields.
+    // Databases created before articles / translations existed lack these fields.
     for (const e of db.episodes) {
       e.article ??= "";
+      e.article_alt ??= "";
       e.article_lang ??= "hi";
+      e.title_alt ??= "";
+      e.excerpt_alt ??= "";
+      e.description_alt ??= "";
       e.has_article = e.article.trim().length > 0;
+      e.has_article_alt = e.article_alt.trim().length > 0;
     }
+    for (const c of db.categories) {
+      c.name_hi ??= "";
+      c.description_hi ??= "";
+    }
+    db.profile.hi ??= {};
     return db;
   }
 

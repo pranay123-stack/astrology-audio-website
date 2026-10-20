@@ -169,6 +169,8 @@ test("admin publishes a Hindi article-only post; premium article text never reac
   await page.getByLabel("Category").selectOption({ label: "Planets (Grahas)" });
   await page.getByLabel("Short description").fill("A premium Hindi article.");
   await page.getByLabel("Article text").fill("गुप्तप्रीमियमपाठ केवल पैकेज के लिए");
+  await page.getByLabel("English heading").fill("E2E Premium Article");
+  await page.getByLabel("English article").fill("SecretPremiumEnglishText for the package only");
   await page.getByLabel(/Premium episode/).check();
   await page.getByTestId("publish-checkbox").check();
   await page.getByTestId("save-episode").click();
@@ -178,6 +180,43 @@ test("admin publishes a Hindi article-only post; premium article text never reac
   await gotoReady(page, "/astrology-audios/e2e-premium-lekh");
   await expect(page.getByTestId("locked-article").filter({ visible: true })).toContainText("full premium package");
   expect(await page.content()).not.toContain("गुप्तप्रीमियमपाठ");
+  // The translated premium article is protected the same way, on both language versions.
+  for (const path of ["/astrology-audios/e2e-premium-lekh", "/hi/astrology-audios/e2e-premium-lekh"]) {
+    expect(await (await request.get(path)).text()).not.toContain("SecretPremiumEnglishText");
+  }
+});
+
+test("a post with an English version shows the right language on each site", async ({ page }) => {
+  await login(page);
+  await gotoReady(page, "/admin/episodes/new");
+  await page.getByLabel("Title").fill("E2E Guru Lekh");
+  await page.getByLabel("Category").selectOption({ label: "Planets (Grahas)" });
+  await page.getByLabel("Short description").fill("गुरु ग्रह पर एक हिंदी लेख।");
+  await page.getByLabel("Article text").fill("## गुरु\n\nहिंदी पाठ।");
+  await expect(page.getByTestId("translation-fields")).toContainText("English version");
+  await page.getByLabel("English heading").fill("E2E Jupiter Article");
+  await page.getByLabel("English short summary").fill("An English article about Jupiter.");
+  await page.getByLabel("English article").fill("## Jupiter\n\nEnglish text.");
+  await page.getByTestId("publish-checkbox").check();
+  await page.getByTestId("save-episode").click();
+  await expect(page).toHaveURL(/\/admin\/episodes\/[0-9a-f-]{36}/);
+
+  // English visitors get the English version, with a link to the Hindi one.
+  await gotoReady(page, "/astrology-audios/e2e-guru-lekh");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("E2E Jupiter Article");
+  const enBody = page.getByTestId("article-body").filter({ visible: true });
+  await expect(enBody).toHaveAttribute("lang", "en");
+  await expect(enBody.locator("h2")).toHaveText("Jupiter");
+  await page.getByTestId("other-language-link").filter({ visible: true }).click();
+
+  // Hindi visitors get the main (Hindi) text.
+  await expect(page).toHaveURL(/\/hi\/astrology-audios\/e2e-guru-lekh$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("E2E Guru Lekh");
+  await expect(page.getByTestId("article-body").filter({ visible: true }).locator("h2")).toHaveText("गुरु");
+
+  // Search finds the post by its translated words too.
+  await gotoReady(page, "/astrology-audios?q=jupiter");
+  await expect(page.getByTestId("episode-card").filter({ visible: true, hasText: "E2E Jupiter Article" })).toBeVisible();
 });
 
 test("profile edits appear on the public about page", async ({ page }) => {
@@ -191,6 +230,15 @@ test("profile edits appear on the public about page", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("E2E Astrologer");
   await gotoReady(page, "/terms");
   await expect(page.getByText("E2E Astro Pty Ltd").first()).toBeVisible();
+
+  // Hindi profile fields show on the Hindi site; empty ones fall back to English.
+  await gotoReady(page, "/admin/profile");
+  await page.locator("#hi-tagline").fill("ऑडियो के माध्यम से ज्योतिष");
+  await page.getByRole("button", { name: "Save profile" }).click();
+  await expect(page.getByText("Profile saved")).toBeVisible();
+  await gotoReady(page, "/hi/about");
+  await expect(page.getByText("ऑडियो के माध्यम से ज्योतिष").first()).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("E2E Astrologer");
 });
 
 test("removing sample content clears the demo banner", async ({ page }) => {

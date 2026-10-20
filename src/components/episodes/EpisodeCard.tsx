@@ -1,17 +1,19 @@
 import Image from "next/image";
 import Link from "next/link";
 import { CalendarDays, Clock } from "lucide-react";
-import { AccessBadge, CategoryChip, DemoBadge, FormatBadges } from "@/components/ui/Badges";
+import { AccessBadge, CategoryChip, DemoBadge, FormatBadges, LanguageBadge } from "@/components/ui/Badges";
 import { formatDate } from "@/lib/dates";
 import { episodeHref, hasArticle, hasAudio, lengthLabel } from "@/lib/episodes";
+import { localizeEpisode } from "@/lib/i18n";
 import { imageUrl } from "@/lib/media/urls";
 import { ZodiacWheel } from "@/components/layout/ZodiacWheel";
 import { CategoryIcon } from "./categoryIcons";
 import { MediaAction } from "./MediaAction";
-import type { EpisodeListing } from "@/lib/types";
+import type { EpisodeListing, Locale } from "@/lib/types";
 
-export function EpisodeCard({ episode, priority = false }: { episode: EpisodeListing; priority?: boolean }) {
-  const href = episodeHref(episode);
+export function EpisodeCard({ episode: raw, lang, priority = false }: { episode: EpisodeListing; lang: Locale; priority?: boolean }) {
+  const episode = localizeEpisode(raw, lang);
+  const href = episodeHref(episode, lang);
   const cover = imageUrl(episode.cover_image_path);
   return (
     <article className="card group flex flex-col overflow-hidden transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-glow)]" data-testid="episode-card" data-episode-id={episode.id}>
@@ -39,31 +41,32 @@ export function EpisodeCard({ episode, priority = false }: { episode: EpisodeLis
         <div className="absolute inset-0 bg-gradient-to-t from-night via-night/20 to-transparent" />
         </Link>
         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-          <AccessBadge premium={episode.is_premium} />
-          {episode.is_demo && <DemoBadge />}
+          <AccessBadge premium={episode.is_premium} lang={lang} />
+          {episode.is_demo && <DemoBadge lang={lang} />}
         </div>
         <div className="absolute right-4 bottom-4">
-          <MediaAction episode={episode} />
+          <MediaAction episode={episode} lang={lang} />
         </div>
       </div>
       <div className="flex flex-1 flex-col gap-3 p-5">
         <div className="flex flex-wrap gap-1.5">
           <CategoryChip>{episode.category.name}</CategoryChip>
-          <FormatBadges audio={hasAudio(episode)} article={hasArticle(episode)} />
+          <FormatBadges audio={hasAudio(episode)} article={hasArticle(episode)} lang={lang} />
+          <LanguageBadge textLang={episode.text_lang} lang={lang} />
         </div>
-        <h3 className="text-2xl leading-tight font-semibold">
+        <h3 className="text-2xl leading-tight font-semibold" lang={episode.text_lang}>
           <Link href={href} className="hover:text-gold-soft">
             {episode.title}
           </Link>
         </h3>
-        <p className="line-clamp-2 text-sm text-muted">{episode.excerpt}</p>
+        <p className="line-clamp-2 text-sm text-muted" lang={episode.text_lang}>{episode.excerpt}</p>
         <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 pt-2 text-xs text-muted">
           <span className="inline-flex items-center gap-1">
             <CalendarDays className="h-3.5 w-3.5" aria-hidden />
-            <time dateTime={episode.published_at ?? undefined}>{formatDate(episode.published_at)}</time>
+            <time dateTime={episode.published_at ?? undefined}>{formatDate(episode.published_at, lang)}</time>
           </span>
           <span className="inline-flex items-center gap-1">
-            <Clock className="h-3.5 w-3.5" aria-hidden /> {lengthLabel(episode)}
+            <Clock className="h-3.5 w-3.5" aria-hidden /> {lengthLabel(episode, lang)}
           </span>
         </div>
       </div>

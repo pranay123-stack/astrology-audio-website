@@ -1,4 +1,6 @@
 import { siteConfig } from "./config";
+import { getDict, intlLocale } from "./i18n";
+import type { Locale } from "./types";
 
 /** Offset (ms) of `timeZone` from UTC at the given instant. */
 function tzOffsetMs(instant: number, timeZone: string): number {
@@ -43,16 +45,16 @@ export function dayBounds(date: string, timeZone = siteConfig.timeZone): { start
   return { start, end };
 }
 
-export function formatDate(iso: string | null | undefined, timeZone = siteConfig.timeZone): string {
+export function formatDate(iso: string | null | undefined, lang: Locale = "en", timeZone = siteConfig.timeZone): string {
   if (!iso) return "";
-  return new Intl.DateTimeFormat(siteConfig.locale, { timeZone, day: "numeric", month: "short", year: "numeric" }).format(
+  return new Intl.DateTimeFormat(intlLocale(lang), { timeZone, day: "numeric", month: "short", year: "numeric" }).format(
     new Date(iso),
   );
 }
 
-export function formatDateTime(iso: string | null | undefined, timeZone = siteConfig.timeZone): string {
+export function formatDateTime(iso: string | null | undefined, lang: Locale = "en", timeZone = siteConfig.timeZone): string {
   if (!iso) return "";
-  return new Intl.DateTimeFormat(siteConfig.locale, {
+  return new Intl.DateTimeFormat(intlLocale(lang), {
     timeZone,
     weekday: "short",
     day: "numeric",
@@ -73,13 +75,14 @@ export function formatDuration(totalSeconds: number): string {
   return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`;
 }
 
-/** "42 min", "1 hr 5 min", "45 sec" — for card metadata. */
-export function formatDurationLabel(totalSeconds: number): string {
+/** "42 min", "1 hr 5 min", "45 sec" (or the Hindi equivalents) — for card metadata. */
+export function formatDurationLabel(totalSeconds: number, lang: Locale = "en"): string {
+  const t = getDict(lang).length;
   const s = Math.max(0, Math.round(totalSeconds));
-  if (s < 60) return `${s} sec`;
+  if (s < 60) return t.sec(s);
   const h = Math.floor(s / 3600);
   const m = Math.round((s % 3600) / 60);
-  return h > 0 ? `${h} hr${m ? ` ${m} min` : ""}` : `${m} min`;
+  return h > 0 ? t.hrMin(h, m) : t.min(m);
 }
 
 /** ISO instant -> value for <input type="datetime-local"> in the site timezone. */

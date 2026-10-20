@@ -22,7 +22,22 @@ const SOCIALS: { key: keyof SocialLinks; label: string }[] = [
   { key: "linktree", label: "Linktree (all links)" },
 ];
 
-type Values = Omit<ProfileInput, "specializations" | "profile_image_path"> & { specializations_text: string };
+type HindiValues = { display_name: string; tagline: string; biography: string; experience: string; location: string; consultation_info: string };
+type Values = Omit<ProfileInput, "specializations" | "profile_image_path" | "hi"> & {
+  specializations_text: string;
+  hi: HindiValues;
+  hi_specializations_text: string;
+};
+
+/** Hindi fields of the profile; each falls back to the English text on the site while empty. */
+const HINDI_FIELDS: { key: keyof HindiValues; label: string; rows?: number }[] = [
+  { key: "display_name", label: "नाम" },
+  { key: "tagline", label: "टैगलाइन" },
+  { key: "biography", label: "परिचय", rows: 6 },
+  { key: "experience", label: "अनुभव और पृष्ठभूमि", rows: 4 },
+  { key: "location", label: "स्थान" },
+  { key: "consultation_info", label: "परामर्श कैसे होता है", rows: 4 },
+];
 
 export function ProfileForm({ profile }: { profile: Profile }) {
   const router = useRouter();
@@ -44,14 +59,25 @@ export function ProfileForm({ profile }: { profile: Profile }) {
       social_links: { youtube: "", instagram: "", facebook: "", x: "", whatsapp: "", spotify: "", telegram: "", amazon: "", linktree: "", ...profile.social_links },
       legal_business_name: profile.legal_business_name,
       legal_jurisdiction: profile.legal_jurisdiction,
+      hi: {
+        display_name: profile.hi?.display_name ?? "",
+        tagline: profile.hi?.tagline ?? "",
+        biography: profile.hi?.biography ?? "",
+        experience: profile.hi?.experience ?? "",
+        location: profile.hi?.location ?? "",
+        consultation_info: profile.hi?.consultation_info ?? "",
+      },
+      hi_specializations_text: (profile.hi?.specializations ?? []).join("\n"),
     },
   });
 
-  const onSubmit = handleSubmit(({ specializations_text, ...v }) => {
+  const lines = (text: string) => text.split("\n").map((s) => s.trim()).filter(Boolean);
+  const onSubmit = handleSubmit(({ specializations_text, hi_specializations_text, hi, ...v }) => {
     const payload: ProfileInput = {
       ...v,
       profile_image_path: photo,
-      specializations: specializations_text.split("\n").map((s) => s.trim()).filter(Boolean),
+      specializations: lines(specializations_text),
+      hi: { ...hi, specializations: lines(hi_specializations_text) },
     };
     const local = profileInputSchema.safeParse(payload);
     if (!local.success) {
@@ -105,6 +131,31 @@ export function ProfileForm({ profile }: { profile: Profile }) {
         {field("experience", "Experience and background", { textarea: 4, hint: "Only include credentials and experience that can be verified." })}
         {field("specializations_text", "Specialisations", { textarea: 4, hint: "One per line." })}
         {field("consultation_info", "Consultations", { textarea: 4, hint: "How personal consultations work. Shown on the About and Contact pages." })}
+      </section>
+      <section className="card space-y-5 p-6" lang="hi" data-testid="profile-hindi">
+        <div className="space-y-1">
+          <h2 className="text-2xl font-semibold">Hindi version · हिंदी संस्करण</h2>
+          <p className="text-sm text-muted" lang="en">
+            Shown to visitors who choose Hindi. Any field left empty shows the English text instead.
+          </p>
+        </div>
+        {HINDI_FIELDS.map((f) => (
+          <div key={f.key}>
+            <label htmlFor={`hi-${f.key}`} className="label">{f.label}</label>
+            {f.rows ? (
+              <textarea id={`hi-${f.key}`} rows={f.rows} className="input" {...register(`hi.${f.key}` as const)} />
+            ) : (
+              <input id={`hi-${f.key}`} className="input" {...register(`hi.${f.key}` as const)} />
+            )}
+            {err(`hi.${f.key}`)}
+          </div>
+        ))}
+        <div>
+          <label htmlFor="hi-specializations" className="label">विशेषज्ञता</label>
+          <textarea id="hi-specializations" rows={4} className="input" {...register("hi_specializations_text")} />
+          <p className="mt-1 text-xs text-muted" lang="en">One per line.</p>
+          {err("hi.specializations")}
+        </div>
       </section>
       <section className="card space-y-5 p-6">
         <h2 className="text-2xl font-semibold">Contact details</h2>

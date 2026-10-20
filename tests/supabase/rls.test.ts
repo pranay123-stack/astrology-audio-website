@@ -173,6 +173,22 @@ describe("articles", () => {
     expect((await admin.from("episode_articles").select("episode_id").in("episode_id", [free, premium, draft])).data).toHaveLength(3);
   });
 
+  it("premium translations stay hidden from visitors, free ones are public", async () => {
+    const premium = await makeEpisode({ ...live, audio_storage_path: null, has_article_alt: true, title_alt: "Secret", is_premium: true });
+    const free = await makeEpisode({ ...live, audio_storage_path: null, has_article_alt: true, title_alt: "Open" });
+    for (const [id, alt] of [[premium, "SecretEnglishBody"], [free, "OpenEnglishBody"]]) {
+      const { error } = await service.from("episode_articles").insert({ episode_id: id, body: "", body_alt: alt });
+      if (error) throw error;
+    }
+    const view = await anon.from("episode_listings").select("id, article_alt, has_article_alt, category_name_hi").in("id", [free, premium]);
+    const byId = Object.fromEntries((view.data ?? []).map((r) => [r.id, r]));
+    expect(byId[free]).toMatchObject({ has_article_alt: true, article_alt: "OpenEnglishBody" });
+    expect(byId[premium]).toMatchObject({ has_article_alt: true, article_alt: "" });
+    expect((await anon.from("episode_articles").select("body_alt").eq("episode_id", premium)).data).toEqual([]);
+    expect((await anon.from("episode_listings").select("id").ilike("search_text", "%secretenglishbody%")).data).toEqual([]);
+    expect((await anon.from("episode_listings").select("id").ilike("search_text", "%openenglishbody%")).data).toEqual([{ id: free }]);
+  });
+
   it("visitors and members cannot write articles", async () => {
     const id = await makeEpisode({ is_published: false });
     expect((await anon.from("episode_articles").insert({ episode_id: id, body: "spam" })).error).not.toBeNull();
@@ -204,6 +220,13 @@ describe("articles", () => {
     const asDraft = await admin.rpc("admin_save_episode", { p_id: id, p_episode: { ...episode, article: "", is_published: false }, p_match: null });
     expect(asDraft.error).toBeNull();
     expect((await admin.from("episode_articles").select("episode_id").eq("episode_id", id)).data).toEqual([]);
+    // A translation alone is enough to publish, and both bodies are stored.
+    const translated = { ...episode, article: "", title_alt: "Saturn", excerpt_alt: "English summary", article_alt: "## Saturn\n\nEnglish" };
+    expect((await admin.rpc("admin_save_episode", { p_id: id, p_episode: translated, p_match: null })).error).toBeNull();
+    expect((await admin.from("episodes").select("has_article, has_article_alt, title_alt, excerpt_alt").eq("id", id).single()).data).toEqual({
+      has_article: false, has_article_alt: true, title_alt: "Saturn", excerpt_alt: "English summary",
+    });
+    expect((await admin.from("episode_articles").select("body, body_alt").eq("episode_id", id).single()).data).toEqual({ body: "", body_alt: "## Saturn\n\nEnglish" });
   });
 });
 

@@ -187,3 +187,14 @@
 .article-body li::marker { color: var(--color-gold); }
 .article-hi { font-size: 1.125rem; line-height: 2; }
 .article-hi h2 { line-height: 1.5; }
+
+/* Hindi interface: Devanagari matras sit above and below the line, so tight display
+   line-heights clip them. Unlayered, so it overrides the leading-* utilities. */
+.locale-hi h1,
+.locale-hi h2,
+.locale-hi h3 {
+  line-height: 1.35;
+}
+.locale-hi .eyebrow {
+  letter-spacing: 0.08em;
+}

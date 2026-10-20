@@ -37,7 +37,7 @@ function fixture() {
     profile: {
       id: "p", display_name: "Astro", tagline: "", biography: "", experience: "", specializations: [], profile_image_path: null,
       contact_email: "", contact_phone: "", location: "", consultation_info: "", social_links: {}, legal_business_name: "",
-      legal_jurisdiction: "", updated_at: iso(0),
+      legal_jurisdiction: "", hi: {}, updated_at: iso(0),
     },
     categories: [cat("c-cric", "cricket-astrology", "cricket", 0), cat("c-gen", "daily-astrology", "general", 1), cat("c-ved", "vedic-astrology", "general", 2)],
     competitions: [
@@ -83,6 +83,10 @@ const write = (over: Partial<EpisodeWrite> = {}): EpisodeWrite => ({
   description: "",
   article: "",
   article_lang: "hi",
+  title_alt: "",
+  excerpt_alt: "",
+  description_alt: "",
+  article_alt: "",
   category_id: "c-gen",
   audio_storage_path: "audio/00000000-0000-4000-a000-000000000002.mp3",
   audio_mime_type: "audio/mpeg",

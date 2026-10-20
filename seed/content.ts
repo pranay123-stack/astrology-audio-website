@@ -11,15 +11,15 @@
  */
 
 export const categories = [
-  { slug: "cricket-astrology", name: "Cricket Astrology", section: "cricket", description: "Astrological readings of cricket matches, starting with the Big Bash League." },
-  { slug: "daily-astrology", name: "Daily Astrology", section: "general", description: "Short daily readings of the day's planetary weather." },
-  { slug: "horoscope-insights", name: "Horoscope Insights", section: "general", description: "Weekly and monthly horoscope discussions for every sign." },
-  { slug: "planetary-transits", name: "Planetary Transits", section: "general", description: "What major planetary movements may mean, explained in plain language." },
-  { slug: "zodiac-sign-guidance", name: "Zodiac Sign Guidance", section: "general", description: "Sign-by-sign guidance on temperament, relationships and timing." },
-  { slug: "vedic-astrology", name: "Vedic Astrology", section: "general", description: "Jyotish concepts: nakshatras, dashas, houses and remedies." },
-  { slug: "spirituality-and-meditation", name: "Spirituality and Meditation", section: "general", description: "Guided reflections and meditations inspired by astrological themes." },
-  { slug: "astrology-learning", name: "Astrology Learning", section: "general", description: "Lessons for listeners who want to learn astrology themselves." },
-  { slug: "planets-grahas", name: "Planets (Grahas)", section: "general", description: "Shani, Shukra, Guru and the other grahas: their nature, influence and remedies." },
+  { slug: "cricket-astrology", name: "Cricket Astrology", name_hi: "क्रिकेट ज्योतिष", description_hi: "क्रिकेट मैचों का ज्योतिषीय विश्लेषण, बिग बैश लीग से शुरुआत।", section: "cricket", description: "Astrological readings of cricket matches, starting with the Big Bash League." },
+  { slug: "daily-astrology", name: "Daily Astrology", name_hi: "दैनिक ज्योतिष", description_hi: "दिन की ग्रह-स्थिति पर छोटे दैनिक विचार।", section: "general", description: "Short daily readings of the day's planetary weather." },
+  { slug: "horoscope-insights", name: "Horoscope Insights", name_hi: "राशिफल विचार", description_hi: "हर राशि के लिए साप्ताहिक और मासिक राशिफल चर्चा।", section: "general", description: "Weekly and monthly horoscope discussions for every sign." },
+  { slug: "planetary-transits", name: "Planetary Transits", name_hi: "ग्रह गोचर", description_hi: "बड़े ग्रह-गोचर का क्या अर्थ हो सकता है, सरल भाषा में।", section: "general", description: "What major planetary movements may mean, explained in plain language." },
+  { slug: "zodiac-sign-guidance", name: "Zodiac Sign Guidance", name_hi: "राशि मार्गदर्शन", description_hi: "हर राशि के स्वभाव, रिश्तों और समय पर मार्गदर्शन।", section: "general", description: "Sign-by-sign guidance on temperament, relationships and timing." },
+  { slug: "vedic-astrology", name: "Vedic Astrology", name_hi: "वैदिक ज्योतिष", description_hi: "ज्योतिष की मूल बातें: नक्षत्र, दशा, भाव और उपाय।", section: "general", description: "Jyotish concepts: nakshatras, dashas, houses and remedies." },
+  { slug: "spirituality-and-meditation", name: "Spirituality and Meditation", name_hi: "अध्यात्म और ध्यान", description_hi: "ज्योतिषीय विषयों से प्रेरित चिंतन और ध्यान।", section: "general", description: "Guided reflections and meditations inspired by astrological themes." },
+  { slug: "astrology-learning", name: "Astrology Learning", name_hi: "ज्योतिष सीखें", description_hi: "उन श्रोताओं के लिए पाठ जो स्वयं ज्योतिष सीखना चाहते हैं।", section: "general", description: "Lessons for listeners who want to learn astrology themselves." },
+  { slug: "planets-grahas", name: "Planets (Grahas)", name_hi: "ग्रह", description_hi: "शनि, शुक्र, गुरु और अन्य ग्रह: उनका स्वभाव, प्रभाव और उपाय।", section: "general", description: "Shani, Shukra, Guru and the other grahas: their nature, influence and remedies." },
 ] as const;
 
 export const competitions = [
@@ -60,6 +60,7 @@ export const profile = {
   social_links: { youtube: "", instagram: "", facebook: "", x: "", whatsapp: "", spotify: "", telegram: "", amazon: "", linktree: "" },
   legal_business_name: "",
   legal_jurisdiction: "",
+  hi: {},
 };
 
 export type DemoAudio = "demo-tone-a.mp3" | "demo-tone-b.mp3" | "demo-tone-c.mp3";

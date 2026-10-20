@@ -1,6 +1,8 @@
 export type Section = "cricket" | "general";
 export const ARTICLE_LANGS = ["hi", "en"] as const;
 export type ArticleLang = (typeof ARTICLE_LANGS)[number];
+/** Site interface languages. English lives at /..., Hindi at /hi/... */
+export type Locale = ArticleLang;
 
 export const MATCH_STATUSES = [
   "scheduled",
@@ -16,6 +18,9 @@ export interface Category {
   name: string;
   slug: string;
   description: string;
+  /** Hindi name and description; empty means "use the English one". */
+  name_hi: string;
+  description_hi: string;
   section: Section;
   sort_order: number;
 }
@@ -46,7 +51,13 @@ export interface Episode {
   description: string;
   /** True when the post has a written article (the body is stored separately, see EpisodeListing.article). */
   has_article: boolean;
+  /** The post's main language: title, excerpt, description and article are written in it. */
   article_lang: ArticleLang;
+  /** Optional version in the other language (empty = not translated). */
+  title_alt: string;
+  excerpt_alt: string;
+  description_alt: string;
+  has_article_alt: boolean;
   category_id: string;
   audio_storage_path: string | null;
   audio_mime_type: string | null;
@@ -84,6 +95,17 @@ export interface SocialLinks {
   linktree?: string;
 }
 
+/** Hindi versions of the profile's text fields; any missing field falls back to English. */
+export interface ProfileHindi {
+  display_name?: string;
+  tagline?: string;
+  biography?: string;
+  experience?: string;
+  specializations?: string[];
+  location?: string;
+  consultation_info?: string;
+}
+
 /** The astrologer's public profile. There is exactly one row. */
 export interface Profile {
   id: string;
@@ -100,6 +122,7 @@ export interface Profile {
   social_links: SocialLinks;
   legal_business_name: string;
   legal_jurisdiction: string;
+  hi: ProfileHindi;
   updated_at: string;
 }
 
@@ -128,7 +151,9 @@ export interface EpisodeListing extends Episode {
    * for premium posts in public reads: visitors never receive premium article text.
    */
   article: string;
-  category: Pick<Category, "id" | "name" | "slug" | "section">;
+  /** The other-language article body, under the same premium rule. */
+  article_alt: string;
+  category: Pick<Category, "id" | "name" | "name_hi" | "slug" | "section">;
   match: (CricketMatch & {
     competition: Pick<Competition, "id" | "name" | "short_name" | "slug">;
     team_a: TeamSummary;

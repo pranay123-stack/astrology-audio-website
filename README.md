@@ -241,11 +241,22 @@ The browser tests check:
 
 ---
 
+## Languages (English and Hindi)
+
+Every public page exists in both languages. English keeps the plain addresses (`/contact`) and Hindi lives under `/hi` (`/hi/contact`); the **हिंदी / English** button in the header switches to the same page in the other language, keeping search filters. Internally the pages sit under `app/[lang]`; `src/proxy.ts` serves plain URLs from `/en/...` and redirects any explicit `/en/...` address to the plain one.
+
+- **Interface text** lives in `src/lib/i18n/en.ts` and `hi.ts`. A unit test checks that Hindi has every English key.
+- **Posts** are written in a main language ("Post language" in the admin form) and can carry an optional version in the other language (heading, summary, notes, article). Visitors see the version that matches the site language; a post without a translation still appears, labelled "In Hindi" / "अंग्रेज़ी में". Premium translated articles are protected by the same database policy as the main article.
+- **Categories** have Hindi names (set by the `20261019000000_bilingual` migration). **The astrologer's profile** has a Hindi section in Admin → Profile; empty Hindi fields fall back to English.
+- **Legal pages**: the Disclaimer is fully translated; Privacy and Terms show a Hindi title with a note that the text is in English.
+- Links that cross languages are not prefetched: the client router cannot map a plain English URL to the rewritten `/en/...` route and would retry the failed prefetch.
+
 ## Project structure
 
 ```
 src/
-  app/(site)/          public pages: home, cricket-astrology, astrology-audios, premium, about, contact, legal
+  app/[lang]/          public pages (English and Hindi): home, cricket-astrology, astrology-audios, premium, about, contact, legal
+  lib/i18n/            interface text (en.ts, hi.ts), locale paths, picking the right language version of posts and profile
   app/admin/           login, (panel)/ dashboard, episodes, leagues, profile, messages; actions.ts (server actions)
   app/api/             media/audio (access-checked streaming), media/image (local mode), episodes/[id]/play, admin/uploads
   components/audio/    AudioPlayerProvider (one site-wide <audio>), MiniPlayer, EpisodePlayer, PlayButton

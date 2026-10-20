@@ -42,13 +42,13 @@ export function buildListings(db: LocalDatabase): EpisodeListing[] {
         };
       }
     }
-    return [{ ...e, category: { id: cat.id, name: cat.name, slug: cat.slug, section: cat.section }, match }];
+    return [{ ...e, category: { id: cat.id, name: cat.name, name_hi: cat.name_hi, slug: cat.slug, section: cat.section }, match }];
   });
 }
 
 /** Public reads never include premium article text (mirrors the RLS policy in Supabase mode). */
 function forPublic(rows: EpisodeListing[]): EpisodeListing[] {
-  return rows.map((r) => (r.is_premium && r.article ? { ...r, article: "" } : r));
+  return rows.map((r) => (r.is_premium && (r.article || r.article_alt) ? { ...r, article: "", article_alt: "" } : r));
 }
 
 export class LocalRepository implements Repository {
@@ -147,6 +147,8 @@ export class LocalRepository implements Repository {
         ...fields,
         article: fields.article.trim(),
         has_article: fields.article.trim().length > 0,
+        article_alt: fields.article_alt.trim(),
+        has_article_alt: fields.article_alt.trim().length > 0,
         id: randomUUID(),
         is_demo: false,
         play_count: 0,
@@ -169,6 +171,8 @@ export class LocalRepository implements Repository {
       Object.assign(episode, fields, {
         article: fields.article.trim(),
         has_article: fields.article.trim().length > 0,
+        article_alt: fields.article_alt.trim(),
+        has_article_alt: fields.article_alt.trim().length > 0,
         updated_at: new Date().toISOString(),
       });
       this.writeMatch(db, id, data, cat.section === "cricket");

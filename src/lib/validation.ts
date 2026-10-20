@@ -43,6 +43,11 @@ export const episodeInputSchema = z.object({
   description: z.string().trim().max(10000).default(""),
   article: z.string().trim().max(60000, "Article is too long (60,000 characters max)").default(""),
   article_lang: z.enum(ARTICLE_LANGS).default("hi"),
+  /** Optional version in the other language. */
+  title_alt: z.string().trim().max(160).default(""),
+  excerpt_alt: z.string().trim().max(280).default(""),
+  description_alt: z.string().trim().max(10000).default(""),
+  article_alt: z.string().trim().max(60000, "Article is too long (60,000 characters max)").default(""),
   category_id: z.string().min(1, "Choose a category"),
   audio_storage_path: storagePathSchema.nullable(),
   cover_image_path: storagePathSchema.nullable(),
@@ -90,6 +95,18 @@ export const profileInputSchema = z.object({
     .default({ youtube: "", instagram: "", facebook: "", x: "", whatsapp: "", spotify: "", telegram: "", amazon: "", linktree: "" }),
   legal_business_name: z.string().trim().max(160).default(""),
   legal_jurisdiction: z.string().trim().max(160).default(""),
+  /** Hindi versions of the text fields; empty strings fall back to English on the site. */
+  hi: z
+    .object({
+      display_name: z.string().trim().max(120).default(""),
+      tagline: z.string().trim().max(200).default(""),
+      biography: z.string().trim().max(6000).default(""),
+      experience: z.string().trim().max(3000).default(""),
+      specializations: z.array(z.string().trim().min(1).max(80)).max(20).default([]),
+      location: z.string().trim().max(120).default(""),
+      consultation_info: z.string().trim().max(3000).default(""),
+    })
+    .default({ display_name: "", tagline: "", biography: "", experience: "", specializations: [], location: "", consultation_info: "" }),
 });
 export type ProfileInput = z.input<typeof profileInputSchema>;
 export type ProfileData = z.output<typeof profileInputSchema>;

@@ -1,6 +1,7 @@
 import { Link2, Mail, MapPin, Phone, Send, ShoppingBag } from "lucide-react";
 import { InstagramIcon, WhatsAppIcon, YouTubeIcon } from "@/components/ui/BrandIcons";
-import type { Profile } from "@/lib/types";
+import { getDict } from "@/lib/i18n";
+import type { Locale, Profile } from "@/lib/types";
 
 /** "@handle" from a profile URL such as https://www.instagram.com/amitastrocr/ or https://www.youtube.com/@ASTROCRICKET. */
 export function handleFromUrl(url: string): string {
@@ -25,7 +26,8 @@ export function whatsappNumber(url: string): string | null {
 }
 
 /** The astrologer's direct contact channels: WhatsApp first, then social links, email, phone and location. */
-export function ContactChannels({ profile }: { profile: Profile }) {
+export function ContactChannels({ profile, lang }: { profile: Profile; lang: Locale }) {
+  const t = getDict(lang).contact;
   const { whatsapp, instagram, youtube, telegram, amazon, linktree } = profile.social_links ?? {};
   const waNumber = whatsapp ? whatsappNumber(whatsapp) : null;
   const hasAny =
@@ -33,7 +35,7 @@ export function ContactChannels({ profile }: { profile: Profile }) {
   if (!hasAny) return null;
   return (
     <div className="card space-y-4 p-6" data-testid="contact-channels">
-      <h2 className="text-2xl font-semibold">Reach the astrologer</h2>
+      <h2 className="text-2xl font-semibold">{t.reach}</h2>
       {whatsapp && (
         <a
           href={whatsapp}
@@ -44,7 +46,7 @@ export function ContactChannels({ profile }: { profile: Profile }) {
         >
           <WhatsAppIcon className="h-6 w-6" />
           <span className="flex flex-col leading-tight">
-            Chat on WhatsApp
+            {t.whatsapp}
             {waNumber && <span className="text-xs font-medium opacity-80">{waNumber}</span>}
           </span>
         </a>
@@ -57,7 +59,7 @@ export function ContactChannels({ profile }: { profile: Profile }) {
                 <InstagramIcon className="h-5 w-5" />
               </span>
               <span>
-                <span className="block font-medium">Instagram</span>
+                <span className="block font-medium">{t.instagram}</span>
                 <span className="text-muted">{handleFromUrl(instagram)}</span>
               </span>
             </a>
@@ -70,7 +72,7 @@ export function ContactChannels({ profile }: { profile: Profile }) {
                 <YouTubeIcon className="h-5 w-5" />
               </span>
               <span>
-                <span className="block font-medium">YouTube</span>
+                <span className="block font-medium">{t.youtube}</span>
                 <span className="text-muted">{handleFromUrl(youtube)}</span>
               </span>
             </a>
@@ -83,7 +85,7 @@ export function ContactChannels({ profile }: { profile: Profile }) {
                 <Send className="h-4 w-4" aria-hidden />
               </span>
               <span>
-                <span className="block font-medium">Telegram</span>
+                <span className="block font-medium">{t.telegram}</span>
                 <span className="text-muted">{handleFromUrl(telegram)}</span>
               </span>
             </a>
@@ -96,8 +98,8 @@ export function ContactChannels({ profile }: { profile: Profile }) {
                 <ShoppingBag className="h-4 w-4" aria-hidden />
               </span>
               <span>
-                <span className="block font-medium">Amazon</span>
-                <span className="text-muted">Shop on Amazon.in</span>
+                <span className="block font-medium">{t.amazon}</span>
+                <span className="text-muted">{t.amazonSub}</span>
               </span>
             </a>
           </li>
@@ -109,7 +111,7 @@ export function ContactChannels({ profile }: { profile: Profile }) {
                 <Link2 className="h-4 w-4" aria-hidden />
               </span>
               <span>
-                <span className="block font-medium">All links</span>
+                <span className="block font-medium">{t.allLinks}</span>
                 <span className="text-muted">linktr.ee/{handleFromUrl(linktree).replace(/^@/, "")}</span>
               </span>
             </a>
@@ -119,7 +121,7 @@ export function ContactChannels({ profile }: { profile: Profile }) {
           <li>
             <a href={`tel:${profile.contact_phone.replace(/\s+/g, "")}`} className="flex items-center gap-3 hover:text-gold-soft">
               <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-line text-gold-soft"><Phone className="h-4 w-4" aria-hidden /></span>
-              <span><span className="block font-medium">Call</span><span className="text-muted">{profile.contact_phone}</span></span>
+              <span><span className="block font-medium">{t.call}</span><span className="text-muted">{profile.contact_phone}</span></span>
             </a>
           </li>
         )}
@@ -127,7 +129,7 @@ export function ContactChannels({ profile }: { profile: Profile }) {
           <li>
             <a href={`mailto:${profile.contact_email}`} className="flex items-center gap-3 hover:text-gold-soft">
               <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-line text-gold-soft"><Mail className="h-4 w-4" aria-hidden /></span>
-              <span><span className="block font-medium">Email</span><span className="text-muted">{profile.contact_email}</span></span>
+              <span><span className="block font-medium">{t.email}</span><span className="text-muted">{profile.contact_email}</span></span>
             </a>
           </li>
         )}

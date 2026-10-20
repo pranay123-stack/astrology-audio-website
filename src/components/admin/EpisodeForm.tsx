@@ -21,6 +21,10 @@ interface FormValues {
   description: string;
   article: string;
   article_lang: ArticleLang;
+  title_alt: string;
+  excerpt_alt: string;
+  description_alt: string;
+  article_alt: string;
   category_id: string;
   duration_minutes: number;
   duration_secs: number;
@@ -65,6 +69,10 @@ export function EpisodeForm({
       description: episode?.description ?? "",
       article: episode?.article ?? "",
       article_lang: episode?.article_lang ?? "hi",
+      title_alt: episode?.title_alt ?? "",
+      excerpt_alt: episode?.excerpt_alt ?? "",
+      description_alt: episode?.description_alt ?? "",
+      article_alt: episode?.article_alt ?? "",
       category_id: episode?.category_id ?? "",
       duration_minutes: Math.floor(duration / 60),
       duration_secs: duration % 60,
@@ -85,7 +93,12 @@ export function EpisodeForm({
   const isPublished = useWatch({ control, name: "is_published" });
   const articleText = useWatch({ control, name: "article" });
   const articleLang = useWatch({ control, name: "article_lang" });
+  const altLang: ArticleLang = articleLang === "hi" ? "en" : "hi";
+  const langName = (l: ArticleLang) => (l === "hi" ? "Hindi" : "English");
+  const altArticleText = useWatch({ control, name: "article_alt" });
+  const altTitle = useWatch({ control, name: "title_alt" });
   const [showPreview, setShowPreview] = useState(false);
+  const [showAltPreview, setShowAltPreview] = useState(false);
   const durationMinutes = useWatch({ control, name: "duration_minutes" });
   const durationSecs = useWatch({ control, name: "duration_secs" });
   const section = categories.find((c) => c.id === categoryId)?.section;
@@ -106,6 +119,10 @@ export function EpisodeForm({
       description: v.description,
       article: v.article,
       article_lang: v.article_lang,
+      title_alt: v.title_alt,
+      excerpt_alt: v.excerpt_alt,
+      description_alt: v.description_alt,
+      article_alt: v.article_alt,
       category_id: v.category_id,
       audio_storage_path: audioPath,
       cover_image_path: coverPath,
@@ -131,7 +148,7 @@ export function EpisodeForm({
       setMessage({ kind: "error", text: "Please fix the highlighted fields." });
       return;
     }
-    if (payload.is_published && !payload.audio_storage_path && !(payload.article ?? "").trim()) {
+    if (payload.is_published && !payload.audio_storage_path && !(payload.article ?? "").trim() && !(payload.article_alt ?? "").trim()) {
       setErrors({ audio_storage_path: "Add audio or write an article to publish", article: "Add audio or write an article to publish" });
       setMessage({ kind: "error", text: "Add an audio file or an article before publishing." });
       return;
@@ -178,6 +195,17 @@ export function EpisodeForm({
           <input id="slug" className="input font-mono" {...register("slug", { onChange: () => setSlugTouched(true) })} />
           <p className="mt-1 text-xs text-muted">Leave empty to generate it from the title. Changing it changes the episode&apos;s web address.</p>
           {err("slug")}
+        </div>
+        <div>
+          <label htmlFor="article_lang" className="label">Post language</label>
+          <select id="article_lang" className="input sm:w-64" {...register("article_lang")}>
+            <option value="hi">Hindi</option>
+            <option value="en">English</option>
+          </select>
+          <p className="mt-1 text-xs text-muted">
+            The language the title, description, notes and article below are written in. You can add a version in the other language
+            further down; visitors see the version that matches the site language they chose.
+          </p>
         </div>
         <div>
           <label htmlFor="category_id" className="label">Category</label>
@@ -260,16 +288,9 @@ export function EpisodeForm({
       )}
 
       <section className="card space-y-5 p-6" data-testid="article-fields">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-2xl font-semibold">Article <span className="text-base font-normal text-muted">(optional)</span></h2>
-          <label className="flex items-center gap-2 text-sm">
-            <span className="text-muted">Language</span>
-            <select className="input w-auto py-1.5" {...register("article_lang")} aria-label="Article language">
-              <option value="hi">Hindi</option>
-              <option value="en">English</option>
-            </select>
-          </label>
-        </div>
+        <h2 className="text-2xl font-semibold">
+          Article <span className="text-base font-normal text-muted">(optional, in {langName(articleLang)})</span>
+        </h2>
         <div>
           <label htmlFor="article" className="label">Article text</label>
           <textarea
@@ -297,6 +318,54 @@ export function EpisodeForm({
               </div>
             )}
           </div>
+        )}
+      </section>
+
+      <section className="card space-y-5 p-6" data-testid="translation-fields">
+        <div className="space-y-1">
+          <h2 className="text-2xl font-semibold">
+            {langName(altLang)} version <span className="text-base font-normal text-muted">(optional)</span>
+          </h2>
+          <p className="text-sm text-muted">
+            Visitors who choose {langName(altLang)} on the site see this version. Leave it empty and they see the {langName(articleLang)}{" "}
+            text with a small “In {langName(articleLang)}” label. The audio, cover and category are shared.
+          </p>
+        </div>
+        <div>
+          <label htmlFor="title_alt" className="label">{langName(altLang)} heading</label>
+          <input id="title_alt" lang={altLang} className="input" {...register("title_alt")} />
+          {err("title_alt")}
+        </div>
+        <div>
+          <label htmlFor="excerpt_alt" className="label">{langName(altLang)} short summary</label>
+          <textarea id="excerpt_alt" lang={altLang} rows={2} maxLength={280} className="input" {...register("excerpt_alt")} />
+          {err("excerpt_alt")}
+        </div>
+        <div>
+          <label htmlFor="description_alt" className="label">{langName(altLang)} notes</label>
+          <textarea id="description_alt" lang={altLang} rows={4} className="input" {...register("description_alt")} />
+          {err("description_alt")}
+        </div>
+        <div>
+          <label htmlFor="article_alt" className="label">{langName(altLang)} article</label>
+          <textarea id="article_alt" lang={altLang} rows={10} className="input leading-relaxed" {...register("article_alt")} />
+          <p className="mt-1 text-xs text-muted">Same formatting as the main article.</p>
+          {err("article_alt")}
+        </div>
+        {altArticleText.trim() && (
+          <div>
+            <button type="button" className="btn-ghost px-4 py-2 text-xs" onClick={() => setShowAltPreview((v) => !v)}>
+              {showAltPreview ? "Hide preview" : `Preview ${langName(altLang)} article`}
+            </button>
+            {showAltPreview && (
+              <div className="mt-4 rounded-2xl border border-line bg-night/50 p-5">
+                <ArticleBody source={altArticleText} lang={altLang} />
+              </div>
+            )}
+          </div>
+        )}
+        {!altTitle.trim() && altArticleText.trim() && (
+          <p className="text-xs text-gold-soft">Tip: add a {langName(altLang)} heading too, so cards show the {langName(altLang)} title.</p>
         )}
       </section>
 

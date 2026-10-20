@@ -1,6 +1,10 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import type { Dict } from "@/lib/i18n";
+
+/** Which player error to show; the text comes from the page-language dictionary. */
+export type PlayerErrorKey = keyof Dict["player"]["errors"];
 
 export interface Track {
   id: string;
@@ -24,7 +28,7 @@ interface PlayerState {
   volume: number;
   muted: boolean;
   rate: number;
-  error: string | null;
+  error: PlayerErrorKey | null;
 }
 
 interface PlayerApi extends PlayerState {
@@ -45,20 +49,20 @@ const PlayerContext = createContext<PlayerApi | null>(null);
 const STORAGE_KEY = "audio-player-prefs";
 
 /** Turns an HTTP status from the audio route into a message a listener can act on. */
-async function diagnose(src: string, mediaError: MediaError | null): Promise<string> {
+async function diagnose(src: string, mediaError: MediaError | null): Promise<PlayerErrorKey> {
   try {
     const res = await fetch(src, { method: "HEAD", cache: "no-store" });
-    if (res.status === 403) return "This is premium audio. Contact the astrologer for the full package to listen.";
-    if (res.status === 404) return "This audio file is unavailable right now. Please try again later.";
-    if (res.status >= 500) return "The audio server had a problem. Please try again in a moment.";
+    if (res.status === 403) return "premium";
+    if (res.status === 404) return "missing";
+    if (res.status >= 500) return "server";
   } catch {
-    return "Could not reach the server. Check your connection and try again.";
+    return "offline";
   }
   if (mediaError?.code === MediaError.MEDIA_ERR_DECODE || mediaError?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
-    return "Your browser could not play this audio format.";
+    return "format";
   }
-  if (mediaError?.code === MediaError.MEDIA_ERR_NETWORK) return "The audio stopped loading because of a network problem.";
-  return "This audio could not be played.";
+  if (mediaError?.code === MediaError.MEDIA_ERR_NETWORK) return "network";
+  return "generic";
 }
 
 export function AudioPlayerProvider({ children }: { children: ReactNode }) {
@@ -126,7 +130,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
       const t = trackRef.current;
       if (!t || !audio.getAttribute("src")) return;
       const mediaError = audio.error;
-      update({ status: "error", error: "Checking the audio file…" });
+      update({ status: "error", error: "checking" });
       diagnose(t.src, mediaError).then((message) => {
         if (trackRef.current?.id === t.id) update({ status: "error", error: message });
       });
