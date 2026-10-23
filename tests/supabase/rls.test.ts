@@ -158,7 +158,7 @@ describe("articles", () => {
 
   it("visitors read articles of live free posts only", async () => {
     const free = await postWithArticle(live, "शनि पर मुफ़्त लेख");
-    const premium = await postWithArticle({ ...live, is_premium: true }, "गुप्त प्रीमियम लेख");
+    const premium = await postWithArticle({ ...live, is_premium: true }, "गुप्तप्रीमियमज़्ज़लेख");
     const draft = await postWithArticle({ is_published: false }, "ड्राफ़्ट लेख");
     const direct = await anon.from("episode_articles").select("episode_id, body").in("episode_id", [free, premium, draft]);
     expect(direct.data).toEqual([{ episode_id: free, body: "शनि पर मुफ़्त लेख" }]);
@@ -168,7 +168,7 @@ describe("articles", () => {
     expect(byId[free]).toMatchObject({ has_article: true, article: "शनि पर मुफ़्त लेख" });
     expect(byId[premium]).toMatchObject({ has_article: true, article: "" });
     // Premium text cannot be found by searching either.
-    expect((await anon.from("episode_listings").select("id").ilike("search_text", "%गुप्त%")).data).toEqual([]);
+    expect((await anon.from("episode_listings").select("id").ilike("search_text", "%गुप्तप्रीमियमज़्ज़%")).data).toEqual([]);
     // Admins see everything.
     expect((await admin.from("episode_articles").select("episode_id").in("episode_id", [free, premium, draft])).data).toHaveLength(3);
   });
@@ -244,6 +244,45 @@ describe("signed-in non-admin user", () => {
     expect(mine.data!.every((p) => p.user_id === memberId)).toBe(true);
     expect(mine.data!.length).toBe(1);
     expect((await service.rpc("has_premium_access", { p_user: memberId, p_episode: randomUUID() })).data).toBe(true);
+  });
+});
+
+describe("saved KP charts", () => {
+  const birth = { date: "1994-07-24", time: "11:43:00", place: "Test", lat: 25.96, lon: 85.27, zone: "Asia/Kolkata" };
+
+  it("each signed-in user sees and changes only their own charts", async () => {
+    const mine = await member.from("kp_charts").insert({ name: "rls mine", birth }).select("id, user_id").single();
+    expect(mine.error).toBeNull();
+    expect(mine.data!.user_id).toBe(memberId);
+    const other = await admin.from("kp_charts").insert({ name: "rls admin", birth }).select("id").single();
+    expect(other.error).toBeNull();
+
+    // The member sees only their own row, and cannot read, change or delete the other one.
+    const seen = await member.from("kp_charts").select("id, name");
+    expect(seen.data!.map((r) => r.name)).toEqual(["rls mine"]);
+    expect((await member.from("kp_charts").update({ notes: "hijack" }).eq("id", other.data!.id).select("id")).data).toEqual([]);
+    expect((await member.from("kp_charts").delete().eq("id", other.data!.id).select("id")).data).toEqual([]);
+    expect((await admin.from("kp_charts").select("notes").eq("id", other.data!.id).single()).data?.notes).toBe("");
+    // Nor can they file a chart under someone else's account.
+    const adminId = (await admin.auth.getUser()).data.user!.id;
+    expect((await member.from("kp_charts").insert({ name: "spoof", birth, user_id: adminId })).error).not.toBeNull();
+
+    // Notes can be saved on their own chart.
+    expect((await member.from("kp_charts").update({ notes: "my notes" }).eq("id", mine.data!.id)).error).toBeNull();
+
+    await service.from("kp_charts").delete().in("id", [mine.data!.id, other.data!.id]);
+  });
+
+  it("visitors without an account can neither read nor save charts", async () => {
+    expect((await anon.from("kp_charts").insert({ name: "anon", birth })).error).not.toBeNull();
+    const read = await anon.from("kp_charts").select("id");
+    expect(read.data ?? []).toEqual([]);
+  });
+
+  it("rejects oversized birth data and notes", async () => {
+    expect((await member.from("kp_charts").insert({ name: "big", birth: { junk: "x".repeat(5000) } })).error).not.toBeNull();
+    expect((await member.from("kp_charts").insert({ name: "notes", birth, notes: "x".repeat(20001) })).error).not.toBeNull();
+    expect((await member.from("kp_charts").insert({ name: "array", birth: [1, 2] })).error).not.toBeNull();
   });
 });
 

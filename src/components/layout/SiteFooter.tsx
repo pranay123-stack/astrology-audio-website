@@ -90,8 +90,11 @@ export async function SiteFooter({ lang }: { lang: Locale }) {
             {t.footer.note}{" "}
             <Link href={href("/disclaimer")} className="underline underline-offset-2 hover:text-gold-soft">{t.footer.readDisclaimer}</Link>.
           </p>
-          <p className="shrink-0">
-            © {profile.legal_business_name || profile.display_name}
+          <p className="flex shrink-0 gap-3">
+            <span>© {profile.legal_business_name || profile.display_name}</span>
+            <a href={siteConfig.sourceUrl} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-gold-soft">
+              {t.footer.source}
+            </a>
           </p>
         </div>
       </div>

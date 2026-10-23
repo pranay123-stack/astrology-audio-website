@@ -241,6 +241,12 @@ The browser tests check:
 
 ---
 
+## KP birth chart (`/kp-chart`)
+
+Visitors enter date, time and place of birth and get a KP chart: South Indian chart (tap a box for its full details), planets and cusps with sign / star / sub / sub-sub lords, ABCD significators (planet and house views), the signification and strength table, and Vimshottari dasha down to pratyantar. Signed-in visitors (Google) can save charts and notes; each user sees only their own (`kp_charts`, RLS). Details, settings and the Google setup: [docs/KP-CHART.md](docs/KP-CHART.md).
+
+The calculations use the Swiss Ephemeris (`sweph`), which is AGPL-3.0, so **this whole project is licensed AGPL-3.0** (see `LICENSE`) and the footer links to the public source code.
+
 ## Languages (English and Hindi)
 
 Every public page exists in both languages. English keeps the plain addresses (`/contact`) and Hindi lives under `/hi` (`/hi/contact`); the **हिंदी / English** button in the header switches to the same page in the other language, keeping search filters. Internally the pages sit under `app/[lang]`; `src/proxy.ts` serves plain URLs from `/en/...` and redirects any explicit `/en/...` address to the plain one.

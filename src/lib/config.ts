@@ -28,6 +28,11 @@ export const siteConfig = {
    * Use on test deployments such as a temporary *.vercel.app address; leave unset at launch.
    */
   noIndex: process.env.NEXT_PUBLIC_NOINDEX === "true",
+  /**
+   * Public source code. The site is AGPL-3.0 licensed (the KP chart uses the AGPL Swiss
+   * Ephemeris), so every page links to its source.
+   */
+  sourceUrl: process.env.NEXT_PUBLIC_SOURCE_URL || "https://github.com/pranay123-stack/astrology-audio-website",
 };
 
 /**

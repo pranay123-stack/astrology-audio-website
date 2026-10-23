@@ -32,7 +32,7 @@ test("Hindi site: translated interface at /hi, and the switch keeps the page and
   await expect(page.locator("html")).toHaveAttribute("lang", "hi");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("ज्योतिष को जानिए");
   const nav = await page.getByRole("navigation", { name: "मुख्य" }).filter({ visible: true }).getByRole("link").allInnerTexts();
-  expect(nav).toEqual(["होम", "सामान्य ज्योतिष", "क्रिकेट ज्योतिष", "प्रीमियम ऑडियो", "ज्योतिषी के बारे में", "संपर्क"]);
+  expect(nav).toEqual(["होम", "सामान्य ज्योतिष", "क्रिकेट ज्योतिष", "प्रीमियम ऑडियो", "KP कुंडली", "ज्योतिषी के बारे में", "संपर्क"]);
   // Category names come from the database's Hindi columns; links stay inside /hi.
   await expect(page.getByTestId("category-tile").filter({ visible: true }).first()).toContainText("दैनिक ज्योतिष");
   await expect(page.getByRole("link", { name: "ज्योतिष ऑडियो सुनें" })).toHaveAttribute("href", "/hi/astrology-audios");
@@ -163,4 +163,31 @@ test("mobile menu opens and navigates", async ({ page }) => {
   await page.locator("#mobile-menu").getByRole("link", { name: "Cricket Astrology" }).click();
   await expect(page).toHaveURL(/\/cricket-astrology$/);
   await expect(page.locator("#mobile-menu")).toHaveCount(0);
+});
+
+test("KP chart: birth details give a South Indian chart with clickable boxes and dasha", async ({ page }) => {
+  await gotoReady(page, "/kp-chart");
+  await page.fill("#kp-name", "Public test");
+  await page.fill("#kp-date", "2000-01-01");
+  await page.fill("#kp-time", "17:30:00");
+  await page.locator("summary").click();
+  await page.fill("#kp-lat", "28.6139");
+  await page.fill("#kp-lon", "77.2090");
+  await page.getByTestId("kp-submit").click();
+  const chart = page.getByTestId("kp-chart");
+  await expect(chart).toBeVisible({ timeout: 30_000 });
+  // 1 Jan 2000, 12:00 UT: KP New mean ayanamsa is exactly 23°46'00", shown as 23°45'59".
+  await expect(chart).toContainText(`KP New ayanamsa 23°45'59"`);
+  await expect(page.getByTestId("kp-grid").locator("button")).toHaveCount(12);
+  await expect(page.getByTestId("kp-planets-table").locator("tbody tr")).toHaveCount(13);
+
+  // Tapping a box shows its details; the box with the ascendant holds cusp I.
+  await page.locator('[data-testid="kp-grid"] button[data-cusps~="1"]').click();
+  await expect(page.getByTestId("kp-details")).toContainText("House I (1)");
+  await expect(page.getByTestId("kp-details")).toContainText("Significators of this house");
+
+  await expect(page.getByTestId("kp-dasha").locator("li")).not.toHaveCount(0);
+  // Starting over returns to the form.
+  await page.getByTestId("kp-new-chart").click();
+  await expect(page.getByTestId("kp-form")).toBeVisible();
 });

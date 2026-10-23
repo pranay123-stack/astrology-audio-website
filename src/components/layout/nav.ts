@@ -6,6 +6,7 @@ export const NAV_LINKS = [
   { href: "/astrology-audios", key: "general" },
   { href: "/cricket-astrology", key: "cricket" },
   { href: "/premium", key: "premium" },
+  { href: "/kp-chart", key: "kp" },
   { href: "/about", key: "about" },
   { href: "/contact", key: "contact" },
 ] as const satisfies readonly { href: string; key: keyof Dict["nav"] }[];

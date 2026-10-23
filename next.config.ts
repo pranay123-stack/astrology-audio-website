@@ -5,6 +5,13 @@ const supabaseHost = supabaseUrl ? new URL(supabaseUrl) : null;
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
+  // Native Swiss Ephemeris addon for the KP chart: loaded by Node at runtime, never bundled.
+  serverExternalPackages: ["sweph"],
+  // sweph loads its prebuilt binary dynamically, which file tracing cannot see.
+  outputFileTracingIncludes: {
+    // Keys are globs, so the brackets of the [lang] segment are escaped.
+    "/\\[lang\\]/kp-chart": ["./node_modules/sweph/prebuilds/linux-x64/**"],
+  },
   partialPrefetching: true,
   turbopack: {
     rules: {
