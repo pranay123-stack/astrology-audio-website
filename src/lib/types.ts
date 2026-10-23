@@ -22,6 +22,8 @@ export interface Category {
   name_hi: string;
   description_hi: string;
   section: Section;
+  /** Posts in this category are readings of a match and must have match details. */
+  requires_match: boolean;
   sort_order: number;
 }
 
@@ -178,6 +180,8 @@ export interface EpisodeQuery {
   limit?: number;
   offset?: number;
   excludeId?: string;
+  /** Only posts with match details (match readings), excluding cricket guide articles. */
+  withMatch?: boolean;
   /** Admin listings include drafts and scheduled episodes. */
   includeUnpublished?: boolean;
 }

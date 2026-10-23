@@ -3,13 +3,15 @@ import Form from "next/form";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Search, Trophy } from "lucide-react";
+import { EpisodeCard } from "@/components/episodes/EpisodeCard";
 import { HeroMatch } from "@/components/episodes/HeroMatch";
+import { LearnCricketCta } from "@/components/episodes/LearnCricketCta";
 import { LoadMore } from "@/components/episodes/LoadMore";
 import { ListingSkeleton } from "@/components/episodes/ListingSkeleton";
 import { MatchCard } from "@/components/episodes/MatchCard";
 import { Starfield } from "@/components/layout/Starfield";
 import { CricketDisclaimer } from "@/components/ui/Disclaimer";
-import { EmptyState } from "@/components/ui/SectionHeading";
+import { EmptyState, SectionHeading } from "@/components/ui/SectionHeading";
 import { getDict, localePath } from "@/lib/i18n";
 import { PAGE_SIZE, parseListParams, toQueryString, type ListParams } from "@/lib/list-params";
 import { getCompetitions, getEpisodes } from "@/lib/queries";
@@ -50,6 +52,7 @@ export default async function CricketAstrologyPage({ searchParams }: PageProps<"
           <NextMatch lang={lang} />
         </div>
       </section>
+      <CricketGuide lang={lang} />
       <section className="container-page py-10">
         <Suspense fallback={<ListingSkeleton lang={lang} />}>
           <Results searchParams={searchParams} lang={lang} />
@@ -59,11 +62,29 @@ export default async function CricketAstrologyPage({ searchParams }: PageProps<"
   );
 }
 
+/** General articles on how cricket astrology works, with an invitation to learn it. Cached data only. */
+async function CricketGuide({ lang }: { lang: Locale }) {
+  const t = getDict(lang).cricket;
+  const { items } = await getEpisodes({ categorySlug: "cricket-astrology-guide", sort: "latest", limit: 24 });
+  if (items.length === 0) return null;
+  return (
+    <section className="container-page py-12" aria-labelledby="guide-heading" data-testid="cricket-guide">
+      <SectionHeading id="guide-heading" eyebrow={t.guideEyebrow} title={t.guideTitle} description={t.guideDesc} />
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {items.map((e) => (
+          <EpisodeCard key={e.id} episode={e} lang={lang} />
+        ))}
+      </div>
+      <LearnCricketCta lang={lang} className="mt-10" />
+    </section>
+  );
+}
+
 /** The next upcoming match reading (or the latest one), with a live countdown. Cached data only, so it is part of the static shell. */
 async function NextMatch({ lang }: { lang: Locale }) {
   const [upcoming, recent] = await Promise.all([
-    getEpisodes({ section: "cricket", timing: "upcoming", sort: "match_date_asc", limit: 1 }),
-    getEpisodes({ section: "cricket", sort: "latest", limit: 1 }),
+    getEpisodes({ section: "cricket", withMatch: true, timing: "upcoming", sort: "match_date_asc", limit: 1 }),
+    getEpisodes({ section: "cricket", withMatch: true, sort: "latest", limit: 1 }),
   ]);
   const episode = upcoming.items[0] ?? recent.items[0];
   if (!episode?.match) return null;
@@ -81,6 +102,7 @@ async function Results({ searchParams, lang }: Pick<PageProps<"/[lang]/cricket-a
   const p = parseListParams(await searchParams);
   const query: EpisodeQuery = {
     section: "cricket",
+    withMatch: true,
     search: p.q || undefined,
     competitionSlug: p.competition || undefined,
     access: p.access || undefined,

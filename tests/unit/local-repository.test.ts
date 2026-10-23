@@ -39,7 +39,12 @@ function fixture() {
       contact_email: "", contact_phone: "", location: "", consultation_info: "", social_links: {}, legal_business_name: "",
       legal_jurisdiction: "", hi: {}, updated_at: iso(0),
     },
-    categories: [cat("c-cric", "cricket-astrology", "cricket", 0), cat("c-gen", "daily-astrology", "general", 1), cat("c-ved", "vedic-astrology", "general", 2)],
+    categories: [
+      cat("c-cric", "cricket-astrology", "cricket", 0),
+      cat("c-gen", "daily-astrology", "general", 1),
+      cat("c-ved", "vedic-astrology", "general", 2),
+      cat("c-guide", "cricket-astrology-guide", "cricket", 3),
+    ],
     competitions: [
       { id: "bbl", name: "Big Bash League", short_name: "BBL", slug: "bbl", description: "", is_active: true },
       { id: "ipl", name: "Indian Premier League", short_name: "IPL", slug: "ipl", description: "", is_active: true },
@@ -97,6 +102,21 @@ const write = (over: Partial<EpisodeWrite> = {}): EpisodeWrite => ({
   published_at: iso(-0.01),
   match: null,
   ...over,
+});
+
+describe("cricket guide articles", () => {
+  it("live in the cricket section without match details, and match lists leave them out", async () => {
+    await repo.createEpisode(write({ title: "Guide", slug: "guide", category_id: "c-guide", audio_storage_path: null, article: "## क्रिकेट ज्योतिष", match: null }));
+    const all = await repo.queryEpisodes({ section: "cricket" });
+    expect(all.items.map((e) => e.slug)).toContain("guide");
+    const matches = await repo.queryEpisodes({ section: "cricket", withMatch: true });
+    expect(matches.items.every((e) => e.match)).toBe(true);
+    expect(matches.items.map((e) => e.slug)).not.toContain("guide");
+  });
+
+  it("still require match details for match readings", async () => {
+    await expect(repo.createEpisode(write({ slug: "no-match", category_id: "c-cric", match: null }))).rejects.toThrow(/match details/);
+  });
 });
 
 describe("public visibility", () => {

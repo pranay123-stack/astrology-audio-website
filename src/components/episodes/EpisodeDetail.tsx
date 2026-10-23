@@ -18,6 +18,7 @@ import { ZodiacWheel } from "@/components/layout/ZodiacWheel";
 import { ArticleBody } from "./ArticleBody";
 import { CategoryIcon } from "./categoryIcons";
 import { EpisodeCard } from "./EpisodeCard";
+import { LearnCricketCta } from "./LearnCricketCta";
 import { MatchCard } from "./MatchCard";
 import { TeamBadge } from "./TeamBadge";
 
@@ -63,13 +64,18 @@ export async function EpisodeDetail({ slug, section, lang }: { slug: string; sec
   const other: Locale = lang === "hi" ? "en" : "hi";
   const onlyOther = episode.text_lang !== lang && (!episode.has_article || episode.article_lang !== lang);
 
+  // Match readings relate to other matches; everything else (incl. cricket guide articles) to its category.
+  const isMatchReading = !!episode.match;
   const related = await getEpisodes(
-    section === "cricket"
-      ? { section, competitionSlug: episode.match?.competition.slug, excludeId: episode.id, sort: "latest", limit: 3 }
+    isMatchReading
+      ? { section, withMatch: true, competitionSlug: episode.match?.competition.slug, excludeId: episode.id, sort: "latest", limit: 3 }
       : { section, categorySlug: episode.category.slug, excludeId: episode.id, sort: "latest", limit: 3 },
   );
   const fallback =
-    related.items.length === 0 ? await getEpisodes({ section, excludeId: episode.id, sort: "latest", limit: 3 }) : null;
+    related.items.length === 0
+      ? await getEpisodes({ section, withMatch: isMatchReading || undefined, excludeId: episode.id, sort: "latest", limit: 3 })
+      : null;
+  const isCricketGuide = section === "cricket" && !isMatchReading;
   const relatedItems = related.items.length ? related.items : (fallback?.items ?? []);
 
   const cover = imageUrl(episode.cover_image_path);
@@ -191,6 +197,8 @@ export async function EpisodeDetail({ slug, section, lang }: { slug: string; sec
             </section>
           )}
 
+          {isCricketGuide && <LearnCricketCta lang={lang} />}
+
           {section === "cricket" && <CricketDisclaimer lang={lang} />}
         </div>
 
@@ -218,13 +226,13 @@ export async function EpisodeDetail({ slug, section, lang }: { slug: string; sec
           <SectionHeading
             id="related-heading"
             eyebrow={t.episode.keepExploring}
-            title={section === "cricket" ? t.episode.relatedCricket : t.episode.relatedGeneral}
+            title={isMatchReading ? t.episode.relatedCricket : isCricketGuide ? t.cricket.guideTitle : t.episode.relatedGeneral}
             href={backHref}
             linkLabel={t.common.viewAll}
           />
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {relatedItems.map((e) =>
-              section === "cricket" ? <MatchCard key={e.id} episode={e} lang={lang} /> : <EpisodeCard key={e.id} episode={e} lang={lang} />,
+              e.match ? <MatchCard key={e.id} episode={e} lang={lang} /> : <EpisodeCard key={e.id} episode={e} lang={lang} />,
             )}
           </div>
         </section>

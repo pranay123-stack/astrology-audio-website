@@ -108,7 +108,7 @@ export class LocalRepository implements Repository {
   private assertReferences(db: LocalDatabase, data: EpisodeWrite) {
     const cat = db.categories.find((c) => c.id === data.category_id);
     if (!cat) throw new RepositoryError("Category not found", "invalid");
-    if (cat.section === "cricket" && !data.match) {
+    if (cat.requires_match && !data.match) {
       throw new RepositoryError("Cricket episodes need match details", "invalid");
     }
     if (data.match) {
@@ -156,7 +156,7 @@ export class LocalRepository implements Repository {
         updated_at: now,
       };
       db.episodes.push(episode);
-      this.writeMatch(db, episode.id, data, cat.section === "cricket");
+      this.writeMatch(db, episode.id, data, cat.requires_match);
       return episode;
     });
   }
@@ -175,7 +175,7 @@ export class LocalRepository implements Repository {
         has_article_alt: fields.article_alt.trim().length > 0,
         updated_at: new Date().toISOString(),
       });
-      this.writeMatch(db, id, data, cat.section === "cricket");
+      this.writeMatch(db, id, data, cat.requires_match);
       return episode;
     });
   }

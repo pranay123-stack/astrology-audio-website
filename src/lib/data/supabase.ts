@@ -178,6 +178,7 @@ export class SupabaseRepository implements Repository {
     let query = this.db.from("episode_listings").select("*", { count: "exact" });
     if (!q.includeUnpublished) query = query.eq("is_published", true).lte("published_at", now);
     if (q.section) query = query.eq("category_section", q.section);
+    if (q.withMatch) query = query.not("match_id", "is", null);
     if (q.categorySlug) query = query.eq("category_slug", q.categorySlug);
     if (q.competitionSlug) query = query.eq("competition_slug", q.competitionSlug);
     if (q.access) query = query.eq("is_premium", q.access === "premium");

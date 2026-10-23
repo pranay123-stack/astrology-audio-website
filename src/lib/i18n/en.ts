@@ -152,6 +152,18 @@ export const en = {
     countdown: { days: "Days", hrs: "Hrs", min: "Min", sec: "Sec" },
     startsIn: (d: number, h: number, m: number) => `Starts in ${d} days ${h} hours ${m} minutes`,
     underway: "Match under way or completed",
+    guideEyebrow: "Learn",
+    guideTitle: "Cricket Astrology Guide",
+    guideDesc: "How astrologers read a cricket match, explained simply: the match chart, the houses, sub-lords, timing and the limits.",
+    guideNone: "Guide articles are coming soon.",
+  },
+
+  learn: {
+    eyebrow: "Learn from the astrologer",
+    title: "Learn cricket astrology",
+    body: "Want to read a match chart yourself? Learn the method step by step: casting the match chart, reading the houses and sub-lords, ruling planets and timing, with worked examples. Get in touch to ask about learning sessions.",
+    cta: "Ask about learning",
+    subject: "Learning cricket astrology",
   },
 
   disclaimerNote: {

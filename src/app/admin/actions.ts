@@ -77,7 +77,8 @@ export async function saveEpisode(input: EpisodeInput): Promise<ActionResult<{ i
 
     const category = categories.find((c) => c.id === d.category_id);
     if (!category) return { ok: false, error: "Choose a category.", fields: { category_id: "Choose a category" } };
-    const isCricket = category.section === "cricket";
+    // Match readings need teams and a date; cricket guide articles do not.
+    const isCricket = category.requires_match;
     if (isCricket && !d.match) {
       return { ok: false, error: "Add the match details for cricket episodes.", fields: { "match.competition_id": "Choose a competition" } };
     }

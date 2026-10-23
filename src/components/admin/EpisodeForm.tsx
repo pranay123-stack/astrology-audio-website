@@ -101,7 +101,8 @@ export function EpisodeForm({
   const [showAltPreview, setShowAltPreview] = useState(false);
   const durationMinutes = useWatch({ control, name: "duration_minutes" });
   const durationSecs = useWatch({ control, name: "duration_secs" });
-  const section = categories.find((c) => c.id === categoryId)?.section;
+  // Match readings need teams and a date; other categories (incl. the cricket guide) do not.
+  const needsMatch = categories.find((c) => c.id === categoryId)?.requires_match ?? false;
   const competitionTeams = useMemo(() => teams.filter((t) => t.competition_id === competitionId), [teams, competitionId]);
   const titleField = register("title", {
     onChange: (e) => {
@@ -131,7 +132,7 @@ export function EpisodeForm({
       is_premium: v.is_premium,
       published_at: v.published_at_local ? fromZonedInputValue(v.published_at_local, timeZone) : "",
       match:
-        section === "cricket"
+        needsMatch
           ? {
               competition_id: v.competition_id,
               team_a_id: v.team_a_id,
@@ -234,7 +235,7 @@ export function EpisodeForm({
         </div>
       </section>
 
-      {section === "cricket" && (
+      {needsMatch && (
         <section className="card space-y-5 p-6" data-testid="match-fields">
           <h2 className="text-2xl font-semibold">Match information</h2>
           <div className="grid gap-5 sm:grid-cols-2">

@@ -119,6 +119,7 @@ export function filterAndSort(rows: EpisodeListing[], q: EpisodeQuery, now = Dat
     if (!q.includeUnpublished && !isLive(r, now)) return false;
     if (q.excludeId && r.id === q.excludeId) return false;
     if (q.section && r.category.section !== q.section) return false;
+    if (q.withMatch && !r.match) return false;
     if (q.categorySlug && r.category.slug !== q.categorySlug) return false;
     if (q.competitionSlug && r.match?.competition.slug !== q.competitionSlug) return false;
     if (q.access === "free" && r.is_premium) return false;

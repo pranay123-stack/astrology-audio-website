@@ -57,6 +57,7 @@ export class LocalDb {
     for (const c of db.categories) {
       c.name_hi ??= "";
       c.description_hi ??= "";
+      c.requires_match ??= c.slug === "cricket-astrology";
     }
     db.profile.hi ??= {};
     return db;

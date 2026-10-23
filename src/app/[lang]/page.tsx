@@ -27,8 +27,8 @@ export default async function HomePage() {
   const href = (path: string) => localePath(lang, path);
   const [latestGeneral, upcoming, recentCricket, categories, general, rawProfile] = await Promise.all([
     getEpisodes({ section: "general", limit: 3, sort: "latest" }),
-    getEpisodes({ section: "cricket", timing: "upcoming", sort: "match_date_asc", limit: 3 }),
-    getEpisodes({ section: "cricket", sort: "latest", limit: 3 }),
+    getEpisodes({ section: "cricket", withMatch: true, timing: "upcoming", sort: "match_date_asc", limit: 3 }),
+    getEpisodes({ section: "cricket", withMatch: true, sort: "latest", limit: 3 }),
     getCategories(),
     getEpisodes({ section: "general", sort: "latest" }),
     getProfile(),
