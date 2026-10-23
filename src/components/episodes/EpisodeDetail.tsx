@@ -203,9 +203,18 @@ export async function EpisodeDetail({ slug, section, lang }: { slug: string; sec
         </div>
 
         <aside className="space-y-6">
-          <div className="card relative aspect-square overflow-hidden">
+          <div className={`card relative overflow-hidden ${cover ? "" : "aspect-square"}`}>
             {cover ? (
-              <Image src={cover} alt={t.common.coverArtFor(episode.title)} fill sizes="(min-width: 1024px) 380px, 100vw" className="object-cover" priority />
+              // Shown at its own shape, so titled thumbnails and tall artwork are never cropped.
+              <Image
+                src={cover}
+                alt={t.common.coverArtFor(episode.title)}
+                width={1200}
+                height={800}
+                sizes="(min-width: 1024px) 380px, 100vw"
+                className="h-auto w-full"
+                priority
+              />
             ) : (
               // Posts without cover art (common for articles) get a themed panel instead of an empty box.
               <div className="relative flex h-full flex-col items-center justify-center gap-5 bg-gradient-to-br from-plum-2 via-plum to-navy p-8 text-center" data-testid="cover-fallback">
