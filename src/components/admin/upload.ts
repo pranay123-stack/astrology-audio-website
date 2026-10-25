@@ -1,6 +1,6 @@
 "use client";
 
-export type UploadKind = "audio" | "cover" | "team" | "profile";
+export type UploadKind = "audio" | "video" | "cover" | "gallery" | "team" | "profile";
 
 interface UploadTarget {
   path: string;
@@ -58,9 +58,12 @@ const EXT_TYPES: Record<string, string> = {
   png: "image/png",
   webp: "image/webp",
   avif: "image/avif",
+  mp4: "video/mp4",
+  mov: "video/quicktime",
+  webm: "video/webm",
 };
 
-/** Some browsers report an empty type for .m4a/.aac files. */
+/** Some browsers report an empty type for .m4a/.aac (and some .mov) files. */
 export function guessType(name: string): string {
   return EXT_TYPES[name.split(".").pop()?.toLowerCase() ?? ""] ?? "application/octet-stream";
 }

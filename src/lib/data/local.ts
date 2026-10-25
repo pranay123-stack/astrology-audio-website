@@ -185,7 +185,7 @@ export class LocalRepository implements Repository {
       const episode = db.episodes.find((e) => e.id === id);
       if (!episode) throw new RepositoryError("Episode not found", "not_found");
       if (published && !hasContent(episode)) {
-        throw new RepositoryError("Add an audio file or an article before publishing", "invalid");
+        throw new RepositoryError("Add audio, an article, a video or photos before publishing", "invalid");
       }
       episode.is_published = published;
       if (published && !episode.published_at) episode.published_at = new Date().toISOString();
@@ -219,7 +219,9 @@ export class LocalRepository implements Repository {
   async isStoragePathReferenced(p: string): Promise<boolean> {
     const db = await this.db.read();
     return (
-      db.episodes.some((e) => e.audio_storage_path === p || e.cover_image_path === p) ||
+      db.episodes.some(
+        (e) => e.audio_storage_path === p || e.cover_image_path === p || e.video_storage_path === p || e.gallery_paths.includes(p),
+      ) ||
       db.teams.some((t) => t.logo_path === p) ||
       db.profile.profile_image_path === p
     );

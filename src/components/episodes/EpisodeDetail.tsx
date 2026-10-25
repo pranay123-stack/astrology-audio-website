@@ -8,7 +8,7 @@ import { CricketDisclaimer } from "@/components/ui/Disclaimer";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { siteConfig } from "@/lib/config";
 import { formatDate, formatDateTime } from "@/lib/dates";
-import { episodeHref, hasAudio, isLockedForVisitors, lengthLabel, premiumContactHref, toTrack } from "@/lib/episodes";
+import { episodeHref, hasAudio, hasVideo, isLockedForVisitors, lengthLabel, premiumContactHref, toTrack } from "@/lib/episodes";
 import { getDict, localePath, localizeEpisode, type LocalizedEpisode } from "@/lib/i18n";
 import { imageUrl } from "@/lib/media/urls";
 import { getEpisodeBySlug, getEpisodes } from "@/lib/queries";
@@ -20,6 +20,8 @@ import { CategoryIcon } from "./categoryIcons";
 import { EpisodeCard } from "./EpisodeCard";
 import { LearnCricketCta } from "./LearnCricketCta";
 import { MatchCard } from "./MatchCard";
+import { PhotoGallery } from "./PhotoGallery";
+import { VideoBlock } from "./VideoBlock";
 import { TeamBadge } from "./TeamBadge";
 
 function isoDuration(seconds: number): string {
@@ -129,6 +131,8 @@ export async function EpisodeDetail({ slug, section, lang }: { slug: string; sec
             )
           )}
 
+          {hasVideo(episode) && <VideoBlock episode={episode} locked={isLockedForVisitors(episode)} lang={lang} />}
+
           {hasAudio(episode) && <EpisodePlayer track={toTrack(episode, lang)} locked={isLockedForVisitors(episode)} />}
 
           {match && (
@@ -187,6 +191,8 @@ export async function EpisodeDetail({ slug, section, lang }: { slug: string; sec
               )}
             </section>
           )}
+
+          {episode.gallery_paths.length > 0 && <PhotoGallery paths={episode.gallery_paths} title={episode.title} titleLang={episode.text_lang} />}
 
           {paragraphs.length > 0 && (
             <section aria-labelledby="notes-heading" className="prose-cosmic" lang={episode.text_lang}>

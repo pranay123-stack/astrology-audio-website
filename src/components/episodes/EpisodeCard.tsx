@@ -3,7 +3,7 @@ import Link from "next/link";
 import { CalendarDays, Clock } from "lucide-react";
 import { AccessBadge, CategoryChip, DemoBadge, FormatBadges, LanguageBadge } from "@/components/ui/Badges";
 import { formatDate } from "@/lib/dates";
-import { episodeHref, hasArticle, hasAudio, lengthLabel } from "@/lib/episodes";
+import { episodeHref, hasArticle, hasAudio, hasVideo, lengthLabel } from "@/lib/episodes";
 import { localizeEpisode } from "@/lib/i18n";
 import { imageUrl } from "@/lib/media/urls";
 import { ZodiacWheel } from "@/components/layout/ZodiacWheel";
@@ -51,7 +51,13 @@ export function EpisodeCard({ episode: raw, lang, priority = false }: { episode:
       <div className="flex flex-1 flex-col gap-3 p-5">
         <div className="flex flex-wrap gap-1.5">
           <CategoryChip>{episode.category.name}</CategoryChip>
-          <FormatBadges audio={hasAudio(episode)} article={hasArticle(episode)} lang={lang} />
+          <FormatBadges
+            audio={hasAudio(episode)}
+            article={hasArticle(episode)}
+            video={hasVideo(episode) ? episode.video_format : null}
+            photos={episode.gallery_paths.length > 0}
+            lang={lang}
+          />
           <LanguageBadge textLang={episode.text_lang} lang={lang} />
         </div>
         <h3 className="text-2xl leading-tight font-semibold" lang={episode.text_lang}>

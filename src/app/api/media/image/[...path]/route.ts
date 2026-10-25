@@ -4,7 +4,7 @@ import { getDataBackend } from "@/lib/config";
 import { EXT_TO_MIME, IMAGE_TYPES } from "@/lib/media/file-types";
 import { localFilePath } from "@/lib/media/storage";
 
-const IMAGE_FOLDERS = new Set(["covers", "teams", "profile"]);
+const IMAGE_FOLDERS = new Set(["covers", "gallery", "teams", "profile"]);
 const IMAGE_EXTS = new Set(Object.values(IMAGE_TYPES));
 
 /** Local mode only: serves public images. Audio is never reachable through this route. */

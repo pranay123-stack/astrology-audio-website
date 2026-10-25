@@ -123,6 +123,7 @@ git push -u origin main
    | `NEXT_PUBLIC_SITE_TIMEZONE` | `Asia/Kolkata` (default; IST) |
    | `NEXT_PUBLIC_SITE_LOCALE` | `en-IN` (default) |
    | `MAX_AUDIO_UPLOAD_MB`, `NEXT_PUBLIC_MAX_AUDIO_UPLOAD_MB` | `50` on the Supabase Free plan |
+   | `MAX_VIDEO_UPLOAD_MB`, `NEXT_PUBLIC_MAX_VIDEO_UPLOAD_MB` | `50` (optional; that is the default) |
    | `PREMIUM_ENABLED` | `false` |
 
    - Do **not** set `ALLOW_LOCAL_BACKEND_IN_PRODUCTION`, `SESSION_SECRET`, `ADMIN_*` or `LOCAL_DATA_DIR` on the host. They are for local mode only.

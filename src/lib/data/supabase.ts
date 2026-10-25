@@ -18,7 +18,7 @@ import { slugify, uniqueSlug } from "../slug";
 import { hasContent, RepositoryError, type DashboardStats, type EpisodeWrite, type Repository } from "./repository";
 
 const EPISODE_COLUMNS =
-  "id,title,slug,excerpt,description,has_article,article_lang,title_alt,excerpt_alt,description_alt,has_article_alt,category_id,audio_storage_path,audio_mime_type,cover_image_path,duration_seconds,is_published,is_premium,is_demo,play_count,published_at,created_at,updated_at";
+  "id,title,slug,excerpt,description,has_article,article_lang,title_alt,excerpt_alt,description_alt,has_article_alt,category_id,audio_storage_path,audio_mime_type,cover_image_path,video_storage_path,video_mime_type,video_format,video_link,gallery_paths,duration_seconds,is_published,is_premium,is_demo,play_count,published_at,created_at,updated_at";
 
 type ListingRow = Episode & {
   article: string | null;
@@ -64,6 +64,11 @@ function toListing(r: ListingRow): EpisodeListing {
     audio_storage_path: r.audio_storage_path,
     audio_mime_type: r.audio_mime_type,
     cover_image_path: r.cover_image_path,
+    video_storage_path: r.video_storage_path ?? null,
+    video_mime_type: r.video_mime_type ?? null,
+    video_format: r.video_format ?? "video",
+    video_link: r.video_link ?? "",
+    gallery_paths: r.gallery_paths ?? [],
     duration_seconds: r.duration_seconds,
     is_published: r.is_published,
     is_premium: r.is_premium,
@@ -274,7 +279,7 @@ export class SupabaseRepository implements Repository {
     if (error) fail(error, "setEpisodePublished");
     if (!current) throw new RepositoryError("Episode not found", "not_found");
     const ep = current as unknown as Episode;
-    if (published && !hasContent(ep)) throw new RepositoryError("Add an audio file or an article before publishing", "invalid");
+    if (published && !hasContent(ep)) throw new RepositoryError("Add audio, an article, a video or photos before publishing", "invalid");
     const patch: Partial<Episode> = { is_published: published };
     if (published && !ep.published_at) patch.published_at = new Date().toISOString();
     const { data, error: upErr } = await this.db.from("episodes").update(patch).eq("id", id).select(EPISODE_COLUMNS).single();
@@ -301,7 +306,7 @@ export class SupabaseRepository implements Repository {
 
   async isStoragePathReferenced(p: string): Promise<boolean> {
     const checks = await Promise.all([
-      this.db.from("episodes").select("id", { count: "exact", head: true }).or(`audio_storage_path.eq."${p}",cover_image_path.eq."${p}"`),
+      this.db.from("episodes").select("id", { count: "exact", head: true }).or(`audio_storage_path.eq."${p}",cover_image_path.eq."${p}",video_storage_path.eq."${p}",gallery_paths.cs.{"${p}"}`),
       this.db.from("teams").select("id", { count: "exact", head: true }).eq("logo_path", p),
       this.db.from("profiles").select("id", { count: "exact", head: true }).eq("profile_image_path", p),
     ]);

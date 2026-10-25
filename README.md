@@ -87,6 +87,7 @@ All variables are documented in [`.env.example`](.env.example). `NEXT_PUBLIC_*` 
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD_HASH` | local | Admin login; the hash comes from `npm run admin:hash -- '<password>'` |
 | `MAX_AUDIO_UPLOAD_MB` / `MAX_IMAGE_UPLOAD_MB` | both | Server-side upload limits (defaults 200 / 5) |
 | `NEXT_PUBLIC_MAX_AUDIO_UPLOAD_MB` | both | Same limit, checked in the browser before uploading |
+| `MAX_VIDEO_UPLOAD_MB` / `NEXT_PUBLIC_MAX_VIDEO_UPLOAD_MB` | both | Video upload limit, server / browser (default 50, the video bucket's cap) |
 | `PREMIUM_ENABLED` | both | Keep `false` until payments exist (see below) |
 
 No secret is hardcoded anywhere. The repository contains no keys.
@@ -103,7 +104,7 @@ The full schema is in [`supabase/migrations/20261009000000_initial_schema.sql`](
 | `categories` | `Cricket Astrology` (section `cricket`) and the seven general categories (section `general`) |
 | `competitions` | Leagues. The BBL is seeded; admins add others, such as the IPL, from **Admin → Leagues & teams**, with no code changes |
 | `teams` | Teams per competition: name, short code, colour, optional logo |
-| `episodes` | Title, slug, excerpt, description, category, audio and cover paths, duration, `is_published`, `is_premium`, `is_demo`, `play_count`, `published_at`, timestamps |
+| `episodes` | Title, slug, excerpt, description, category, audio, cover and video paths, video format (`video`/`reel`) and YouTube/Instagram link, gallery photo paths, duration, `is_published`, `is_premium`, `is_demo`, `play_count`, `published_at`, timestamps |
 | `cricket_matches` | One row per cricket episode: competition, team A and B, `match_date`, venue, `match_status` |
 | `contact_messages` | Contact form submissions (admin-only) |
 | `purchases` | Premium module: per-episode purchases or subscriptions, written only by the server |
@@ -117,7 +118,7 @@ Differences from the brief:
 **Integrity rules enforced in the database:**
 
 - Unique slugs.
-- A published episode must have audio and a publication date.
+- A published episode must have something to consume (audio, an article, a video or video link, or photos) and a publication date.
 - The two teams in a match must differ and must belong to the match's competition (trigger).
 - Each episode and its match row are saved together in one transaction (`admin_save_episode`).
 
@@ -145,13 +146,21 @@ Differences from the brief:
 5. Tick **Premium** if needed. Tick **Published** to go live. Leave the publication date empty to publish now; a future date schedules the episode.
 6. **Save.** Drafts stay invisible to the public. The admin can preview a draft's audio from the edit page.
 
+**Video, reels and photos** (same form, *Video, reel & photos*). A post can be any mix of audio, article, video and photos:
+
+- **Video shape:** *Video* plays wide (16:9); *Reel / Short* plays tall (9:16), like Instagram.
+- **Video file:** MP4 (best), WebM or MOV, up to 50 MB. It lives in the private `video` bucket and streams through `/api/media/video/[id]`, which applies the same rules as audio: drafts are hidden, premium video is locked (403).
+- **…or a YouTube / Instagram link** (`youtube.com/watch`, `youtu.be`, `youtube.com/shorts`, `instagram.com/reel`, `/p`). The page embeds the player. Links cost nothing to stream, so they suit long or popular videos. They are public on those sites anyway, so don't use a link for premium content.
+- **Photo gallery:** up to 12 images (5 MB each), uploaded together and reordered with the arrows. Visitors see a grid and tap a photo to open it full size. Gallery photos are in the public `images` bucket, like covers.
+- **Storage budget (Supabase Free):** 1 GB of storage and 5 GB of downloads a month in total. A 20 MB clip watched 250 times uses those 5 GB, so prefer links for anything that may get many views.
+
 **How an upload works:**
 
 1. The browser asks `/api/admin/uploads` for a one-time target. The server checks the admin session, the file type and the file size.
 2. The browser sends the file straight to Supabase Storage through a signed upload URL (or, in local mode, to a signed local endpoint).
 3. Large files never pass through the web server, so hosting request-size limits don't apply.
 4. When the episode is saved, the server reads the file's first bytes and rejects it if they don't match the declared type. For example, a renamed `.exe` cannot be published as `.mp3`.
-5. When audio or cover art is replaced or an episode is deleted, the old file is deleted once nothing references it.
+5. When audio, video, cover art or a gallery photo is replaced or removed, or an episode is deleted, the old file is deleted once nothing references it.
 
 **Other admin pages:**
 

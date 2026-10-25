@@ -43,7 +43,7 @@ export class LocalDb {
       throw err;
     }
     const db = JSON.parse(raw) as LocalDatabase;
-    // Databases created before articles / translations existed lack these fields.
+    // Databases created before articles / translations / video existed lack these fields.
     for (const e of db.episodes) {
       e.article ??= "";
       e.article_alt ??= "";
@@ -53,6 +53,11 @@ export class LocalDb {
       e.description_alt ??= "";
       e.has_article = e.article.trim().length > 0;
       e.has_article_alt = e.article_alt.trim().length > 0;
+      e.video_storage_path ??= null;
+      e.video_mime_type ??= null;
+      e.video_format ??= "video";
+      e.video_link ??= "";
+      e.gallery_paths ??= [];
     }
     for (const c of db.categories) {
       c.name_hi ??= "";

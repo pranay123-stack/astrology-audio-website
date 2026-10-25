@@ -3,12 +3,14 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, Loader2, Upload, X } from "lucide-react";
-import { AUDIO_ACCEPT, IMAGE_ACCEPT } from "@/lib/media/file-types";
+import { AUDIO_ACCEPT, IMAGE_ACCEPT, VIDEO_ACCEPT } from "@/lib/media/file-types";
 import { guessType, readAudioDuration, uploadFile, type UploadKind } from "./upload";
 
-const MAX_MB: Record<UploadKind, number> = {
+export const MAX_MB: Record<UploadKind, number> = {
   audio: Number(process.env.NEXT_PUBLIC_MAX_AUDIO_UPLOAD_MB || 200),
+  video: Number(process.env.NEXT_PUBLIC_MAX_VIDEO_UPLOAD_MB || 50),
   cover: 5,
+  gallery: 5,
   team: 5,
   profile: 5,
 };
@@ -44,6 +46,8 @@ export function FileField({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const isAudio = kind === "audio";
+  const isVideo = kind === "video";
+  const isImage = !isAudio && !isVideo;
 
   useEffect(() => () => {
     if (localPreview) URL.revokeObjectURL(localPreview);
@@ -53,8 +57,10 @@ export function FileField({
     if (!file) return;
     setUploadError(null);
     const type = file.type || guessType(file.name);
-    if (isAudio ? !type.startsWith("audio/") : !type.startsWith("image/")) {
-      setUploadError(isAudio ? "Choose an audio file (MP3, M4A, AAC, OGG or WAV)." : "Choose an image (JPG, PNG, WebP or AVIF).");
+    if (!type.startsWith(isAudio ? "audio/" : isVideo ? "video/" : "image/")) {
+      setUploadError(
+        isAudio ? "Choose an audio file (MP3, M4A, AAC, OGG or WAV)." : isVideo ? "Choose a video (MP4, WebM or MOV)." : "Choose an image (JPG, PNG, WebP or AVIF).",
+      );
       return;
     }
     if (file.size > MAX_MB[kind] * 1024 * 1024) {
@@ -92,7 +98,7 @@ export function FileField({
     <div>
       <span className="label" id={`${id}-label`}>{label}</span>
       <div className={`rounded-2xl border border-dashed p-4 ${error || uploadError ? "border-red-400/60" : "border-line"} bg-night/40`}>
-        {shown && !isAudio && (
+        {shown && isImage && (
           <div className="relative mb-3 aspect-square w-40 overflow-hidden rounded-xl border border-line">
             <Image src={shown} alt="Preview" fill sizes="160px" className="object-cover" unoptimized={shown.startsWith("blob:")} />
           </div>
@@ -101,12 +107,15 @@ export function FileField({
           // Preview before publishing: plays the local file, or the saved file via the admin-authorised audio route.
           <audio controls preload="metadata" src={shown} className="mb-3 w-full" data-testid="admin-audio-preview" />
         )}
+        {shown && isVideo && (
+          <video controls preload="metadata" playsInline src={shown} className="mb-3 max-h-80 rounded-xl bg-black" data-testid="admin-video-preview" />
+        )}
         <div className="flex flex-wrap items-center gap-3">
           <input
             ref={inputRef}
             id={id}
             type="file"
-            accept={isAudio ? AUDIO_ACCEPT : IMAGE_ACCEPT}
+            accept={isAudio ? AUDIO_ACCEPT : isVideo ? VIDEO_ACCEPT : IMAGE_ACCEPT}
             className="sr-only"
             aria-labelledby={`${id}-label`}
             onChange={(e) => onPick(e.target.files?.[0])}

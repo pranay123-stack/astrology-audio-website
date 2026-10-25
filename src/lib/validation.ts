@@ -1,10 +1,11 @@
 import { z } from "zod";
-import { ARTICLE_LANGS, MATCH_STATUSES } from "./types";
+import { parseVideoLink } from "./media/video-link";
+import { ARTICLE_LANGS, GALLERY_MAX, MATCH_STATUSES, VIDEO_FORMATS } from "./types";
 
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 /** Storage keys created by the upload endpoint: `<folder>/<uuid>.<ext>`. */
-const STORAGE_PATH_RE = /^(audio|covers|teams|profile)\/[0-9a-f-]{36}\.[a-z0-9]{2,5}$/;
+const STORAGE_PATH_RE = /^(audio|video|covers|gallery|teams|profile)\/[0-9a-f-]{36}\.[a-z0-9]{2,5}$/;
 
 const optionalUrl = z
   .string()
@@ -51,6 +52,16 @@ export const episodeInputSchema = z.object({
   category_id: z.string().min(1, "Choose a category"),
   audio_storage_path: storagePathSchema.nullable(),
   cover_image_path: storagePathSchema.nullable(),
+  video_storage_path: storagePathSchema.nullable().default(null),
+  video_format: z.enum(VIDEO_FORMATS).default("video"),
+  /** YouTube or Instagram link to embed; "" = none. */
+  video_link: z
+    .string()
+    .trim()
+    .max(300)
+    .refine((v) => v === "" || parseVideoLink(v) !== null, "Paste a YouTube or Instagram video link")
+    .default(""),
+  gallery_paths: z.array(storagePathSchema).max(GALLERY_MAX, `Up to ${GALLERY_MAX} photos`).default([]),
   duration_seconds: z.number().int().min(0).max(60 * 60 * 12),
   is_published: z.boolean(),
   is_premium: z.boolean(),
@@ -146,7 +157,7 @@ export const loginInputSchema = z.object({
 });
 
 export const uploadRequestSchema = z.object({
-  kind: z.enum(["audio", "cover", "team", "profile"]),
+  kind: z.enum(["audio", "video", "cover", "gallery", "team", "profile"]),
   filename: z.string().min(1).max(255),
   contentType: z.string().min(1).max(100),
   size: z.number().int().positive(),

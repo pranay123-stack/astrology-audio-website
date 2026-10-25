@@ -1,4 +1,5 @@
-import { BookOpen, FlaskConical, Headphones, Languages, Lock, Sparkles } from "lucide-react";
+import { BookOpen, Clapperboard, FlaskConical, Headphones, Images, Languages, Lock, Sparkles, Video } from "lucide-react";
+import type { VideoFormat } from "@/lib/types";
 import { getDict } from "@/lib/i18n";
 import type { Locale } from "@/lib/types";
 
@@ -24,8 +25,21 @@ export function DemoBadge({ lang }: { lang: Locale }) {
   );
 }
 
-/** Shows whether a post has audio, an article, or both. */
-export function FormatBadges({ audio, article, lang }: { audio: boolean; article: boolean; lang: Locale }) {
+/** Shows what a post contains: audio, video or reel, article, photos. */
+export function FormatBadges({
+  audio,
+  article,
+  video = null,
+  photos = false,
+  lang,
+}: {
+  audio: boolean;
+  article: boolean;
+  /** The video's format, or null when the post has no video. */
+  video?: VideoFormat | null;
+  photos?: boolean;
+  lang: Locale;
+}) {
   const t = getDict(lang).badges;
   return (
     <>
@@ -34,9 +48,20 @@ export function FormatBadges({ audio, article, lang }: { audio: boolean; article
           <Headphones className="h-3 w-3" aria-hidden /> {t.audio}
         </span>
       )}
+      {video && (
+        <span className="chip border border-line bg-white/5 text-ink/80" data-testid="video-badge">
+          {video === "reel" ? <Clapperboard className="h-3 w-3" aria-hidden /> : <Video className="h-3 w-3" aria-hidden />}{" "}
+          {video === "reel" ? t.reel : t.video}
+        </span>
+      )}
       {article && (
         <span className="chip border border-line bg-white/5 text-ink/80" data-testid="article-badge">
           <BookOpen className="h-3 w-3" aria-hidden /> {t.article}
+        </span>
+      )}
+      {photos && (
+        <span className="chip border border-line bg-white/5 text-ink/80" data-testid="photos-badge">
+          <Images className="h-3 w-3" aria-hidden /> {t.photos}
         </span>
       )}
     </>

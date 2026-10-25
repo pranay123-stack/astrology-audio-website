@@ -13,6 +13,12 @@ export const MATCH_STATUSES = [
 ] as const;
 export type MatchStatus = (typeof MATCH_STATUSES)[number];
 
+/** "video" is shown landscape (16:9), "reel" as a short vertical clip (9:16). */
+export const VIDEO_FORMATS = ["video", "reel"] as const;
+export type VideoFormat = (typeof VIDEO_FORMATS)[number];
+/** Most photos a post's gallery can hold. */
+export const GALLERY_MAX = 12;
+
 export interface Category {
   id: string;
   name: string;
@@ -64,6 +70,14 @@ export interface Episode {
   audio_storage_path: string | null;
   audio_mime_type: string | null;
   cover_image_path: string | null;
+  /** Uploaded video (private bucket, streamed through the access-checked video route). */
+  video_storage_path: string | null;
+  video_mime_type: string | null;
+  video_format: VideoFormat;
+  /** YouTube or Instagram link embedded on the page ("" = none). Visible to everyone. */
+  video_link: string;
+  /** Photo gallery (public images bucket), in display order. */
+  gallery_paths: string[];
   duration_seconds: number;
   is_published: boolean;
   is_premium: boolean;

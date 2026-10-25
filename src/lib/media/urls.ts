@@ -14,3 +14,8 @@ export function imageUrl(path: string | null | undefined): string | null {
 export function audioUrl(episodeId: string): string {
   return `/api/media/audio/${episodeId}`;
 }
+
+/** Uploaded video, like audio, goes through an access-checked route. */
+export function videoUrl(episodeId: string): string {
+  return `/api/media/video/${episodeId}`;
+}

@@ -96,6 +96,11 @@ const write = (over: Partial<EpisodeWrite> = {}): EpisodeWrite => ({
   audio_storage_path: "audio/00000000-0000-4000-a000-000000000002.mp3",
   audio_mime_type: "audio/mpeg",
   cover_image_path: null,
+  video_storage_path: null,
+  video_mime_type: null,
+  video_format: "video",
+  video_link: "",
+  gallery_paths: [],
   duration_seconds: 120,
   is_published: true,
   is_premium: false,
@@ -178,7 +183,7 @@ describe("articles", () => {
   it("refuses to publish a post with neither audio nor article", async () => {
     const draft = await repo.createEpisode(write({ slug: "empty", is_published: false, published_at: null, audio_storage_path: null, article: "   " }));
     expect(draft.has_article).toBe(false);
-    await expect(repo.setEpisodePublished(draft.id, true)).rejects.toThrow(/audio file or an article/);
+    await expect(repo.setEpisodePublished(draft.id, true)).rejects.toThrow(/audio, an article, a video or photos/);
   });
 
   it("finds posts by words inside the article", async () => {
@@ -201,6 +206,35 @@ describe("articles", () => {
     const e = await repo.createEpisode(write({ slug: "will-clear", article: "कुछ पाठ" }));
     const updated = await repo.updateEpisode(e.id, write({ slug: "will-clear", article: "" }));
     expect(updated.has_article).toBe(false);
+  });
+});
+
+describe("video and photos", () => {
+  const VIDEO = "video/00000000-0000-4000-a000-000000000009.mp4";
+  const PHOTO = "gallery/00000000-0000-4000-a000-000000000010.jpg";
+
+  it("publishes a photo-only post and a link-only reel", async () => {
+    const photos = await repo.createEpisode(write({ slug: "photos", audio_storage_path: null, gallery_paths: [PHOTO] }));
+    expect((await repo.getEpisodeBySlug("photos"))?.gallery_paths).toEqual([PHOTO]);
+    const draft = await repo.createEpisode(
+      write({ slug: "reel", is_published: false, published_at: null, audio_storage_path: null, video_link: "https://youtu.be/dQw4w9WgXcQ", video_format: "reel" }),
+    );
+    expect((await repo.setEpisodePublished(draft.id, true)).video_format).toBe("reel");
+    expect(photos.is_published).toBe(true);
+  });
+
+  it("counts video and gallery files as referenced until they are removed", async () => {
+    const e = await repo.createEpisode(write({ slug: "clip", video_storage_path: VIDEO, video_mime_type: "video/mp4", gallery_paths: [PHOTO] }));
+    expect(await repo.isStoragePathReferenced(VIDEO)).toBe(true);
+    expect(await repo.isStoragePathReferenced(PHOTO)).toBe(true);
+    await repo.updateEpisode(e.id, write({ slug: "clip", video_storage_path: null, gallery_paths: [] }));
+    expect(await repo.isStoragePathReferenced(VIDEO)).toBe(false);
+    expect(await repo.isStoragePathReferenced(PHOTO)).toBe(false);
+  });
+
+  it("fills the new fields on databases written before video existed", async () => {
+    const old = await repo.getEpisodeById("e1");
+    expect(old).toMatchObject({ video_storage_path: null, video_format: "video", video_link: "", gallery_paths: [] });
   });
 });
 

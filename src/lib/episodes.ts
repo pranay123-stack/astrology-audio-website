@@ -18,15 +18,25 @@ export function hasArticle(e: Pick<EpisodeListing, "has_article">): boolean {
   return e.has_article;
 }
 
-/** "48 sec", "3 min read", or both. Premium article text is not sent to visitors, so it shows just "Article". */
+/** An uploaded video or an embeddable link. */
+export function hasVideo(e: Pick<EpisodeListing, "video_storage_path" | "video_link">): boolean {
+  return !!e.video_storage_path || !!e.video_link;
+}
+
+/** "48 sec", "3 min read", "Reel", "4 photos" or a mix. Premium article text is not sent to visitors, so it shows just "Article". */
 export function lengthLabel(
-  e: Pick<EpisodeListing, "audio_storage_path" | "article" | "has_article" | "duration_seconds">,
+  e: Pick<
+    EpisodeListing,
+    "audio_storage_path" | "article" | "has_article" | "duration_seconds" | "video_storage_path" | "video_link" | "video_format" | "gallery_paths"
+  >,
   lang: Locale = "en",
 ): string {
   const t = getDict(lang).length;
   const parts: string[] = [];
   if (hasAudio(e)) parts.push(formatDurationLabel(e.duration_seconds, lang));
+  if (hasVideo(e)) parts.push(e.video_format === "reel" ? t.reel : t.video);
   if (e.has_article) parts.push(e.article ? t.read(readingMinutes(e.article)) : t.article);
+  if (e.gallery_paths.length) parts.push(t.photos(e.gallery_paths.length));
   return parts.join(" · ");
 }
 

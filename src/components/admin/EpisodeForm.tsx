@@ -7,12 +7,14 @@ import { useForm, useWatch } from "react-hook-form";
 import { Loader2, Save } from "lucide-react";
 import { saveEpisode } from "@/app/admin/actions";
 import { formatDuration, fromZonedInputValue, toZonedInputValue } from "@/lib/dates";
-import { audioUrl, imageUrl } from "@/lib/media/urls";
+import { audioUrl, imageUrl, videoUrl } from "@/lib/media/urls";
+import { parseVideoLink } from "@/lib/media/video-link";
 import { slugify } from "@/lib/slug";
-import { MATCH_STATUSES, type ArticleLang, type Category, type Competition, type EpisodeListing, type Team } from "@/lib/types";
+import { MATCH_STATUSES, type ArticleLang, type VideoFormat, type Category, type Competition, type EpisodeListing, type Team } from "@/lib/types";
 import { episodeInputSchema, fieldErrors, type EpisodeInput } from "@/lib/validation";
 import { ArticleBody } from "@/components/episodes/ArticleBody";
 import { FileField } from "./FileField";
+import { GalleryField } from "./GalleryField";
 
 interface FormValues {
   title: string;
@@ -37,6 +39,8 @@ interface FormValues {
   match_date_local: string;
   venue: string;
   match_status: (typeof MATCH_STATUSES)[number];
+  video_format: VideoFormat;
+  video_link: string;
 }
 
 export function EpisodeForm({
@@ -56,6 +60,8 @@ export function EpisodeForm({
   const [pending, startTransition] = useTransition();
   const [audioPath, setAudioPath] = useState<string | null>(episode?.audio_storage_path ?? null);
   const [coverPath, setCoverPath] = useState<string | null>(episode?.cover_image_path ?? null);
+  const [videoPath, setVideoPath] = useState<string | null>(episode?.video_storage_path ?? null);
+  const [galleryPaths, setGalleryPaths] = useState<string[]>(episode?.gallery_paths ?? []);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<{ kind: "error" | "success"; text: string } | null>(null);
   const [slugTouched, setSlugTouched] = useState(!!episode);
@@ -85,6 +91,8 @@ export function EpisodeForm({
       match_date_local: toZonedInputValue(episode?.match?.match_date, timeZone),
       venue: episode?.match?.venue ?? "",
       match_status: episode?.match?.match_status ?? "scheduled",
+      video_format: episode?.video_format ?? "video",
+      video_link: episode?.video_link ?? "",
     },
   });
 
@@ -101,6 +109,8 @@ export function EpisodeForm({
   const [showAltPreview, setShowAltPreview] = useState(false);
   const durationMinutes = useWatch({ control, name: "duration_minutes" });
   const durationSecs = useWatch({ control, name: "duration_secs" });
+  const videoLink = useWatch({ control, name: "video_link" });
+  const linkInfo = videoLink.trim() ? parseVideoLink(videoLink) : null;
   // Match readings need teams and a date; other categories (incl. the cricket guide) do not.
   const needsMatch = categories.find((c) => c.id === categoryId)?.requires_match ?? false;
   const competitionTeams = useMemo(() => teams.filter((t) => t.competition_id === competitionId), [teams, competitionId]);
@@ -127,6 +137,10 @@ export function EpisodeForm({
       category_id: v.category_id,
       audio_storage_path: audioPath,
       cover_image_path: coverPath,
+      video_storage_path: videoPath,
+      video_format: v.video_format,
+      video_link: v.video_link.trim(),
+      gallery_paths: galleryPaths,
       duration_seconds: Math.max(0, Math.round(Number(v.duration_minutes) || 0) * 60 + Math.round(Number(v.duration_secs) || 0)),
       is_published: v.is_published,
       is_premium: v.is_premium,
@@ -149,9 +163,17 @@ export function EpisodeForm({
       setMessage({ kind: "error", text: "Please fix the highlighted fields." });
       return;
     }
-    if (payload.is_published && !payload.audio_storage_path && !(payload.article ?? "").trim() && !(payload.article_alt ?? "").trim()) {
-      setErrors({ audio_storage_path: "Add audio or write an article to publish", article: "Add audio or write an article to publish" });
-      setMessage({ kind: "error", text: "Add an audio file or an article before publishing." });
+    const hasSomething =
+      !!payload.audio_storage_path ||
+      !!(payload.article ?? "").trim() ||
+      !!(payload.article_alt ?? "").trim() ||
+      !!videoPath ||
+      !!v.video_link.trim() ||
+      galleryPaths.length > 0;
+    if (payload.is_published && !hasSomething) {
+      const msg = "Add audio, an article, a video or photos to publish";
+      setErrors({ audio_storage_path: msg, article: msg });
+      setMessage({ kind: "error", text: `${msg}.` });
       return;
     }
     setErrors({});
@@ -303,7 +325,7 @@ export function EpisodeForm({
             {...register("article")}
           />
           <p className="mt-1 text-xs text-muted">
-            A post can have audio, an article, or both. Blank line = new paragraph · <code>## </code>heading · <code>- </code>bullet ·{" "}
+            A post can have any mix of audio, an article, a video or reel, and photos. Blank line = new paragraph · <code>## </code>heading · <code>- </code>bullet ·{" "}
             <code>**bold**</code>. Premium articles are shown only to the astrologer until the premium package is arranged.
           </p>
           {err("article")}
@@ -375,7 +397,7 @@ export function EpisodeForm({
         <FileField
           id="audio"
           kind="audio"
-          label="Audio file (optional if the post has an article)"
+          label="Audio file (optional)"
           hint="MP3, M4A, AAC, OGG or WAV. The duration is read from the file automatically."
           value={audioPath}
           previewUrl={episode?.audio_storage_path ? audioUrl(episode.id) : null}
@@ -409,6 +431,54 @@ export function EpisodeForm({
           onChange={setCoverPath}
           error={errors.cover_image_path}
         />
+      </section>
+
+      <section className="card space-y-5 p-6" data-testid="video-fields">
+        <div className="space-y-1">
+          <h2 className="text-2xl font-semibold">Video, reel &amp; photos <span className="text-base font-normal text-muted">(optional)</span></h2>
+          <p className="text-sm text-muted">Upload a short clip, or paste a YouTube / Instagram link. Long or popular videos are best as links: they cost nothing to stream.</p>
+        </div>
+        <fieldset>
+          <legend className="label">Video shape</legend>
+          <div className="flex flex-wrap gap-5 text-sm">
+            <label className="flex items-center gap-2">
+              <input type="radio" value="video" className="accent-[#d4af37]" {...register("video_format")} /> Video (wide, 16:9)
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="radio" value="reel" className="accent-[#d4af37]" {...register("video_format")} data-testid="format-reel" /> Reel / Short (tall, 9:16)
+            </label>
+          </div>
+        </fieldset>
+        <FileField
+          id="video"
+          kind="video"
+          label="Video file"
+          hint="MP4 (best), WebM or MOV, up to 50 MB: about 2–3 minutes of phone video at 1080p. Premium videos are locked for visitors, like premium audio."
+          value={videoPath}
+          previewUrl={episode?.video_storage_path ? videoUrl(episode.id) : null}
+          onChange={setVideoPath}
+          error={errors.video_storage_path}
+        />
+        <div>
+          <label htmlFor="video_link" className="label">…or YouTube / Instagram link</label>
+          <input
+            id="video_link"
+            className="input"
+            inputMode="url"
+            placeholder="https://www.youtube.com/shorts/…  or  https://www.instagram.com/reel/…"
+            {...register("video_link")}
+          />
+          {videoLink.trim() && !linkInfo && <p className="mt-1 text-sm text-red-300">This doesn&apos;t look like a YouTube or Instagram video link.</p>}
+          {linkInfo && (
+            <p className="mt-1 text-xs text-emerald-300" data-testid="video-link-ok">
+              {linkInfo.provider === "youtube" ? "YouTube" : "Instagram"} {linkInfo.vertical ? "short/reel" : "video"} recognised.
+              {linkInfo.vertical ? " Tip: choose “Reel / Short” above." : ""}
+            </p>
+          )}
+          <p className="mt-1 text-xs text-muted">Links are public on YouTube/Instagram anyway, so don&apos;t use a link for premium content.</p>
+          {err("video_link")}
+        </div>
+        <GalleryField value={galleryPaths} onChange={setGalleryPaths} error={errors.gallery_paths} />
       </section>
 
       <section className="card space-y-5 p-6">

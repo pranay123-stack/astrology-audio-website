@@ -7,12 +7,25 @@ import { Readable } from "node:stream";
 import { getDataBackend, localPaths, uploadLimits } from "../config";
 import { signToken } from "../auth/tokens";
 import { createServiceClient } from "../data/supabase-clients";
-import { AUDIO_TYPES, contentMatchesExtension, IMAGE_TYPES } from "./file-types";
+import { AUDIO_TYPES, contentMatchesExtension, IMAGE_TYPES, VIDEO_TYPES } from "./file-types";
 import { parseRange } from "./range";
 
-export type UploadKind = "audio" | "cover" | "team" | "profile";
+export type UploadKind = "audio" | "video" | "cover" | "gallery" | "team" | "profile";
 
-const FOLDERS: Record<UploadKind, string> = { audio: "audio", cover: "covers", team: "teams", profile: "profile" };
+const FOLDERS: Record<UploadKind, string> = {
+  audio: "audio",
+  video: "video",
+  cover: "covers",
+  gallery: "gallery",
+  team: "teams",
+  profile: "profile",
+};
+
+const KIND_RULES = {
+  audio: { types: AUDIO_TYPES, max: () => uploadLimits.audioMaxBytes, error: "Unsupported audio format. Use MP3, M4A, AAC, OGG or WAV." },
+  video: { types: VIDEO_TYPES, max: () => uploadLimits.videoMaxBytes, error: "Unsupported video format. Use MP4, WebM or MOV." },
+  image: { types: IMAGE_TYPES, max: () => uploadLimits.imageMaxBytes, error: "Unsupported image format. Use JPG, PNG, WebP or AVIF." },
+};
 
 export interface UploadTarget {
   path: string;
@@ -25,21 +38,17 @@ export class UploadRejected extends Error {}
 
 /** Validates a requested upload and allocates a fresh, unguessable storage path. */
 export function planUpload(kind: UploadKind, contentType: string, size: number): { path: string; maxBytes: number } {
-  const isAudio = kind === "audio";
-  const ext = (isAudio ? AUDIO_TYPES : IMAGE_TYPES)[contentType.toLowerCase()];
-  if (!ext) {
-    throw new UploadRejected(
-      isAudio ? "Unsupported audio format. Use MP3, M4A, AAC, OGG or WAV." : "Unsupported image format. Use JPG, PNG, WebP or AVIF.",
-    );
-  }
-  const maxBytes = isAudio ? uploadLimits.audioMaxBytes : uploadLimits.imageMaxBytes;
+  const rule = KIND_RULES[kind === "audio" || kind === "video" ? kind : "image"];
+  const ext = rule.types[contentType.toLowerCase()];
+  if (!ext) throw new UploadRejected(rule.error);
+  const maxBytes = rule.max();
   if (size > maxBytes) {
     throw new UploadRejected(`File is too large. The limit is ${Math.round(maxBytes / 1024 / 1024)} MB.`);
   }
   return { path: `${FOLDERS[kind]}/${randomUUID()}.${ext}`, maxBytes };
 }
 
-const bucketOf = (p: string) => (p.startsWith("audio/") ? "audio" : "images");
+const bucketOf = (p: string) => (p.startsWith("audio/") ? "audio" : p.startsWith("video/") ? "video" : "images");
 
 export function localStorageRoot(): string {
   return path.resolve(localPaths.dataDir, "storage");
@@ -156,16 +165,18 @@ export async function removeStoredFile(p: string | null | undefined): Promise<vo
 }
 
 /**
- * Responds with the audio for an already-authorised request. Local mode streams
- * the file with Range support. Supabase mode redirects to a short-lived signed
+ * Responds with an audio or video file for an already-authorised request. Local mode
+ * streams the file with Range support. Supabase mode redirects to a short-lived signed
  * URL, so the private bucket path itself is never published.
  */
-export async function audioResponse(p: string, mime: string | null, request: Request, ttlSeconds: number): Promise<Response> {
+export async function mediaResponse(p: string, mime: string | null, request: Request, ttlSeconds: number): Promise<Response> {
   const noStore = { "cache-control": "private, no-store" };
+  const isVideo = p.startsWith("video/");
+  const unavailable = isVideo ? "Video file is unavailable" : "Audio file is unavailable";
   if (getDataBackend() !== "local") {
     const service = createServiceClient();
-    const { data, error } = await service.storage.from("audio").createSignedUrl(p, ttlSeconds);
-    if (error || !data) return Response.json({ error: "Audio file is unavailable" }, { status: 404, headers: noStore });
+    const { data, error } = await service.storage.from(bucketOf(p)).createSignedUrl(p, ttlSeconds);
+    if (error || !data) return Response.json({ error: unavailable }, { status: 404, headers: noStore });
     return new Response(null, { status: 302, headers: { location: data.signedUrl, ...noStore } });
   }
 
@@ -175,10 +186,10 @@ export async function audioResponse(p: string, mime: string | null, request: Req
     file = localFilePath(p);
     size = (await stat(/*turbopackIgnore: true*/ file)).size;
   } catch {
-    return Response.json({ error: "Audio file is unavailable" }, { status: 404, headers: noStore });
+    return Response.json({ error: unavailable }, { status: 404, headers: noStore });
   }
   const headers: Record<string, string> = {
-    "content-type": mime || "audio/mpeg",
+    "content-type": mime || (isVideo ? "video/mp4" : "audio/mpeg"),
     "accept-ranges": "bytes",
     ...noStore,
   };

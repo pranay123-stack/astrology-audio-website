@@ -10,6 +10,7 @@ import type {
   EpisodeQuery,
   Profile,
   Team,
+  VideoFormat,
 } from "../types";
 import { dayBounds } from "../dates";
 import type { CompetitionData, ProfileData, TeamData } from "../validation";
@@ -30,6 +31,11 @@ export interface EpisodeWrite {
   audio_storage_path: string | null;
   audio_mime_type: string | null;
   cover_image_path: string | null;
+  video_storage_path: string | null;
+  video_mime_type: string | null;
+  video_format: VideoFormat;
+  video_link: string;
+  gallery_paths: string[];
   duration_seconds: number;
   is_published: boolean;
   is_premium: boolean;
@@ -93,9 +99,13 @@ export class RepositoryError extends Error {
   }
 }
 
-/** A published episode needs something to consume: audio, an article (in either language), or both. */
-export function hasContent(e: Pick<Episode, "audio_storage_path" | "has_article" | "has_article_alt">): boolean {
-  return !!e.audio_storage_path || e.has_article || e.has_article_alt;
+/** A published episode needs something to consume: audio, an article (in either language), a video or photos. */
+export function hasContent(
+  e: Pick<Episode, "audio_storage_path" | "has_article" | "has_article_alt" | "video_storage_path" | "video_link" | "gallery_paths">,
+): boolean {
+  return (
+    !!e.audio_storage_path || e.has_article || e.has_article_alt || !!e.video_storage_path || !!e.video_link || e.gallery_paths.length > 0
+  );
 }
 
 export function isLive(e: Pick<Episode, "is_published" | "published_at">, now = Date.now()): boolean {

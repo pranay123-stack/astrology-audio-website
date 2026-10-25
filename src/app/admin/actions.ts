@@ -7,6 +7,7 @@ import { getAdminRepository, RepositoryError, type EpisodeWrite } from "@/lib/da
 import { EXT_TO_MIME } from "@/lib/media/file-types";
 import { removeStoredFile, verifyStoredFile } from "@/lib/media/storage";
 import { CONTENT_TAG } from "@/lib/queries";
+import type { Episode } from "@/lib/types";
 import { slugify, uniqueSlug } from "@/lib/slug";
 import {
   competitionInputSchema,
@@ -38,6 +39,11 @@ async function cleanup(path: string | null | undefined) {
   } catch (err) {
     console.error("media cleanup failed", path, err);
   }
+}
+
+/** Removes every media file of a deleted episode that nothing else uses. */
+async function cleanupAll(e: Pick<Episode, "audio_storage_path" | "cover_image_path" | "video_storage_path" | "gallery_paths">) {
+  for (const p of [e.audio_storage_path, e.cover_image_path, e.video_storage_path, ...e.gallery_paths]) await cleanup(p);
 }
 
 // ---------------------------------------------------------------------------
@@ -82,26 +88,33 @@ export async function saveEpisode(input: EpisodeInput): Promise<ActionResult<{ i
     if (isCricket && !d.match) {
       return { ok: false, error: "Add the match details for cricket episodes.", fields: { "match.competition_id": "Choose a competition" } };
     }
-    if (d.is_published && !d.audio_storage_path && !d.article.trim() && !d.article_alt.trim()) {
-      return {
-        ok: false,
-        error: "Add an audio file or an article before publishing.",
-        fields: { audio_storage_path: "Add audio or write an article to publish", article: "Add audio or write an article to publish" },
-      };
+    const hasSomething =
+      !!d.audio_storage_path || !!d.article.trim() || !!d.article_alt.trim() || !!d.video_storage_path || !!d.video_link || d.gallery_paths.length > 0;
+    if (d.is_published && !hasSomething) {
+      const msg = "Add audio, an article, a video or photos to publish";
+      return { ok: false, error: `${msg}.`, fields: { audio_storage_path: msg, article: msg } };
     }
 
-    // Files must exist in storage and their bytes must match the declared type.
-    for (const [field, path] of [["audio_storage_path", d.audio_storage_path], ["cover_image_path", d.cover_image_path]] as const) {
-      const unchanged = existing && existing[field] === path;
-      if (path && !unchanged && !(await verifyStoredFile(path))) {
+    // Each file must sit in the folder for its field.
+    const folders = [
+      ["audio_storage_path", d.audio_storage_path, "audio/"],
+      ["cover_image_path", d.cover_image_path, "covers/"],
+      ["video_storage_path", d.video_storage_path, "video/"],
+      ...d.gallery_paths.map((g) => ["gallery_paths", g, "gallery/"] as const),
+    ] as const;
+    for (const [field, path, folder] of folders) {
+      if (path && !path.startsWith(folder)) return { ok: false, error: "Invalid file reference.", fields: { [field]: "Invalid file" } };
+    }
+    if (new Set(d.gallery_paths).size !== d.gallery_paths.length) {
+      return { ok: false, error: "The same photo is in the gallery twice.", fields: { gallery_paths: "Duplicate photo" } };
+    }
+
+    // New files must exist in storage and their bytes must match the declared type.
+    const before = new Set([existing?.audio_storage_path, existing?.cover_image_path, existing?.video_storage_path, ...(existing?.gallery_paths ?? [])]);
+    for (const [field, path] of folders) {
+      if (path && !before.has(path) && !(await verifyStoredFile(path))) {
         return { ok: false, error: "An uploaded file could not be verified. Please upload it again.", fields: { [field]: "Upload failed verification" } };
       }
-    }
-    if (d.audio_storage_path && !d.audio_storage_path.startsWith("audio/")) {
-      return { ok: false, error: "Invalid audio file reference.", fields: { audio_storage_path: "Invalid file" } };
-    }
-    if (d.cover_image_path && !d.cover_image_path.startsWith("covers/")) {
-      return { ok: false, error: "Invalid cover image reference.", fields: { cover_image_path: "Invalid file" } };
     }
 
     const taken = new Set(slugs.filter((s) => s.id !== d.id).map((s) => s.slug));
@@ -115,6 +128,7 @@ export async function saveEpisode(input: EpisodeInput): Promise<ActionResult<{ i
     if (d.is_published && !publishedAt) publishedAt = new Date().toISOString();
 
     const ext = d.audio_storage_path?.split(".").pop() ?? "";
+    const videoExt = d.video_storage_path?.split(".").pop() ?? "";
     const write: EpisodeWrite = {
       title: d.title,
       slug,
@@ -130,6 +144,11 @@ export async function saveEpisode(input: EpisodeInput): Promise<ActionResult<{ i
       audio_storage_path: d.audio_storage_path,
       audio_mime_type: d.audio_storage_path ? (EXT_TO_MIME[ext] ?? null) : null,
       cover_image_path: d.cover_image_path,
+      video_storage_path: d.video_storage_path,
+      video_mime_type: d.video_storage_path ? (EXT_TO_MIME[videoExt] ?? null) : null,
+      video_format: d.video_format,
+      video_link: d.video_link,
+      gallery_paths: d.gallery_paths,
       duration_seconds: d.audio_storage_path ? d.duration_seconds : 0,
       is_published: d.is_published,
       is_premium: d.is_premium,
@@ -141,6 +160,8 @@ export async function saveEpisode(input: EpisodeInput): Promise<ActionResult<{ i
     if (existing) {
       if (existing.audio_storage_path !== write.audio_storage_path) await cleanup(existing.audio_storage_path);
       if (existing.cover_image_path !== write.cover_image_path) await cleanup(existing.cover_image_path);
+      if (existing.video_storage_path !== write.video_storage_path) await cleanup(existing.video_storage_path);
+      for (const g of existing.gallery_paths) if (!write.gallery_paths.includes(g)) await cleanup(g);
     }
     updateTag(CONTENT_TAG);
     return { ok: true, data: { id: saved.id } };
@@ -165,8 +186,7 @@ export async function deleteEpisode(id: string): Promise<ActionResult> {
   try {
     const deleted = await (await getAdminRepository()).deleteEpisode(id);
     if (deleted) {
-      await cleanup(deleted.audio_storage_path);
-      await cleanup(deleted.cover_image_path);
+      await cleanupAll(deleted);
     }
     updateTag(CONTENT_TAG);
     return { ok: true };
@@ -180,8 +200,7 @@ export async function deleteDemoContent(): Promise<ActionResult<{ count: number 
   try {
     const removed = await (await getAdminRepository()).deleteDemoEpisodes();
     for (const e of removed) {
-      await cleanup(e.audio_storage_path);
-      await cleanup(e.cover_image_path);
+      await cleanupAll(e);
     }
     updateTag(CONTENT_TAG);
     return { ok: true, data: { count: removed.length } };

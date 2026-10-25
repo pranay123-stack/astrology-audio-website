@@ -275,3 +275,105 @@ test("sign out ends the session", async ({ page }) => {
   await gotoReady(page, "/admin");
   await expect(page).toHaveURL(/\/admin\/login$/);
 });
+
+test("admin posts a reel with photos, an MP4 and a YouTube link; premium video stays locked", async ({ page, request }) => {
+  // The tests above use up the login rate limit (10 per 15 min per client), so sign in as another client.
+  await page.setExtraHTTPHeaders({ "x-forwarded-for": "10.0.0.25" });
+  await login(page);
+  await gotoReady(page, "/admin/episodes/new");
+  await page.getByLabel("Title").fill("E2E Reel And Photos");
+  await page.getByLabel("Category").selectOption({ label: "Vedic Astrology" });
+  await page.getByLabel("Short description").fill("An end-to-end test of reels and photo galleries.");
+
+  // A disguised file is refused; a real clip uploads and previews.
+  await page.getByTestId("video-input").setInputFiles({ name: "fake.mp4", mimeType: "video/mp4", buffer: Buffer.from("definitely not a video file") });
+  await expect(page.getByRole("alert").filter({ hasText: /do not match/ })).toBeVisible();
+  await page.getByTestId("video-input").setInputFiles({ name: "reel.webm", mimeType: "video/webm", buffer: readFileSync("tests/fixtures/reel-clip.webm") });
+  await expect(page.getByTestId("video-ready")).toBeVisible();
+  await expect(page.getByTestId("admin-video-preview")).toBeVisible();
+  await page.getByTestId("format-reel").check();
+
+  await page.getByTestId("gallery-input").setInputFiles([
+    // Frames of the test clips: a 1x1 pixel image would not decode once resized.
+    { name: "one.png", mimeType: "image/png", buffer: readFileSync("tests/fixtures/reel-frame.png") },
+    { name: "two.jpg", mimeType: "image/jpeg", buffer: readFileSync("tests/fixtures/wide-frame.jpg") },
+  ]);
+  await expect(page.getByTestId("gallery-list").locator("li")).toHaveCount(2);
+
+  await page.getByTestId("publish-checkbox").check();
+  await page.getByTestId("save-episode").click();
+  await expect(page).toHaveURL(/\/admin\/episodes\/[0-9a-f-]{36}/);
+  const id = /episodes\/([0-9a-f-]{36})/.exec(page.url())![1];
+
+  // Visitors stream the clip through the access-checked route, with byte ranges.
+  const ranged = await request.get(`/api/media/video/${id}`, { headers: { range: "bytes=0-3" } });
+  expect(ranged.status()).toBe(206);
+  expect(ranged.headers()["content-type"]).toBe("video/webm");
+
+  await gotoReady(page, "/astrology-audios?q=E2E%20Reel");
+  const card = page.getByTestId("episode-card").filter({ visible: true }).filter({ hasText: "E2E Reel And Photos" });
+  await expect(card.getByTestId("video-badge")).toContainText("Reel");
+  await expect(card.getByTestId("photos-badge")).toBeVisible();
+  await expect(card.getByTestId("watch-button")).toBeVisible();
+
+  await gotoReady(page, "/astrology-audios/e2e-reel-and-photos");
+  const video = page.getByTestId("post-video");
+  await expect(video).toBeVisible();
+  // The browser really decodes it: 2-second clip, tall frame.
+  await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.readyState), { timeout: 10_000 }).toBeGreaterThanOrEqual(1);
+  expect(Math.round(await video.evaluate((v: HTMLVideoElement) => v.duration))).toBe(2);
+  expect(await video.evaluate((v: HTMLVideoElement) => v.videoHeight > v.videoWidth)).toBe(true);
+
+  const gallery = page.getByTestId("photo-gallery");
+  await expect(gallery.getByRole("button", { name: /Open photo/ })).toHaveCount(2);
+  // The photos really load (not just the markup). They are lazy, so bring them on screen first.
+  await gallery.scrollIntoViewIfNeeded();
+  await expect
+    .poll(() => gallery.locator("img").evaluateAll((imgs) => imgs.filter((i) => (i as HTMLImageElement).naturalWidth > 0).length), { timeout: 10_000 })
+    .toBe(2);
+  await gallery.getByRole("button", { name: "Open photo 1" }).click();
+  const lightbox = page.getByTestId("photo-lightbox");
+  await expect(lightbox).toContainText("1 / 2");
+  await lightbox.getByRole("button", { name: "Next photo" }).click();
+  await expect(lightbox).toContainText("2 / 2");
+  await page.keyboard.press("Escape");
+  await expect(lightbox).not.toBeVisible();
+
+  // Same post in Hindi shows the Hindi labels.
+  await gotoReady(page, "/hi/astrology-audios/e2e-reel-and-photos");
+  await expect(page.getByTestId("photo-gallery")).toContainText("फ़ोटो");
+
+  // Premium: the clip is refused to visitors and the page shows the lock instead of a player.
+  await gotoReady(page, `/admin/episodes/${id}`);
+  await page.getByLabel("Premium episode").check();
+  await page.getByTestId("save-episode").click();
+  await expect(page.getByTestId("form-message")).toContainText("saved");
+  expect((await request.get(`/api/media/video/${id}`)).status()).toBe(403);
+  await gotoReady(page, "/astrology-audios/e2e-reel-and-photos");
+  await expect(page.getByTestId("locked-video")).toBeVisible();
+
+  // MP4 is accepted too. (One test, one sign-in: the login is rate limited.)
+  await gotoReady(page, "/admin/episodes/new");
+  await page.getByTestId("video-input").setInputFiles({ name: "wide.mp4", mimeType: "video/mp4", buffer: readFileSync("tests/fixtures/wide-clip.mp4") });
+  await expect(page.getByTestId("video-ready")).toBeVisible();
+
+  // A YouTube link alone is enough to publish; unknown links are refused.
+  await gotoReady(page, "/admin/episodes/new");
+  await page.getByLabel("Title").fill("E2E YouTube Only");
+  await page.getByLabel("Category").selectOption({ label: "Vedic Astrology" });
+  await page.getByLabel("Short description").fill("A post that is only an embedded YouTube video.");
+  await page.getByTestId("publish-checkbox").check();
+
+  await page.getByLabel(/YouTube \/ Instagram link/).fill("https://vimeo.com/12345");
+  await page.getByTestId("save-episode").click();
+  await expect(page.getByText("Paste a YouTube or Instagram video link")).toBeVisible();
+
+  await page.getByLabel(/YouTube \/ Instagram link/).fill("https://youtu.be/dQw4w9WgXcQ");
+  await expect(page.getByTestId("video-link-ok")).toContainText("YouTube video recognised");
+  await page.getByTestId("save-episode").click();
+  await expect(page).toHaveURL(/\/admin\/episodes\/[0-9a-f-]{36}/);
+
+  await gotoReady(page, "/astrology-audios/e2e-youtube-only");
+  await expect(page.getByTestId("video-embed")).toHaveAttribute("src", "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0");
+  await expect(page.getByRole("link", { name: "Watch on YouTube" })).toHaveAttribute("href", "https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+});

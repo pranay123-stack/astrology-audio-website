@@ -2,7 +2,7 @@ import { decideAudioAccess } from "@/lib/access";
 import { getAdmin } from "@/lib/auth/admin";
 import { premiumConfig } from "@/lib/config";
 import { getAdminRepository, getPublicRepository } from "@/lib/data";
-import { audioResponse } from "@/lib/media/storage";
+import { mediaResponse } from "@/lib/media/storage";
 
 /**
  * Streams an episode's audio after checking access on the server for every request.
@@ -23,7 +23,7 @@ async function handle(request: Request, ctx: RouteContext<"/api/media/audio/[id]
   if (!decision.allowed) {
     return Response.json({ error: decision.reason }, { status: decision.status, headers: noStore });
   }
-  return audioResponse(episode!.audio_storage_path!, episode!.audio_mime_type, request, episode!.is_premium ? 300 : 3600);
+  return mediaResponse(episode!.audio_storage_path!, episode!.audio_mime_type, request, episode!.is_premium ? 300 : 3600);
 }
 
 export const GET = handle;

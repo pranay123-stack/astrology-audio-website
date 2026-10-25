@@ -59,6 +59,8 @@ export const premiumConfig = {
 export const uploadLimits = {
   audioMaxBytes: int(process.env.MAX_AUDIO_UPLOAD_MB, 200) * 1024 * 1024,
   imageMaxBytes: int(process.env.MAX_IMAGE_UPLOAD_MB, 5) * 1024 * 1024,
+  // 50 MB is the Supabase Free plan's per-file cap; the video bucket enforces the same.
+  videoMaxBytes: int(process.env.MAX_VIDEO_UPLOAD_MB, 50) * 1024 * 1024,
 };
 
 export const localPaths = {

@@ -230,6 +230,53 @@ describe("articles", () => {
   });
 });
 
+describe("video and photos", () => {
+  it("the video bucket is private and visitors cannot upload to it", async () => {
+    const videoPath = `video/${randomUUID()}.webm`;
+    const webm = Buffer.from([0x1a, 0x45, 0xdf, 0xa3, 0x9f, 0x42, 0x86, 0x81]);
+    expect((await service.storage.from("video").upload(videoPath, webm, { contentType: "video/webm" })).error).toBeNull();
+    try {
+      expect((await fetch(`${url}/storage/v1/object/public/video/${videoPath}`)).ok).toBe(false);
+      expect((await anon.storage.from("video").download(videoPath)).error).not.toBeNull();
+    } finally {
+      await service.storage.from("video").remove([videoPath]);
+    }
+    const up = await anon.storage.from("video").upload(`video/${randomUUID()}.mp4`, new Blob(["xxxx"], { type: "video/mp4" }));
+    expect(up.error).not.toBeNull();
+    // Other types are refused by the bucket itself.
+    const wrong = await service.storage.from("video").upload(`video/${randomUUID()}.mp3`, Buffer.from("ID3xxxx"), { contentType: "audio/mpeg" });
+    expect(wrong.error).not.toBeNull();
+  });
+
+  it("admin_save_episode stores the video, link and gallery; photos alone are enough to publish", async () => {
+    const g1 = `gallery/${randomUUID()}.jpg`;
+    const g2 = `gallery/${randomUUID()}.png`;
+    const episode = {
+      title: "Reel test", slug: `reel-${randomUUID().slice(0, 8)}`, excerpt: "video test", description: "", category_id: generalCat,
+      audio_storage_path: null, audio_mime_type: null, cover_image_path: null, duration_seconds: 0, is_published: true, is_premium: false,
+      published_at: new Date().toISOString(), article: "", article_lang: "hi",
+      video_storage_path: `video/${randomUUID()}.mp4`, video_mime_type: "video/mp4", video_format: "reel",
+      video_link: "https://youtu.be/dQw4w9WgXcQ", gallery_paths: [g2, g1],
+    };
+    const { data: id, error } = await admin.rpc("admin_save_episode", { p_id: null, p_episode: episode, p_match: null });
+    expect(error).toBeNull();
+    cleanup.push(id);
+    const cols = "video_format, video_link, video_mime_type, gallery_paths";
+    expect((await anon.from("episode_listings").select(cols).eq("id", id).single()).data).toEqual({
+      video_format: "reel", video_link: "https://youtu.be/dQw4w9WgXcQ", video_mime_type: "video/mp4", gallery_paths: [g2, g1],
+    });
+    // Only the photos left: still publishable.
+    const photosOnly = { ...episode, video_storage_path: null, video_mime_type: null, video_link: "", gallery_paths: [g1] };
+    expect((await admin.rpc("admin_save_episode", { p_id: id, p_episode: photosOnly, p_match: null })).error).toBeNull();
+    // Nothing at all: refused while published.
+    const nothing = await admin.rpc("admin_save_episode", { p_id: id, p_episode: { ...photosOnly, gallery_paths: [] }, p_match: null });
+    expect(nothing.error).not.toBeNull();
+    // An unknown video format is refused by the table.
+    const bad = await admin.rpc("admin_save_episode", { p_id: id, p_episode: { ...photosOnly, video_format: "story" }, p_match: null });
+    expect(bad.error).not.toBeNull();
+  });
+});
+
 describe("signed-in non-admin user", () => {
   it("is not an admin and cannot write content or read messages", async () => {
     expect((await member.rpc("is_admin")).data).toBe(false);
