@@ -62,3 +62,14 @@ describe("post types (format filter)", () => {
     expect(parseListParams({}).format).toBe("");
   });
 });
+
+describe("errors after a new deployment", () => {
+  it("recognises the errors an outdated tab gets, and nothing else", async () => {
+    const { isStaleDeployError } = await import("@/lib/stale-deploy");
+    const err = (name: string, message: string) => Object.assign(new Error(message), { name });
+    expect(isStaleDeployError(err("ChunkLoadError", "Loading chunk 123 failed."))).toBe(true);
+    expect(isStaleDeployError(err("TypeError", "Failed to fetch dynamically imported module: /_next/static/chunks/x.js"))).toBe(true);
+    expect(isStaleDeployError(err("Error", 'Failed to find Server Action "abc". This request might be from an older or newer deployment.'))).toBe(true);
+    expect(isStaleDeployError(err("Error", "Database unreachable"))).toBe(false);
+  });
+});
