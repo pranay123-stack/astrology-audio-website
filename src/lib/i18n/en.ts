@@ -6,7 +6,7 @@ export const en = {
 
   nav: {
     home: "Home",
-    general: "Astrology",
+    general: "Jyotish Gyan",
     cricket: "Cricket Astrology",
     premium: "Premium",
     kp: "KP Chart",
@@ -65,17 +65,25 @@ export const en = {
 
   home: {
     quotes: "Guiding words",
+    kpEyebrow: "Free tool",
+    kpTitle: "Make your free KP birth chart",
+    kpBody: "KP New ayanamsa, Placidus houses, star and sub lords, significators and Vimshottari dasha. Tap any house of the chart for its details, and sign in with Google to save your charts.",
+    kpCta: "Make my chart",
+    book: "Book a Consultation",
+    bookEyebrow: "Book by Amit Sharma",
+    bookTitle: "A Spiritual Punter, Bookie & Astrologer",
+    bookBody: "The story of how Astro Cricket was discovered through the KP system.",
+    bookCta: "Buy on Amazon",
     reelsEyebrow: "Short videos",
     reelsTitle: "Reels",
     eyebrow: "Vedic astrology · KP · Cricket astrology",
     titleA: "Discover Astrology",
     titleB: "With Amit Sharma",
     intro: "Planets, transits, KP astrology and cricket predictions, explained in clear articles, audio and videos.",
-    listen: "Explore Astrology",
-    book: "Book a Consultation",
+    listen: "Explore Jyotish Gyan",
     popularCategories: "Popular categories",
     latestReading: "Latest reading",
-    categoriesEyebrow: "General astrology",
+    categoriesEyebrow: "Jyotish Gyan",
     categoriesTitle: "Explore by Category",
     categoriesDesc: "Daily readings, transits, Vedic astrology, meditation and lessons.",
     allCategories: "All categories",
@@ -86,10 +94,11 @@ export const en = {
     browseAll: "Browse all posts",
     noEpisodes: "No posts yet",
     noEpisodesBody: "New posts will appear here as soon as they are published.",
-    cricketEyebrow: "Also on the site · Big Bash League",
+    cricketEyebrow: "Astro Cricket",
     cricketTitle: "Cricket Astrology",
     cricketUpcoming: "Astrological readings for upcoming BBL matches.",
     cricketRecent: "No upcoming match readings right now — here are the most recent.",
+    cricketGuide: "How an astrologer reads a cricket match: the method, the houses and the timing.",
     allMatchReadings: "All match readings",
     matchSoon: "Match readings coming soon",
     matchSoonBody: "Cricket astrology readings will be listed here before each match.",
@@ -102,9 +111,9 @@ export const en = {
     metaTitle: "Astrology — Articles, Audio and Videos on Planets, Transits and KP",
     metaDesc:
       "Astrology articles, audio and videos by category: the grahas, transits, zodiac guidance, Vedic and KP astrology, meditation and lessons.",
-    ogTitle: "Astrology",
-    eyebrow: "General astrology",
-    title: "Astrology",
+    ogTitle: "Jyotish Gyan",
+    eyebrow: "Astrology",
+    title: "Jyotish Gyan",
     intro: "Articles, audio and videos on the planets, the signs and the traditions behind them. Choose a category or type, or search the library.",
     categoriesNav: "Categories",
     allCategories: "All categories",
@@ -290,7 +299,7 @@ export const en = {
 
   about: {
     metaTitle: (name: string) => `About ${name}`,
-    metaDesc: "About the astrologer behind the audio.",
+    metaDesc: "About Amit Sharma, the astrologer behind Astro Cricket.",
     eyebrow: "About the astrologer",
     intro: "Introduction",
     experience: "Experience and background",
@@ -354,7 +363,7 @@ export const en = {
 
   episode: {
     allCricket: "All cricket readings",
-    allGeneral: "All astrology posts",
+    allGeneral: "All of Jyotish Gyan",
     published: "Published",
     matchDetails: (comp: string) => `Match details · ${comp}`,
     startTime: "Start time",
@@ -373,6 +382,9 @@ export const en = {
     prevPhoto: "Previous photo",
     nextPhoto: "Next photo",
     watchAria: (title: string) => `Watch: ${title}`,
+    shareWhatsApp: "Share on WhatsApp",
+    copyLink: "Copy link",
+    copied: "Link copied",
     viewAria: (title: string) => `View photos: ${title}`,
     listenAria: (title: string) => `Listen: ${title}`,
     listenTitle: "Listen",
@@ -426,6 +438,8 @@ export const en = {
     },
   },
 
+  whatsappFloat: "Chat on WhatsApp",
+
   footer: {
     explore: "Explore",
     contact: "Contact",
@@ -461,7 +475,7 @@ export const en = {
     notFoundTitle: "This page has drifted out of orbit",
     notFoundBody: "The page or post you are looking for does not exist, or it is no longer published.",
     goHome: "Go home",
-    browse: "Browse astrology",
+    browse: "Browse Jyotish Gyan",
   },
 
   legal: {

@@ -224,12 +224,18 @@ test("profile edits appear on the public about page", async ({ page }) => {
   await gotoReady(page, "/admin/profile");
   await page.getByLabel("Display name").fill("E2E Astrologer");
   await page.getByLabel("Business or trading name").fill("E2E Astro Pty Ltd");
+  await page.getByLabel("WhatsApp link").fill("https://wa.me/918981345111");
+  await page.getByLabel("Amazon").fill("https://amzn.in/d/05ZrKozx");
   await page.getByRole("button", { name: "Save profile" }).click();
   await expect(page.getByText("Profile saved")).toBeVisible();
   await gotoReady(page, "/about");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("E2E Astrologer");
+  // WhatsApp on every page, and the book with its Amazon link.
+  await expect(page.getByTestId("whatsapp-float")).toHaveAttribute("href", "https://wa.me/918981345111");
+  await expect(page.getByTestId("book-buy")).toHaveAttribute("href", "https://amzn.in/d/05ZrKozx");
   await gotoReady(page, "/terms");
   await expect(page.getByText("E2E Astro Pty Ltd").first()).toBeVisible();
+  await expect(page.getByTestId("whatsapp-float")).toBeVisible();
 
   // Hindi profile fields show on the Hindi site; empty ones fall back to English.
   await gotoReady(page, "/admin/profile");

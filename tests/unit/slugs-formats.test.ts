@@ -73,3 +73,14 @@ describe("errors after a new deployment", () => {
     expect(isStaleDeployError(err("Error", "Database unreachable"))).toBe(false);
   });
 });
+
+describe("Hindi first", () => {
+  it("only treats browsers whose first language is Hindi as Hindi", async () => {
+    const { prefersHindi } = await import("@/proxy");
+    expect(prefersHindi("hi-IN,hi;q=0.9,en-US;q=0.8")).toBe(true);
+    expect(prefersHindi("hi")).toBe(true);
+    expect(prefersHindi("en-IN,en;q=0.9,hi;q=0.8")).toBe(false);
+    expect(prefersHindi("")).toBe(false);
+    expect(prefersHindi(null)).toBe(false);
+  });
+});

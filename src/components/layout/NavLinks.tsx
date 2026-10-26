@@ -52,6 +52,10 @@ function LanguageSwitchInner({ pathname, query, className }: { pathname: string;
       prefetch={false}
       hrefLang={other}
       lang={other}
+      // Remember the choice, so the site does not switch back to Hindi on the next visit (see proxy.ts).
+      onClick={() => {
+        document.cookie = `lang=${other}; path=/; max-age=31536000; samesite=lax`;
+      }}
       className={`inline-flex items-center gap-1.5 rounded-full border border-gold/50 bg-gold/10 px-3 py-1.5 text-sm font-semibold text-gold-soft transition hover:bg-gold/20 ${className}`}
       aria-label={t.switchLabel}
       title={t.switchLabel}

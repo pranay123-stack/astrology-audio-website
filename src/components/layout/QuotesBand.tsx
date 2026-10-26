@@ -18,13 +18,13 @@ const QUOTES = [
 export function QuotesBand({ lang }: { lang: Locale }) {
   return (
     <section aria-label={getDict(lang).home.quotes} className="border-b border-line bg-night/60" data-testid="quotes-band">
-      <div className="container-page grid gap-4 py-5 md:grid-cols-2 md:gap-8">
+      <div className="container-page grid gap-3 py-3 sm:gap-4 sm:py-5 md:grid-cols-2 md:gap-8">
         {QUOTES.map((q) => (
           <figure key={q.author} className="flex gap-3">
-            <Quote className="mt-1 h-5 w-5 shrink-0 text-gold" aria-hidden />
-            <div className="space-y-1.5">
-              <blockquote lang="en" className="font-display text-lg leading-snug text-ink italic sm:text-xl">“{q.text}”</blockquote>
-              <figcaption className="text-xs text-muted">
+            <Quote className="mt-1 h-4 w-4 shrink-0 text-gold sm:h-5 sm:w-5" aria-hidden />
+            <div className="space-y-1 sm:space-y-1.5">
+              <blockquote lang="en" className="font-display text-[15px] leading-snug text-ink italic sm:text-xl">“{q.text}”</blockquote>
+              <figcaption className="text-[11px] leading-snug text-muted sm:text-xs">
                 <span className="font-semibold text-gold-soft">{q.author}</span> · {q.role[lang]}
               </figcaption>
             </div>

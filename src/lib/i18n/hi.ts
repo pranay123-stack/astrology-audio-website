@@ -8,7 +8,7 @@ export const hi: Dict = {
 
   nav: {
     home: "होम",
-    general: "ज्योतिष",
+    general: "ज्योतिष ज्ञान",
     cricket: "क्रिकेट ज्योतिष",
     premium: "प्रीमियम",
     kp: "KP कुंडली",
@@ -66,17 +66,25 @@ export const hi: Dict = {
 
   home: {
     quotes: "मार्गदर्शक विचार",
+    kpEyebrow: "मुफ़्त टूल",
+    kpTitle: "अपनी मुफ़्त KP जन्म कुंडली बनाएँ",
+    kpBody: "KP New अयनांश, प्लेसिडस भाव, स्टार और सब लॉर्ड, कारक ग्रह और विंशोत्तरी दशा। कुंडली के किसी भी भाव पर टैप करके उसकी जानकारी देखें, और Google से साइन इन करके अपनी कुंडलियाँ सेव करें।",
+    kpCta: "मेरी कुंडली बनाएँ",
+    book: "परामर्श बुक करें",
+    bookEyebrow: "अमित शर्मा की पुस्तक",
+    bookTitle: "A Spiritual Punter, Bookie & Astrologer",
+    bookBody: "KP पद्धति से Astro Cricket की खोज की कहानी।",
+    bookCta: "Amazon पर खरीदें",
     reelsEyebrow: "छोटे वीडियो",
     reelsTitle: "रील्स",
     eyebrow: "वैदिक ज्योतिष · KP · क्रिकेट ज्योतिष",
     titleA: "ज्योतिष को जानिए",
     titleB: "अमित शर्मा के साथ",
     intro: "ग्रह, गोचर, KP ज्योतिष और क्रिकेट भविष्यवाणी — सरल लेख, ऑडियो और वीडियो में।",
-    listen: "ज्योतिष देखें",
-    book: "परामर्श बुक करें",
+    listen: "ज्योतिष ज्ञान देखें",
     popularCategories: "लोकप्रिय श्रेणियाँ",
     latestReading: "नवीनतम पाठ",
-    categoriesEyebrow: "सामान्य ज्योतिष",
+    categoriesEyebrow: "ज्योतिष ज्ञान",
     categoriesTitle: "श्रेणी अनुसार देखें",
     categoriesDesc: "दैनिक विचार, गोचर, वैदिक ज्योतिष, ध्यान और पाठ।",
     allCategories: "सभी श्रेणियाँ",
@@ -87,10 +95,11 @@ export const hi: Dict = {
     browseAll: "सभी पोस्ट देखें",
     noEpisodes: "अभी कोई पोस्ट नहीं",
     noEpisodesBody: "नई पोस्ट प्रकाशित होते ही यहाँ दिखेंगी।",
-    cricketEyebrow: "साइट पर यह भी · बिग बैश लीग",
+    cricketEyebrow: "एस्ट्रो क्रिकेट",
     cricketTitle: "क्रिकेट ज्योतिष",
     cricketUpcoming: "आने वाले BBL मैचों का ज्योतिषीय विश्लेषण।",
     cricketRecent: "अभी आने वाले मैचों का कोई विश्लेषण नहीं — ये सबसे हाल के हैं।",
+    cricketGuide: "ज्योतिषी क्रिकेट मैच कैसे पढ़ते हैं: पद्धति, भाव और समय।",
     allMatchReadings: "सभी मैच विश्लेषण",
     matchSoon: "मैच विश्लेषण जल्द आएँगे",
     matchSoonBody: "हर मैच से पहले क्रिकेट ज्योतिष ऑडियो यहाँ दिखाया जाएगा।",
@@ -102,9 +111,9 @@ export const hi: Dict = {
   general: {
     metaTitle: "ज्योतिष — ग्रह, गोचर और KP पर लेख, ऑडियो और वीडियो",
     metaDesc: "श्रेणी अनुसार ज्योतिष लेख, ऑडियो और वीडियो: ग्रह, गोचर, राशि मार्गदर्शन, वैदिक और KP ज्योतिष, ध्यान और पाठ।",
-    ogTitle: "ज्योतिष",
-    eyebrow: "सामान्य ज्योतिष",
-    title: "ज्योतिष",
+    ogTitle: "ज्योतिष ज्ञान",
+    eyebrow: "ज्योतिष",
+    title: "ज्योतिष ज्ञान",
     intro: "ग्रहों, राशियों और उनकी परंपराओं पर लेख, ऑडियो और वीडियो। कोई श्रेणी या प्रकार चुनें, या संग्रह में खोजें।",
     categoriesNav: "श्रेणियाँ",
     allCategories: "सभी श्रेणियाँ",
@@ -288,7 +297,7 @@ export const hi: Dict = {
 
   about: {
     metaTitle: (name) => `${name} के बारे में`,
-    metaDesc: "इस साइट के ज्योतिषी के बारे में।",
+    metaDesc: "अमित शर्मा के बारे में, Astro Cricket के ज्योतिषी।",
     eyebrow: "ज्योतिषी के बारे में",
     intro: "परिचय",
     experience: "अनुभव और पृष्ठभूमि",
@@ -351,7 +360,7 @@ export const hi: Dict = {
 
   episode: {
     allCricket: "सभी क्रिकेट विश्लेषण",
-    allGeneral: "सभी ज्योतिष पोस्ट",
+    allGeneral: "पूरा ज्योतिष ज्ञान",
     published: "प्रकाशित",
     matchDetails: (comp) => `मैच विवरण · ${comp}`,
     startTime: "शुरू होने का समय",
@@ -370,6 +379,9 @@ export const hi: Dict = {
     prevPhoto: "पिछली फ़ोटो",
     nextPhoto: "अगली फ़ोटो",
     watchAria: (title) => `देखें: ${title}`,
+    shareWhatsApp: "WhatsApp पर शेयर करें",
+    copyLink: "लिंक कॉपी करें",
+    copied: "लिंक कॉपी हो गया",
     viewAria: (title) => `फ़ोटो देखें: ${title}`,
     listenAria: (title) => `सुनें: ${title}`,
     listenTitle: "सुनें",
@@ -421,6 +433,8 @@ export const hi: Dict = {
     },
   },
 
+  whatsappFloat: "WhatsApp पर बात करें",
+
   footer: {
     explore: "देखें",
     contact: "संपर्क",
@@ -455,7 +469,7 @@ export const hi: Dict = {
     notFoundTitle: "यह पेज अपनी कक्षा से भटक गया है",
     notFoundBody: "आप जो पेज या पोस्ट ढूँढ रहे हैं वह मौजूद नहीं है, या अब प्रकाशित नहीं है।",
     goHome: "होम पर जाएँ",
-    browse: "ज्योतिष देखें",
+    browse: "ज्योतिष ज्ञान देखें",
   },
 
   legal: {

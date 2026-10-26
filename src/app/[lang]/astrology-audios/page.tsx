@@ -58,11 +58,15 @@ async function Results({ searchParams, lang }: Pick<PageProps<"/[lang]/astrology
   const t = d.general;
   const base = localePath(lang, "/astrology-audios");
   const p = parseListParams(await searchParams);
-  const categories = (await getCategories()).filter((c) => c.section === "general").map((c) => localizeCategory(c, lang));
+  const [allCategories, sectionPosts] = await Promise.all([getCategories(), getEpisodes({ section: "general" })]);
+  // Categories without posts are left out (an active filter stays, so it can be cleared).
+  const categories = allCategories
+    .filter((c) => c.section === "general" && (c.slug === p.category || sectionPosts.items.some((e) => e.category.id === c.id)))
+    .map((c) => localizeCategory(c, lang));
   const activeCategory = categories.find((c) => c.slug === p.category);
   const filtered = !!(p.q || p.access || activeCategory || p.format);
 
-  const [{ items, total }, popular, all] = await Promise.all([
+  const [{ items, total }, popular] = await Promise.all([
     getEpisodes({
       section: "general",
       categorySlug: activeCategory?.slug,
@@ -73,9 +77,9 @@ async function Results({ searchParams, lang }: Pick<PageProps<"/[lang]/astrology
       limit: p.page * PAGE_SIZE,
     }),
     filtered || p.sort === "popular" ? Promise.resolve(null) : getEpisodes({ section: "general", sort: "popular", limit: 3 }),
-    // Which types (articles, audio, videos, reels) exist, for the type filter.
-    getEpisodes({ section: "general", categorySlug: activeCategory?.slug }),
   ]);
+  // Which types (articles, audio, videos, reels) exist in this category, for the type filter.
+  const inCategory = sectionPosts.items.filter((e) => !activeCategory || e.category.slug === activeCategory.slug);
   // "Popular" only means something once posts have been played; until then it would repeat "Latest".
   const showPopular = !!popular && popular.items.length > 0 && popular.items[0].play_count > 0;
 
@@ -99,7 +103,7 @@ async function Results({ searchParams, lang }: Pick<PageProps<"/[lang]/astrology
         {chip("", t.allCategories, !activeCategory)}
         {categories.map((c) => chip(c.slug, c.name, c.slug === activeCategory?.slug))}
       </nav>
-      <FormatChips posts={all.items} params={p} base={base} defaults={{ sort: "latest" }} lang={lang} />
+      <FormatChips posts={inCategory} params={p} base={base} defaults={{ sort: "latest" }} lang={lang} />
 
       <Form action={base} className="card grid gap-4 p-5 md:grid-cols-[2fr_1fr_1fr_auto]" role="search">
         {activeCategory && <input type="hidden" name="category" value={activeCategory.slug} />}

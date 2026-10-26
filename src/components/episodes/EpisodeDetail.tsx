@@ -21,6 +21,7 @@ import { EpisodeCard } from "./EpisodeCard";
 import { LearnCricketCta } from "./LearnCricketCta";
 import { MatchCard } from "./MatchCard";
 import { PhotoGallery } from "./PhotoGallery";
+import { ShareButtons } from "./ShareButtons";
 import { VideoBlock } from "./VideoBlock";
 import { TeamBadge } from "./TeamBadge";
 
@@ -117,6 +118,7 @@ export async function EpisodeDetail({ slug, section, lang }: { slug: string; sec
               <Clock className="h-4 w-4" aria-hidden /> {lengthLabel(episode, lang)}
             </span>
           </div>
+          <ShareButtons title={episode.title} url={`${siteConfig.url}${episodeHref(episode, lang)}`} />
 
           {onlyOther ? (
             <p className="flex items-center gap-2 rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-ink/90" data-testid="language-note">

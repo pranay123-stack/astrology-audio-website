@@ -14,13 +14,16 @@ test("home page shows the main sections and the sample-content notice", async ({
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Discover Astrology");
   await expect(page.getByTestId("hero-latest").filter({ visible: true })).toContainText("Latest reading");
   const order = await page.evaluate(() =>
-    ["general-heading", "featured-heading", "cricket-heading", "about-heading"].map((id) => document.getElementById(id)?.getBoundingClientRect().top ?? -1),
+    ["featured-heading", "cricket-heading", "kp-promo-heading", "general-heading", "about-heading"].map((id) => document.getElementById(id)?.getBoundingClientRect().top ?? -1),
   );
   expect(order.every((y, i) => y > 0 && (i === 0 || y > order[i - 1]))).toBe(true);
   const nav = await page.getByRole("navigation", { name: "Main" }).filter({ visible: true }).getByRole("link").allInnerTexts();
-  expect(nav.indexOf("Astrology")).toBeLessThan(nav.indexOf("Cricket Astrology"));
+  expect(nav.indexOf("Jyotish Gyan")).toBeLessThan(nav.indexOf("Cricket Astrology"));
   // Premium shows only because the sample content has premium posts.
-  expect(nav).toEqual(["Home", "Astrology", "Cricket Astrology", "Premium", "KP Chart", "About", "Contact"]);
+  expect(nav).toEqual(["Home", "Jyotish Gyan", "Cricket Astrology", "Premium", "KP Chart", "About", "Contact"]);
+  // The hero's main button is the course; the KP chart has its own invitation.
+  await expect(page.getByTestId("hero-learn")).toHaveAttribute("href", "/contact?subject=Learning%20cricket%20astrology#questionnaire");
+  await expect(page.getByTestId("kp-promo").getByRole("link")).toHaveAttribute("href", "/kp-chart");
   await expect(page.getByTestId("nav-learn")).toHaveAttribute("href", "/contact?subject=Learning%20cricket%20astrology#questionnaire");
   await expect(page.getByTestId("demo-banner")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Latest in Astrology" })).toBeVisible();
@@ -35,16 +38,16 @@ test("Hindi site: translated interface at /hi, and the switch keeps the page and
   await expect(page.locator("html")).toHaveAttribute("lang", "hi");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("ज्योतिष को जानिए");
   const nav = await page.getByRole("navigation", { name: "मुख्य" }).filter({ visible: true }).getByRole("link").allInnerTexts();
-  expect(nav).toEqual(["होम", "ज्योतिष", "क्रिकेट ज्योतिष", "प्रीमियम", "KP कुंडली", "परिचय", "संपर्क"]);
+  expect(nav).toEqual(["होम", "ज्योतिष ज्ञान", "क्रिकेट ज्योतिष", "प्रीमियम", "KP कुंडली", "परिचय", "संपर्क"]);
   // Category names come from the database's Hindi columns; links stay inside /hi.
   await expect(page.getByTestId("category-tile").filter({ visible: true }).first()).toContainText("दैनिक ज्योतिष");
-  await expect(page.getByRole("link", { name: "ज्योतिष देखें" })).toHaveAttribute("href", "/hi/astrology-audios");
+  await expect(page.getByRole("link", { name: "ज्योतिष ज्ञान देखें" })).toHaveAttribute("href", "/hi/astrology-audios");
 
   // English → Hindi on a filtered listing keeps the filters.
   await gotoReady(page, "/astrology-audios?category=planets-grahas&sort=popular");
   await page.getByTestId("language-switch").filter({ visible: true }).click();
   await expect(page).toHaveURL(/\/hi\/astrology-audios\?category=planets-grahas&sort=popular$/);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("ज्योतिष");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("ज्योतिष ज्ञान");
 
   // Hindi → English goes back to the plain address; /en/... is never used.
   await page.getByTestId("language-switch").filter({ visible: true }).click();
@@ -56,12 +59,35 @@ test("Hindi site: translated interface at /hi, and the switch keeps the page and
 
   // A Hindi-only post on the English site is labelled, and links to its Hindi page.
   await gotoReady(page, "/astrology-audios/sample-article-graha");
+  // Every post can be shared on WhatsApp with its title and full address.
+  await expect(page.getByTestId("share-whatsapp")).toHaveAttribute("href", /^https:\/\/wa\.me\/\?text=.*%2Fastrology-audios%2Fsample-article-graha$/);
   await expect(page.getByTestId("language-note").filter({ visible: true })).toContainText("available in Hindi only");
 
   // Unknown addresses get a 404 in the visitor's language.
   const missing = await page.goto("/hi/does-not-exist");
   expect(missing?.status()).toBe(404);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("यह पेज अपनी कक्षा से भटक गया है");
+});
+
+test("Hindi first: a Hindi browser lands on the Hindi site, and a language choice is remembered", async ({ browser }) => {
+  const context = await browser.newContext({ locale: "hi-IN", extraHTTPHeaders: { "accept-language": "hi-IN,hi;q=0.9,en;q=0.8" } });
+  const page = await context.newPage();
+  await gotoReady(page, "/about");
+  await expect(page).toHaveURL(/\/hi\/about$/);
+  await expect(page.locator("html")).toHaveAttribute("lang", "hi");
+  // Choosing English sticks, even on the next full visit.
+  await page.getByTestId("language-switch").filter({ visible: true }).click();
+  await expect(page).toHaveURL(/\/about$/);
+  await gotoReady(page, "/");
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await context.close();
+
+  // Search engines and English browsers are never redirected, and the redirect is never cached.
+  const plain = await (await browser.newContext()).request.get("/about", { maxRedirects: 0 });
+  expect(plain.status()).toBe(200);
+  const hindi = await (await browser.newContext()).request.get("/about", { maxRedirects: 0, headers: { "accept-language": "hi", accept: "text/html" } });
+  expect(hindi.status()).toBe(307);
+  expect(hindi.headers()["cache-control"]).toContain("no-store");
 });
 
 test("audio really plays, survives navigation, and honours speed and seek", async ({ page }) => {

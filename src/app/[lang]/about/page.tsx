@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Mail } from "lucide-react";
+import { BookCard } from "@/components/layout/BookCard";
 import { Starfield } from "@/components/layout/Starfield";
 import { getDict, localePath, localizeProfile } from "@/lib/i18n";
 import { imageUrl } from "@/lib/media/urls";
@@ -43,27 +44,30 @@ export default async function AboutPage() {
       </section>
 
       <section className="container-page grid gap-12 py-14 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="prose-cosmic max-w-3xl">
-          <h2>{t.about.intro}</h2>
-          {profile.biography.split(/\n{2,}/).map((p, i) => (
-            <p key={i}>{p}</p>
-          ))}
-          {profile.experience && (
-            <>
-              <h2>{t.about.experience}</h2>
-              {profile.experience.split(/\n{2,}/).map((p, i) => (
-                <p key={i}>{p}</p>
-              ))}
-            </>
-          )}
-          {profile.consultation_info && (
-            <>
-              <h2>{t.about.consultations}</h2>
-              {profile.consultation_info.split(/\n{2,}/).map((p, i) => (
-                <p key={i}>{p}</p>
-              ))}
-            </>
-          )}
+        <div className="max-w-3xl space-y-10">
+          <div className="prose-cosmic">
+            <h2>{t.about.intro}</h2>
+            {profile.biography.split(/\n{2,}/).map((p, i) => (
+              <p key={i}>{p}</p>
+            ))}
+            {profile.experience && (
+              <>
+                <h2>{t.about.experience}</h2>
+                {profile.experience.split(/\n{2,}/).map((p, i) => (
+                  <p key={i}>{p}</p>
+                ))}
+              </>
+            )}
+            {profile.consultation_info && (
+              <>
+                <h2>{t.about.consultations}</h2>
+                {profile.consultation_info.split(/\n{2,}/).map((p, i) => (
+                  <p key={i}>{p}</p>
+                ))}
+              </>
+            )}
+          </div>
+          <BookCard amazonUrl={profile.social_links?.amazon} lang={lang} />
         </div>
         <aside className="space-y-6">
           {profile.specializations.length > 0 && (
