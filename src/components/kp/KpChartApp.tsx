@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Loader2, MapPin, RotateCcw, Search, Sparkles } from "lucide-react";
 import { createKpChart } from "@/app/[lang]/kp-chart/actions";
 import type { BirthInput, KpChartResult } from "@/lib/kp/build";
 import { useI18n } from "@/lib/i18n/client";
 import { formatOffset } from "@/lib/kp/time";
-import { KpAccountPanel, KpSaveAndNotes, useKpAccount, type SavedChart } from "./KpAccount";
+import { KpAccountPanel, KpSaveAndNotes, PENDING_CHART_KEY, useKpAccount, type SavedChart } from "./KpAccount";
 import { KpChartView } from "./KpChartView";
 
 interface Place {
@@ -108,6 +108,19 @@ export function KpChartApp({ initial }: { initial?: KpChartResult | null }) {
         window.scrollTo({ top: 0, behavior: "smooth" });
       } else setError(res.error);
     });
+
+  // Back from "Sign in to save": show the chart the visitor was looking at again.
+  useEffect(() => {
+    let pending: BirthInput | null = null;
+    try {
+      const raw = sessionStorage.getItem(PENDING_CHART_KEY);
+      sessionStorage.removeItem(PENDING_CHART_KEY);
+      pending = raw ? (JSON.parse(raw) as BirthInput) : null;
+    } catch {
+      pending = null;
+    }
+    if (pending) show(pending, null);
+  }, []);
 
   const openSaved = (c: SavedChart) => {
     setError(null);

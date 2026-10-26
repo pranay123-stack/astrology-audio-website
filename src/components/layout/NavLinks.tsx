@@ -6,6 +6,7 @@ import { Suspense, useEffect, useState } from "react";
 import { GraduationCap, Languages, Menu, X } from "lucide-react";
 import { localePath, splitLocale } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n/client";
+import { AccountMenuItems } from "./AccountButton";
 import { learnPath, navLinks } from "./nav";
 
 /** `pathname` is the public URL (possibly /hi/...); `href` is language-free. */
@@ -160,6 +161,7 @@ export function MobileNav({ showPremium }: { showPremium: boolean }) {
                 </li>
               );
             })}
+            <AccountMenuItems />
           </ul>
         </nav>
       )}

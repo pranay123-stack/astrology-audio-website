@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { User } from "@supabase/supabase-js";
-import { FolderOpen, Loader2, LogIn, LogOut, Save, Trash2 } from "lucide-react";
+import { FolderOpen, Loader2, LogIn, Save, Trash2 } from "lucide-react";
 import type { BirthInput } from "@/lib/kp/build";
-import { kpBrowserClient } from "@/lib/kp/browser-client";
+import { useVisitor } from "@/lib/auth/visitor";
 import { useI18n } from "@/lib/i18n/client";
+
+/** sessionStorage key: birth details of a chart to reopen after the Google sign-in round trip. */
+export const PENDING_CHART_KEY = "kp-pending-chart";
 
 export interface SavedChart {
   id: string;
@@ -15,10 +17,9 @@ export interface SavedChart {
   created_at: string;
 }
 
-/** Visitor's session and saved charts (Supabase, RLS: own rows only). */
+/** Visitor's session (see useVisitor) and saved charts (Supabase, RLS: own rows only). */
 export function useKpAccount() {
-  const sb = kpBrowserClient();
-  const [user, setUser] = useState<User | null>(null);
+  const { client: sb, user, signIn, signOut } = useVisitor();
   const [charts, setCharts] = useState<SavedChart[]>([]);
 
   const refresh = useCallback(async () => {
@@ -28,27 +29,10 @@ export function useKpAccount() {
   }, [sb]);
 
   useEffect(() => {
-    if (!sb) return;
-    // After the Google redirect the URL carries ?code=…; the client exchanges it, then we tidy the URL.
-    const url = new URL(window.location.href);
-    if (url.searchParams.has("code")) {
-      url.searchParams.delete("code");
-      window.history.replaceState(null, "", url.pathname + url.search + url.hash);
-    }
-    sb.auth.getUser().then(({ data }) => setUser(data.user));
-    const { data: sub } = sb.auth.onAuthStateChange((_e, session) => setUser(session?.user ?? null));
-    return () => sub.subscription.unsubscribe();
-  }, [sb]);
-
-  useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- load the signed-in user's charts
     if (user) void refresh();
     else setCharts([]);
   }, [user, refresh]);
-
-  const signIn = () =>
-    sb?.auth.signInWithOAuth({ provider: "google", options: { redirectTo: window.location.origin + window.location.pathname } });
-  const signOut = () => sb?.auth.signOut();
 
   const save = async (name: string, birth: BirthInput): Promise<string | null> => {
     if (!sb) return null;
@@ -81,24 +65,19 @@ export function KpAccountPanel({ account, onOpen }: { account: KpAccount; onOpen
   if (!account.enabled) return null;
 
   if (!account.user) {
+    // Signing in and out lives in the header's account button; here just a short invitation.
     return (
-      <div className="card mx-auto flex max-w-2xl flex-col items-start gap-3 p-5 sm:flex-row sm:items-center" data-testid="kp-signin">
-        <p className="flex-1 text-sm text-ink/85">{a.signInHint}</p>
-        <button type="button" className="btn-gold" onClick={() => void account.signIn()}>
-          <LogIn className="h-4 w-4" aria-hidden /> {a.signIn}
+      <p className="mx-auto flex max-w-2xl flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink/80" data-testid="kp-signin">
+        {a.signInHint}
+        <button type="button" className="font-semibold text-gold-soft underline-offset-4 hover:underline" onClick={() => void account.signIn()}>
+          {a.signIn}
         </button>
-      </div>
+      </p>
     );
   }
 
   return (
     <div className="card mx-auto max-w-2xl space-y-4 p-5" data-testid="kp-account">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted">{a.signedInAs(account.user.email ?? "")}</p>
-        <button type="button" className="btn-ghost px-3 py-1.5 text-xs" onClick={() => void account.signOut()}>
-          <LogOut className="h-4 w-4" aria-hidden /> {a.signOut}
-        </button>
-      </div>
       <div>
         <h2 className="mb-2 text-xl font-semibold">{a.myCharts}</h2>
         {account.charts.length === 0 ? (
@@ -155,7 +134,31 @@ export function KpSaveAndNotes({
   const [notes, setNotes] = useState(saved?.notes ?? "");
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
-  if (!account.enabled || !account.user) return null;
+  if (!account.enabled) return null;
+
+  if (!account.user) {
+    // Signing in reloads the page, so remember the birth details to show this chart again afterwards.
+    return (
+      <div className="card flex items-center justify-between gap-3 p-4">
+        <p className="text-sm text-muted">{a.signInHint}</p>
+        <button
+          type="button"
+          className="btn-gold shrink-0"
+          data-testid="kp-save-signin"
+          onClick={() => {
+            try {
+              sessionStorage.setItem(PENDING_CHART_KEY, JSON.stringify(birth));
+            } catch {
+              /* storage blocked: the chart is simply not reopened after sign-in */
+            }
+            void account.signIn();
+          }}
+        >
+          <LogIn className="h-4 w-4" aria-hidden /> {a.signInToSave}
+        </button>
+      </div>
+    );
+  }
 
   if (!savedId) {
     return (

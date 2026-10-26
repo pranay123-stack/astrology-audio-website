@@ -5,6 +5,7 @@ import { getDict, localePath } from "@/lib/i18n";
 import { getEpisodes } from "@/lib/queries";
 import type { Locale } from "@/lib/types";
 import { Logo } from "./Logo";
+import { AccountButton } from "./AccountButton";
 import { learnPath } from "./nav";
 import { DesktopNav, LanguageSwitch, MobileNav } from "./NavLinks";
 
@@ -30,6 +31,9 @@ export async function SiteHeader({ lang }: { lang: Locale }) {
             <GraduationCap className="h-4 w-4" aria-hidden /> {t.nav.learn}
           </Link>
           <LanguageSwitch />
+          <div className="hidden lg:block">
+            <AccountButton />
+          </div>
           <Suspense fallback={<div className="h-9 w-9 lg:hidden" />}>
             <MobileNav showPremium={showPremium} />
           </Suspense>
