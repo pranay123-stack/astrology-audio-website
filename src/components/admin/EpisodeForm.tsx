@@ -8,6 +8,7 @@ import { Loader2, Save } from "lucide-react";
 import { saveEpisode } from "@/app/admin/actions";
 import { formatDuration, fromZonedInputValue, toZonedInputValue } from "@/lib/dates";
 import { audioUrl, imageUrl, videoUrl } from "@/lib/media/urls";
+import { parseDriveLink } from "@/lib/media/drive-link";
 import { parseVideoLink } from "@/lib/media/video-link";
 import { slugify } from "@/lib/slug";
 import { MATCH_STATUSES, type ArticleLang, type VideoFormat, type Category, type Competition, type EpisodeListing, type Team } from "@/lib/types";
@@ -41,6 +42,7 @@ interface FormValues {
   match_status: (typeof MATCH_STATUSES)[number];
   video_format: VideoFormat;
   video_link: string;
+  audio_link: string;
 }
 
 export function EpisodeForm({
@@ -93,6 +95,7 @@ export function EpisodeForm({
       match_status: episode?.match?.match_status ?? "scheduled",
       video_format: episode?.video_format ?? "video",
       video_link: episode?.video_link ?? "",
+      audio_link: episode?.audio_link ?? "",
     },
   });
 
@@ -111,6 +114,8 @@ export function EpisodeForm({
   const durationSecs = useWatch({ control, name: "duration_secs" });
   const videoLink = useWatch({ control, name: "video_link" });
   const linkInfo = videoLink.trim() ? parseVideoLink(videoLink) : null;
+  const audioLink = useWatch({ control, name: "audio_link" });
+  const driveInfo = audioLink.trim() ? parseDriveLink(audioLink) : null;
   // Match readings need teams and a date; other categories (incl. the cricket guide) do not.
   const needsMatch = categories.find((c) => c.id === categoryId)?.requires_match ?? false;
   const competitionTeams = useMemo(() => teams.filter((t) => t.competition_id === competitionId), [teams, competitionId]);
@@ -140,6 +145,7 @@ export function EpisodeForm({
       video_storage_path: videoPath,
       video_format: v.video_format,
       video_link: v.video_link.trim(),
+      audio_link: v.audio_link.trim(),
       gallery_paths: galleryPaths,
       duration_seconds: Math.max(0, Math.round(Number(v.duration_minutes) || 0) * 60 + Math.round(Number(v.duration_secs) || 0)),
       is_published: v.is_published,
@@ -165,6 +171,7 @@ export function EpisodeForm({
     }
     const hasSomething =
       !!payload.audio_storage_path ||
+      !!v.audio_link.trim() ||
       !!(payload.article ?? "").trim() ||
       !!(payload.article_alt ?? "").trim() ||
       !!videoPath ||
@@ -408,6 +415,23 @@ export function EpisodeForm({
           }}
           error={errors.audio_storage_path}
         />
+        <div>
+          <label htmlFor="audio_link" className="label">…or Google Drive link (for long audio such as an audiobook)</label>
+          <input
+            id="audio_link"
+            className="input"
+            inputMode="url"
+            placeholder="https://drive.google.com/file/d/…/view"
+            {...register("audio_link")}
+          />
+          {audioLink.trim() && !driveInfo && <p className="mt-1 text-sm text-red-300">This doesn&apos;t look like a Google Drive file link.</p>}
+          {driveInfo && <p className="mt-1 text-xs text-emerald-300" data-testid="drive-link-ok">Google Drive file recognised.</p>}
+          <p className="mt-1 text-xs text-muted">
+            In Google Drive: right-click the file → Share → General access: <b>Anyone with the link</b> → Copy link, and paste it here. No size limit.
+            Anyone with the link can listen and download, so don&apos;t use it for premium audio. Type the duration below if you want it shown.
+          </p>
+          {err("audio_link")}
+        </div>
         <div>
           <span className="label">Duration</span>
           <div className="flex items-center gap-2">

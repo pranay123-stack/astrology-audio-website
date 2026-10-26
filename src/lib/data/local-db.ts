@@ -57,6 +57,7 @@ export class LocalDb {
       e.video_mime_type ??= null;
       e.video_format ??= "video";
       e.video_link ??= "";
+      e.audio_link ??= "";
       e.gallery_paths ??= [];
     }
     for (const c of db.categories) {

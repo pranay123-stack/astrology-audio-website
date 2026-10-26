@@ -76,6 +76,8 @@ export interface Episode {
   video_format: VideoFormat;
   /** YouTube or Instagram link embedded on the page ("" = none). Visible to everyone. */
   video_link: string;
+  /** Google Drive link to an audio file (e.g. an audiobook) played with Drive's player ("" = none). Visible to everyone. */
+  audio_link: string;
   /** Photo gallery (public images bucket), in display order. */
   gallery_paths: string[];
   duration_seconds: number;
@@ -109,6 +111,8 @@ export interface SocialLinks {
   telegram?: string;
   amazon?: string;
   linktree?: string;
+  /** Google Form link (questionnaire), embedded on the contact page. */
+  google_form?: string;
 }
 
 /** Hindi versions of the profile's text fields; any missing field falls back to English. */

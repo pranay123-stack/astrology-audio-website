@@ -8,7 +8,7 @@ import { CricketDisclaimer } from "@/components/ui/Disclaimer";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { siteConfig } from "@/lib/config";
 import { formatDate, formatDateTime } from "@/lib/dates";
-import { episodeHref, hasAudio, hasVideo, isLockedForVisitors, lengthLabel, premiumContactHref, toTrack } from "@/lib/episodes";
+import { episodeHref, hasAudio, hasDriveAudio, hasVideo, isLockedForVisitors, lengthLabel, premiumContactHref, toTrack } from "@/lib/episodes";
 import { getDict, localePath, localizeEpisode, type LocalizedEpisode } from "@/lib/i18n";
 import { imageUrl } from "@/lib/media/urls";
 import { getEpisodeBySlug, getEpisodes } from "@/lib/queries";
@@ -17,6 +17,7 @@ import type { EpisodeListing, Locale, Section } from "@/lib/types";
 import { ZodiacWheel } from "@/components/layout/ZodiacWheel";
 import { ArticleBody } from "./ArticleBody";
 import { CategoryIcon } from "./categoryIcons";
+import { DriveAudio } from "./DriveAudio";
 import { EpisodeCard } from "./EpisodeCard";
 import { LearnCricketCta } from "./LearnCricketCta";
 import { MatchCard } from "./MatchCard";
@@ -134,6 +135,8 @@ export async function EpisodeDetail({ slug, section, lang }: { slug: string; sec
           {hasVideo(episode) && <VideoBlock episode={episode} locked={isLockedForVisitors(episode)} lang={lang} />}
 
           {hasAudio(episode) && <EpisodePlayer track={toTrack(episode, lang)} locked={isLockedForVisitors(episode)} />}
+
+          {hasDriveAudio(episode) && !isLockedForVisitors(episode) && <DriveAudio episode={episode} lang={lang} />}
 
           {match && (
             <section className="card p-6" aria-labelledby="match-heading">

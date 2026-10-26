@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { decideMediaAccess } from "@/lib/access";
 import { lengthLabel } from "@/lib/episodes";
 import { contentMatchesExtension, sniffFileType } from "@/lib/media/file-types";
+import { parseGoogleForm } from "@/lib/google-form";
+import { parseDriveLink } from "@/lib/media/drive-link";
 import { parseVideoLink } from "@/lib/media/video-link";
 import { episodeInputSchema } from "@/lib/validation";
 
@@ -128,5 +130,51 @@ describe("lengthLabel", () => {
     expect(lengthLabel(e, "en")).toBe("Reel · 3 photos");
     expect(lengthLabel({ ...e, video_format: "video", gallery_paths: ["gallery/a.jpg"] }, "en")).toBe("Video · 1 photo");
     expect(lengthLabel(e, "hi")).toBe("रील · 3 फ़ोटो");
+  });
+});
+
+describe("parseDriveLink", () => {
+  const ID = "1AbCdEfGhIjKlMnOpQrStUvWxYz012345";
+  it("reads the file id from the usual Drive share links", () => {
+    for (const link of [
+      `https://drive.google.com/file/d/${ID}/view?usp=sharing`,
+      `https://drive.google.com/file/d/${ID}/view?usp=drive_link`,
+      `https://drive.google.com/file/u/0/d/${ID}/view`,
+      `https://drive.google.com/open?id=${ID}`,
+      `https://drive.google.com/uc?id=${ID}&export=download`,
+    ]) {
+      expect(parseDriveLink(link), link).toEqual({
+        fileId: ID,
+        embedUrl: `https://drive.google.com/file/d/${ID}/preview`,
+        viewUrl: `https://drive.google.com/file/d/${ID}/view`,
+      });
+    }
+  });
+  it("rejects folders, other sites and junk", () => {
+    for (const bad of [
+      "https://drive.google.com/drive/folders/1AbCdEfGhIjKlMnOpQrStUvWxYz",
+      `https://evil.example/file/d/${ID}/view`,
+      "https://drive.google.com/file/d/short/view",
+      "not a link",
+    ]) {
+      expect(parseDriveLink(bad), bad).toBeNull();
+    }
+  });
+});
+
+describe("parseGoogleForm", () => {
+  const PUB = "1FAIpQLSdAbCdEfGhIjKlMnOpQrStUvWxYz0123456789abcdEFG";
+  it("embeds a full Google Forms link and keeps short links as a button", () => {
+    expect(parseGoogleForm(`https://docs.google.com/forms/d/e/${PUB}/viewform?usp=sf_link`)).toEqual({
+      embedUrl: `https://docs.google.com/forms/d/e/${PUB}/viewform?embedded=true`,
+      openUrl: `https://docs.google.com/forms/d/e/${PUB}/viewform`,
+    });
+    expect(parseGoogleForm(`https://docs.google.com/forms/d/e/${PUB}/viewform?embedded=true`)?.embedUrl).toContain("embedded=true");
+    expect(parseGoogleForm("https://forms.gle/AbC123xYz789")).toEqual({ embedUrl: null, openUrl: "https://forms.gle/AbC123xYz789" });
+  });
+  it("rejects edit links of other sites and plain Google pages", () => {
+    expect(parseGoogleForm("https://docs.google.com/document/d/abc/edit")).toBeNull();
+    expect(parseGoogleForm(`https://evil.example/forms/d/e/${PUB}/viewform`)).toBeNull();
+    expect(parseGoogleForm(`http://docs.google.com/forms/d/e/${PUB}/viewform`)).toBeNull();
   });
 });

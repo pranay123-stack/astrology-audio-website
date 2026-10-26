@@ -377,3 +377,57 @@ test("admin posts a reel with photos, an MP4 and a YouTube link; premium video s
   await expect(page.getByTestId("video-embed")).toHaveAttribute("src", "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0");
   await expect(page.getByRole("link", { name: "Watch on YouTube" })).toHaveAttribute("href", "https://www.youtube.com/watch?v=dQw4w9WgXcQ");
 });
+
+test("questionnaire (Google Form) on the contact page, Drive audiobook post, and the quotes on the home page", async ({ page }) => {
+  await page.setExtraHTTPHeaders({ "x-forwarded-for": "10.0.0.26" });
+  const FORM = "https://docs.google.com/forms/d/e/1FAIpQLSdAbCdEfGhIjKlMnOpQrStUvWxYz0123456789abcdEFG/viewform?usp=sf_link";
+  const DRIVE = "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view?usp=sharing";
+
+  // Quotes sit at the top of the home page in both languages.
+  await gotoReady(page, "/");
+  await expect(page.getByTestId("quotes-band")).toContainText("Everything is fixed by God");
+  await expect(page.getByTestId("quotes-band")).toContainText("Amit Sharma");
+  await gotoReady(page, "/hi");
+  await expect(page.getByTestId("quotes-band")).toContainText("KP ज्योतिष पद्धति के जनक");
+
+  // No form link yet: no questionnaire section.
+  await gotoReady(page, "/contact");
+  await expect(page.getByTestId("questionnaire")).toHaveCount(0);
+
+  await login(page);
+  await gotoReady(page, "/admin/profile");
+  await page.getByLabel("Google Form link").fill("https://docs.google.com/forms/d/1AbCdEfGhIjKlMnOpQrStUvWxYz/edit");
+  await page.getByRole("button", { name: "Save profile" }).click();
+  await expect(page.getByText("Paste the Google Form's link")).toBeVisible();
+  await page.getByLabel("Google Form link").fill(FORM);
+  await page.getByRole("button", { name: "Save profile" }).click();
+  await expect(page.getByText("Profile saved")).toBeVisible();
+
+  await gotoReady(page, "/contact");
+  await expect(page.getByTestId("questionnaire-embed")).toHaveAttribute(
+    "src",
+    "https://docs.google.com/forms/d/e/1FAIpQLSdAbCdEfGhIjKlMnOpQrStUvWxYz0123456789abcdEFG/viewform?embedded=true",
+  );
+  await gotoReady(page, "/hi/contact");
+  await expect(page.getByTestId("questionnaire")).toContainText("क्रिकेट ज्योतिष सीखना");
+
+  // An audiobook kept in Google Drive.
+  await gotoReady(page, "/admin/episodes/new");
+  await page.getByLabel("Title").fill("E2E Audiobook From Drive");
+  await page.getByLabel("Category").selectOption({ label: "Vedic Astrology" });
+  await page.getByLabel("Short description").fill("An audiobook chapter that plays from Google Drive.");
+  await page.getByLabel(/Google Drive link/).fill(DRIVE);
+  await expect(page.getByTestId("drive-link-ok")).toBeVisible();
+  await page.getByLabel("Minutes").fill("95");
+  await page.getByTestId("publish-checkbox").check();
+  await page.getByTestId("save-episode").click();
+  await expect(page).toHaveURL(/\/admin\/episodes\/[0-9a-f-]{36}/);
+
+  await gotoReady(page, "/astrology-audios?q=Audiobook");
+  const card = page.getByTestId("episode-card").filter({ visible: true }).filter({ hasText: "E2E Audiobook From Drive" });
+  await expect(card.getByTestId("listen-button")).toBeVisible();
+  await expect(card).toContainText("1 hr 35 min");
+  await gotoReady(page, "/astrology-audios/e2e-audiobook-from-drive");
+  await expect(page.getByTestId("drive-embed")).toHaveAttribute("src", "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/preview");
+  await expect(page.getByRole("link", { name: "Open in Google Drive" })).toHaveAttribute("href", "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view");
+});

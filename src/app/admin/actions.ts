@@ -89,7 +89,7 @@ export async function saveEpisode(input: EpisodeInput): Promise<ActionResult<{ i
       return { ok: false, error: "Add the match details for cricket episodes.", fields: { "match.competition_id": "Choose a competition" } };
     }
     const hasSomething =
-      !!d.audio_storage_path || !!d.article.trim() || !!d.article_alt.trim() || !!d.video_storage_path || !!d.video_link || d.gallery_paths.length > 0;
+      !!d.audio_storage_path || !!d.audio_link || !!d.article.trim() || !!d.article_alt.trim() || !!d.video_storage_path || !!d.video_link || d.gallery_paths.length > 0;
     if (d.is_published && !hasSomething) {
       const msg = "Add audio, an article, a video or photos to publish";
       return { ok: false, error: `${msg}.`, fields: { audio_storage_path: msg, article: msg } };
@@ -148,8 +148,9 @@ export async function saveEpisode(input: EpisodeInput): Promise<ActionResult<{ i
       video_mime_type: d.video_storage_path ? (EXT_TO_MIME[videoExt] ?? null) : null,
       video_format: d.video_format,
       video_link: d.video_link,
+      audio_link: d.audio_link,
       gallery_paths: d.gallery_paths,
-      duration_seconds: d.audio_storage_path ? d.duration_seconds : 0,
+      duration_seconds: d.audio_storage_path || d.audio_link ? d.duration_seconds : 0,
       is_published: d.is_published,
       is_premium: d.is_premium,
       published_at: publishedAt,

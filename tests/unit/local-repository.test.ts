@@ -100,6 +100,7 @@ const write = (over: Partial<EpisodeWrite> = {}): EpisodeWrite => ({
   video_mime_type: null,
   video_format: "video",
   video_link: "",
+  audio_link: "",
   gallery_paths: [],
   duration_seconds: 120,
   is_published: true,
@@ -223,6 +224,13 @@ describe("video and photos", () => {
     expect(photos.is_published).toBe(true);
   });
 
+  it("publishes a post whose only content is a Google Drive audiobook", async () => {
+    const draft = await repo.createEpisode(
+      write({ slug: "audiobook", is_published: false, published_at: null, audio_storage_path: null, audio_link: "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view" }),
+    );
+    expect((await repo.setEpisodePublished(draft.id, true)).is_published).toBe(true);
+  });
+
   it("counts video and gallery files as referenced until they are removed", async () => {
     const e = await repo.createEpisode(write({ slug: "clip", video_storage_path: VIDEO, video_mime_type: "video/mp4", gallery_paths: [PHOTO] }));
     expect(await repo.isStoragePathReferenced(VIDEO)).toBe(true);
@@ -234,7 +242,7 @@ describe("video and photos", () => {
 
   it("fills the new fields on databases written before video existed", async () => {
     const old = await repo.getEpisodeById("e1");
-    expect(old).toMatchObject({ video_storage_path: null, video_format: "video", video_link: "", gallery_paths: [] });
+    expect(old).toMatchObject({ video_storage_path: null, video_format: "video", video_link: "", audio_link: "", gallery_paths: [] });
   });
 });
 

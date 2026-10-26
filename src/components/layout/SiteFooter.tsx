@@ -3,7 +3,7 @@ import { Mail, Phone } from "lucide-react";
 import { siteConfig } from "@/lib/config";
 import { getDict, localePath, localizeProfile } from "@/lib/i18n";
 import { getProfile } from "@/lib/queries";
-import type { Locale, SocialLinks } from "@/lib/types";
+import type { Locale } from "@/lib/types";
 import { LogoMark } from "./Logo";
 import { NAV_LINKS } from "./nav";
 
@@ -11,7 +11,7 @@ export async function SiteFooter({ lang }: { lang: Locale }) {
   const t = getDict(lang);
   const href = (path: string) => localePath(lang, path);
   const profile = localizeProfile(await getProfile(), lang);
-  const socials = (Object.keys(t.footer.social) as (keyof SocialLinks)[]).filter((k) => profile.social_links?.[k]);
+  const socials = (Object.keys(t.footer.social) as (keyof typeof t.footer.social)[]).filter((k) => profile.social_links?.[k]);
 
   return (
     <footer className="relative mt-24 border-t border-line bg-gradient-to-b from-night to-navy">

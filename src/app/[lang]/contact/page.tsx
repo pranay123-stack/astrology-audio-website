@@ -5,6 +5,7 @@ import { getDict, localizeProfile } from "@/lib/i18n";
 import { getProfile } from "@/lib/queries";
 import { alternatesFor } from "@/lib/seo";
 import { ContactChannels } from "@/components/layout/ContactChannels";
+import { Questionnaire } from "@/components/layout/Questionnaire";
 import { ContactForm } from "./ContactForm";
 import { getLang } from "@/lib/i18n/server";
 
@@ -44,6 +45,7 @@ export default async function ContactPage() {
           <p className="text-xs text-muted">{t.note}</p>
         </aside>
       </section>
+      <Questionnaire link={profile.social_links?.google_form} lang={lang} />
     </>
   );
 }

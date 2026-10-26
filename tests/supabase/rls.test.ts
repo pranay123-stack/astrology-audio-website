@@ -265,6 +265,10 @@ describe("video and photos", () => {
     expect((await anon.from("episode_listings").select(cols).eq("id", id).single()).data).toEqual({
       video_format: "reel", video_link: "https://youtu.be/dQw4w9WgXcQ", video_mime_type: "video/mp4", gallery_paths: [g2, g1],
     });
+    // A Google Drive audio link alone is publishable too.
+    const driveOnly = { ...episode, video_storage_path: null, video_mime_type: null, video_link: "", gallery_paths: [], audio_link: "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view" };
+    expect((await admin.rpc("admin_save_episode", { p_id: id, p_episode: driveOnly, p_match: null })).error).toBeNull();
+    expect((await anon.from("episode_listings").select("audio_link").eq("id", id).single()).data?.audio_link).toBe(driveOnly.audio_link);
     // Only the photos left: still publishable.
     const photosOnly = { ...episode, video_storage_path: null, video_mime_type: null, video_link: "", gallery_paths: [g1] };
     expect((await admin.rpc("admin_save_episode", { p_id: id, p_episode: photosOnly, p_match: null })).error).toBeNull();

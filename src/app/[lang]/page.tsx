@@ -6,6 +6,7 @@ import { EpisodeCard } from "@/components/episodes/EpisodeCard";
 import { MatchCard } from "@/components/episodes/MatchCard";
 import { MediaAction } from "@/components/episodes/MediaAction";
 import { CategoryIcon } from "@/components/episodes/categoryIcons";
+import { QuotesBand } from "@/components/layout/QuotesBand";
 import { Starfield } from "@/components/layout/Starfield";
 import { ZodiacWheel } from "@/components/layout/ZodiacWheel";
 import { CricketDisclaimer } from "@/components/ui/Disclaimer";
@@ -41,6 +42,7 @@ export default async function HomePage() {
 
   return (
     <>
+      <QuotesBand lang={lang} />
       {/* Hero: general astrology first; cricket readings are further down the page */}
       <section className="relative isolate overflow-hidden">
         <Starfield />

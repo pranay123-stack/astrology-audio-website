@@ -56,7 +56,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
       contact_phone: profile.contact_phone,
       location: profile.location,
       consultation_info: profile.consultation_info,
-      social_links: { youtube: "", instagram: "", facebook: "", x: "", whatsapp: "", spotify: "", telegram: "", amazon: "", linktree: "", ...profile.social_links },
+      social_links: { youtube: "", instagram: "", facebook: "", x: "", whatsapp: "", spotify: "", telegram: "", amazon: "", linktree: "", google_form: "", ...profile.social_links },
       legal_business_name: profile.legal_business_name,
       legal_jurisdiction: profile.legal_jurisdiction,
       hi: {
@@ -183,6 +183,24 @@ export function ProfileForm({ profile }: { profile: Profile }) {
               {err(`social_links.${s.key}`)}
             </div>
           ))}
+        </div>
+      </section>
+      <section className="card space-y-5 p-6">
+        <h2 className="text-2xl font-semibold">Questionnaire (Google Form)</h2>
+        <p className="text-sm text-muted">
+          Shown on the Contact page for visitors who want to learn cricket astrology. In Google Forms click <b>Send</b> → the link tab
+          (🔗) → <b>Copy</b>, and paste it here. Answers arrive in Google Forms / Google Sheets, not here.
+        </p>
+        <div>
+          <label htmlFor="social-google_form" className="label">Google Form link</label>
+          <input
+            id="social-google_form"
+            placeholder="https://docs.google.com/forms/d/e/…/viewform"
+            className="input"
+            {...register("social_links.google_form")}
+          />
+          <p className="mt-1 text-xs text-muted">The full docs.google.com link is shown inside the page. A short forms.gle link is shown as a button that opens the form.</p>
+          {err("social_links.google_form")}
         </div>
       </section>
       <section className="card space-y-5 p-6">

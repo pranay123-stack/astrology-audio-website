@@ -35,6 +35,7 @@ export interface EpisodeWrite {
   video_mime_type: string | null;
   video_format: VideoFormat;
   video_link: string;
+  audio_link: string;
   gallery_paths: string[];
   duration_seconds: number;
   is_published: boolean;
@@ -101,10 +102,11 @@ export class RepositoryError extends Error {
 
 /** A published episode needs something to consume: audio, an article (in either language), a video or photos. */
 export function hasContent(
-  e: Pick<Episode, "audio_storage_path" | "has_article" | "has_article_alt" | "video_storage_path" | "video_link" | "gallery_paths">,
+  e: Pick<Episode, "audio_storage_path" | "audio_link" | "has_article" | "has_article_alt" | "video_storage_path" | "video_link" | "gallery_paths">,
 ): boolean {
   return (
-    !!e.audio_storage_path || e.has_article || e.has_article_alt || !!e.video_storage_path || !!e.video_link || e.gallery_paths.length > 0
+    !!e.audio_storage_path ||
+    !!e.audio_link || e.has_article || e.has_article_alt || !!e.video_storage_path || !!e.video_link || e.gallery_paths.length > 0
   );
 }
 

@@ -27,6 +27,7 @@ function post(over: Partial<EpisodeListing> = {}): EpisodeListing {
     video_mime_type: null,
     video_format: "video",
     video_link: "",
+    audio_link: "",
     gallery_paths: [],
     duration_seconds: 0,
     is_published: true,

@@ -60,9 +60,11 @@ export const hi: Dict = {
     video: "वीडियो",
     reel: "रील",
     photos: (n) => `${n} फ़ोटो`,
+    audio: "ऑडियो",
   },
 
   home: {
+    quotes: "मार्गदर्शक विचार",
     eyebrow: "वैदिक ज्योतिष · राशिफल · ऑडियो में मार्गदर्शन",
     titleA: "ज्योतिष को जानिए",
     titleB: "ऑडियो के माध्यम से",
@@ -309,6 +311,10 @@ export const hi: Dict = {
     call: "कॉल करें",
     email: "ईमेल",
     social: "सोशल मीडिया",
+    formTitle: "क्या आप क्रिकेट ज्योतिष सीखना चाहते हैं?",
+    formIntro: "कुछ छोटे सवालों के जवाब दें और अपना जन्म विवरण भेजें। ज्योतिषी हर जवाब पढ़ते हैं और आपसे संपर्क करते हैं।",
+    formOpen: "प्रश्नावली खोलें",
+    formLoading: "फ़ॉर्म लोड हो रहा है…",
   },
 
   form: {
@@ -360,6 +366,10 @@ export const hi: Dict = {
     nextPhoto: "अगली फ़ोटो",
     watchAria: (title) => `देखें: ${title}`,
     viewAria: (title) => `फ़ोटो देखें: ${title}`,
+    listenAria: (title) => `सुनें: ${title}`,
+    listenTitle: "सुनें",
+    driveNote: "यह Google Drive से चलता है। अगर शुरू न हो, तो Google Drive में खोलें।",
+    openDrive: "Google Drive में खोलें",
     contactPackage: "पूरे पैकेज के लिए संपर्क करें",
     notes: "एपिसोड विवरण",
     keepExploring: "और देखें",

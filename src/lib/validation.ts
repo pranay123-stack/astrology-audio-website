@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { parseGoogleForm } from "./google-form";
+import { parseDriveLink } from "./media/drive-link";
 import { parseVideoLink } from "./media/video-link";
 import { ARTICLE_LANGS, GALLERY_MAX, MATCH_STATUSES, VIDEO_FORMATS } from "./types";
 
@@ -61,6 +63,13 @@ export const episodeInputSchema = z.object({
     .max(300)
     .refine((v) => v === "" || parseVideoLink(v) !== null, "Paste a YouTube or Instagram video link")
     .default(""),
+  /** Google Drive link to an audio file; "" = none. */
+  audio_link: z
+    .string()
+    .trim()
+    .max(300)
+    .refine((v) => v === "" || parseDriveLink(v) !== null, "Paste a Google Drive file link (drive.google.com/file/d/…)")
+    .default(""),
   gallery_paths: z.array(storagePathSchema).max(GALLERY_MAX, `Up to ${GALLERY_MAX} photos`).default([]),
   duration_seconds: z.number().int().min(0).max(60 * 60 * 12),
   is_published: z.boolean(),
@@ -102,8 +111,14 @@ export const profileInputSchema = z.object({
       telegram: optionalUrl,
       amazon: optionalUrl,
       linktree: optionalUrl,
+      google_form: z
+        .string()
+        .trim()
+        .max(300)
+        .refine((v) => v === "" || parseGoogleForm(v) !== null, "Paste the Google Form's link (docs.google.com/forms/… or forms.gle/…)")
+        .default(""),
     })
-    .default({ youtube: "", instagram: "", facebook: "", x: "", whatsapp: "", spotify: "", telegram: "", amazon: "", linktree: "" }),
+    .default({ youtube: "", instagram: "", facebook: "", x: "", whatsapp: "", spotify: "", telegram: "", amazon: "", linktree: "", google_form: "" }),
   legal_business_name: z.string().trim().max(160).default(""),
   legal_jurisdiction: z.string().trim().max(160).default(""),
   /** Hindi versions of the text fields; empty strings fall back to English on the site. */

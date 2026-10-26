@@ -59,9 +59,11 @@ export const en = {
     video: "Video",
     reel: "Reel",
     photos: (n: number) => (n === 1 ? "1 photo" : `${n} photos`),
+    audio: "Audio",
   },
 
   home: {
+    quotes: "Guiding words",
     eyebrow: "Vedic astrology · Horoscopes · Guidance in audio",
     titleA: "Discover Astrology",
     titleB: "Through Audio",
@@ -312,6 +314,10 @@ export const en = {
     call: "Call",
     email: "Email",
     social: "Social media",
+    formTitle: "Want to learn cricket astrology?",
+    formIntro: "Answer a few short questions and share your birth details. The astrologer reads every reply and gets in touch.",
+    formOpen: "Open the questionnaire",
+    formLoading: "Loading the form…",
   },
 
   form: {
@@ -363,6 +369,10 @@ export const en = {
     nextPhoto: "Next photo",
     watchAria: (title: string) => `Watch: ${title}`,
     viewAria: (title: string) => `View photos: ${title}`,
+    listenAria: (title: string) => `Listen: ${title}`,
+    listenTitle: "Listen",
+    driveNote: "Plays from Google Drive. If it does not start, open it in Google Drive.",
+    openDrive: "Open in Google Drive",
     contactPackage: "Contact for full package",
     notes: "Episode notes",
     keepExploring: "Keep exploring",

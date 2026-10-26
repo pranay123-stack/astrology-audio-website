@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { BookOpen, Images, Play } from "lucide-react";
+import { BookOpen, Headphones, Images, Play } from "lucide-react";
 import { PlayButton } from "@/components/audio/PlayButton";
 import { getDict } from "@/lib/i18n";
-import { episodeHref, hasArticle, hasAudio, hasVideo, isLockedForVisitors, toTrack } from "@/lib/episodes";
+import { episodeHref, hasArticle, hasAudio, hasDriveAudio, hasVideo, isLockedForVisitors, toTrack } from "@/lib/episodes";
 import type { EpisodeListing, Locale } from "@/lib/types";
 
 /** The play button for posts with audio; otherwise a link to watch, read or view the post. Expects a localized episode. */
@@ -26,9 +26,11 @@ export function MediaAction({
   // Video wins over article and photos: it is what a visitor most likely came for.
   const [Icon, aria, testId] = hasVideo(episode)
     ? [Play, t.watchAria(episode.title), "watch-button"]
-    : hasArticle(episode) || episode.gallery_paths.length === 0
-      ? [BookOpen, t.readAria(episode.title), "read-button"]
-      : [Images, t.viewAria(episode.title), "view-button"];
+    : hasDriveAudio(episode)
+      ? [Headphones, t.listenAria(episode.title), "listen-button"]
+      : hasArticle(episode) || episode.gallery_paths.length === 0
+        ? [BookOpen, t.readAria(episode.title), "read-button"]
+        : [Images, t.viewAria(episode.title), "view-button"];
   return (
     <Link
       href={episodeHref(episode, lang)}
