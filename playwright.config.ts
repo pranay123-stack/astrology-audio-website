@@ -22,7 +22,7 @@ export default defineConfig({
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
     // Build against the freshly seeded test data so prerendered pages match the data under test.
-    command: `npx tsx scripts/seed.ts --reset && npx next build && npx next start -p ${PORT}`,
+    command: `npx tsx scripts/seed.ts --reset && npm run build && npx next start -p ${PORT}`,
     url: `http://localhost:${PORT}`,
     reuseExistingServer: false,
     timeout: 300_000,

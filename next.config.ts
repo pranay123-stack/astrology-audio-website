@@ -13,14 +13,6 @@ const nextConfig: NextConfig = {
     "/\\[lang\\]/kp-chart": ["./node_modules/sweph/prebuilds/linux-x64/**"],
   },
   partialPrefetching: true,
-  turbopack: {
-    rules: {
-      "*.css": {
-        loaders: ["@tailwindcss/turbopack"],
-        as: "*.css",
-      },
-    },
-  },
   images: {
     formats: ["image/avif", "image/webp"],
     // Local mode serves uploaded images through this route.

@@ -131,6 +131,8 @@ git push -u origin main
 5. **Deploy**, then open the temporary URL's `/api/health`. Expected result: `{"status":"ok","backend":"supabase","database":"ok",…}`. If the deployment fails or the site returns errors, open the app's **runtime logs** and look for lines starting with `[config]` (see [Troubleshooting](#9-troubleshooting)).
 6. ⚠️ **Port:** the app listens on `PORT` (default 3000). If Hostinger's logs show it waiting on a different port, set `PORT` to the value Hostinger specifies.
 
+**Build uses webpack, not Turbopack** (`npm run build` = `next build --webpack`). On Hostinger, Turbopack's build panicked with "creating new process" because it compiles CSS in a separate `node` helper process the build server would not start. Webpack runs PostCSS/Tailwind inside the build process (`postcss.config.mjs`). `next dev` still uses Turbopack locally.
+
 **Every `git push` to `main` triggers a new build and deploy.** Manual edits through File Manager or FTP do not persist; change the repository and redeploy instead. Changing any `NEXT_PUBLIC_*` value needs a **redeploy** (a rebuild), not just a restart.
 
 **If GitHub deployment is unavailable** on your plan, use Hostinger's **ZIP upload**. Create the archive from the repository so secrets and local data are excluded, then upload it with the same settings and variables:
