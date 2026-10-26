@@ -63,7 +63,7 @@ export function AccountButton() {
       {open && (
         <div role="menu" className="absolute right-0 mt-2 w-64 overflow-hidden rounded-2xl border border-line bg-night/98 shadow-2xl backdrop-blur-lg">
           <p className="truncate border-b border-line px-4 py-3 text-xs text-muted">{a.signedInAs(visitor.user.email ?? "")}</p>
-          <Link role="menuitem" href={href("/kp-chart")} onClick={() => setOpen(false)} className="flex items-center gap-2 px-4 py-3 text-sm hover:bg-white/5">
+          <Link role="menuitem" href={href("/kp-chart#saved-charts")} onClick={() => setOpen(false)} className="flex items-center gap-2 px-4 py-3 text-sm hover:bg-white/5">
             <Sparkles className="h-4 w-4 text-gold-soft" aria-hidden /> {a.myCharts}
           </Link>
           <button
@@ -109,7 +109,7 @@ export function AccountMenuItems() {
       {divider}
       <li className="px-4 pt-2 text-xs text-muted">{a.signedInAs(visitor.user.email ?? "")}</li>
       <li>
-        <Link href={href("/kp-chart")} className={row}>
+        <Link href={href("/kp-chart#saved-charts")} className={row}>
           <Sparkles className="h-5 w-5 text-gold-soft" aria-hidden /> {a.myCharts}
         </Link>
       </li>

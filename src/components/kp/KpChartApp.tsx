@@ -148,10 +148,10 @@ export function KpChartApp({ initial }: { initial?: KpChartResult | null }) {
     );
   }
 
+  // New chart first; saved charts beside it on wide screens, below it on phones.
   return (
-    <div className="space-y-6">
-    <KpAccountPanel account={account} onOpen={openSaved} />
-    <form onSubmit={submit} className="card mx-auto max-w-2xl space-y-5 p-6 sm:p-8" data-testid="kp-form" noValidate>
+    <div className={account.enabled ? "mx-auto grid max-w-5xl gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start" : "mx-auto max-w-2xl"}>
+    <form onSubmit={submit} className="card space-y-5 p-6 sm:p-8" data-testid="kp-form" noValidate>
       <div>
         <label htmlFor="kp-name" className="label">{k.name}</label>
         <input id="kp-name" className="input" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} />
@@ -242,6 +242,11 @@ export function KpChartApp({ initial }: { initial?: KpChartResult | null }) {
         {pending ? k.making : k.make}
       </button>
     </form>
+    {account.enabled && (
+      <aside id="saved-charts" className="scroll-mt-24 lg:sticky lg:top-24">
+        <KpAccountPanel account={account} onOpen={openSaved} />
+      </aside>
+    )}
     </div>
   );
 }

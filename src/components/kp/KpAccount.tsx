@@ -67,23 +67,27 @@ export function KpAccountPanel({ account, onOpen }: { account: KpAccount; onOpen
   if (!account.user) {
     // Signing in and out lives in the header's account button; here just a short invitation.
     return (
-      <p className="mx-auto flex max-w-2xl flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink/80" data-testid="kp-signin">
-        {a.signInHint}
-        <button type="button" className="font-semibold text-gold-soft underline-offset-4 hover:underline" onClick={() => void account.signIn()}>
-          {a.signIn}
+      <div className="card space-y-3 p-5" data-testid="kp-signin">
+        <h2 className="text-xl font-semibold">{a.myCharts}</h2>
+        <p className="text-sm text-ink/80">{a.signInHint}</p>
+        <button type="button" className="btn-ghost w-full" onClick={() => void account.signIn()}>
+          <LogIn className="h-4 w-4" aria-hidden /> {a.signIn}
         </button>
-      </p>
+      </div>
     );
   }
 
   return (
-    <div className="card mx-auto max-w-2xl space-y-4 p-5" data-testid="kp-account">
+    <div className="card space-y-4 p-5" data-testid="kp-account">
       <div>
-        <h2 className="mb-2 text-xl font-semibold">{a.myCharts}</h2>
+        <h2 className="mb-2 text-xl font-semibold">
+          {a.myCharts}
+          {account.charts.length > 0 && <span className="ml-2 text-sm font-normal text-muted">({account.charts.length})</span>}
+        </h2>
         {account.charts.length === 0 ? (
           <p className="text-sm text-muted">{a.none}</p>
         ) : (
-          <ul className="divide-y divide-line">
+          <ul className="max-h-[60vh] divide-y divide-line overflow-y-auto pr-1">
             {account.charts.map((c) => (
               <li key={c.id} className="flex items-center gap-3 py-2 text-sm">
                 <span className="min-w-0 flex-1">
