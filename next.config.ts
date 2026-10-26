@@ -23,6 +23,8 @@ const nextConfig: NextConfig = {
     // evaluated again when the server starts).
     remotePatterns: [
       { protocol: "https", hostname: "*.supabase.co", pathname: "/storage/v1/object/public/images/**" },
+      // Thumbnails of linked YouTube videos (used when a post has no cover of its own).
+      { protocol: "https", hostname: "i.ytimg.com", pathname: "/vi/**" },
       ...(supabaseHost
         ? [
             {

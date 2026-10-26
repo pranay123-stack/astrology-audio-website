@@ -8,6 +8,7 @@ import type {
   EpisodePage,
   EpisodeQuery,
   MatchStatus,
+  PostFormat,
   Profile,
   Section,
   Team,
@@ -45,6 +46,14 @@ type ListingRow = Episode & {
   team_b_short_name: string | null;
   team_b_logo_path: string | null;
   team_b_color: string | null;
+};
+
+/** PostgREST `or` filters for EpisodeQuery.format; keep in step with hasFormat() in repository.ts. */
+const FORMAT_FILTERS: Record<PostFormat, string> = {
+  article: "has_article.is.true,has_article_alt.is.true",
+  audio: 'audio_storage_path.not.is.null,audio_link.neq.""',
+  video: 'and(video_format.eq.video,video_storage_path.not.is.null),and(video_format.eq.video,video_link.neq."")',
+  reel: 'and(video_format.eq.reel,video_storage_path.not.is.null),and(video_format.eq.reel,video_link.neq."")',
 };
 
 function toListing(r: ListingRow): EpisodeListing {
@@ -185,6 +194,7 @@ export class SupabaseRepository implements Repository {
     if (!q.includeUnpublished) query = query.eq("is_published", true).lte("published_at", now);
     if (q.section) query = query.eq("category_section", q.section);
     if (q.withMatch) query = query.not("match_id", "is", null);
+    if (q.format) query = query.or(FORMAT_FILTERS[q.format]);
     if (q.categorySlug) query = query.eq("category_slug", q.categorySlug);
     if (q.competitionSlug) query = query.eq("competition_slug", q.competitionSlug);
     if (q.access) query = query.eq("is_premium", q.access === "premium");
@@ -247,6 +257,13 @@ export class SupabaseRepository implements Repository {
     const { data, error } = await this.db.from("episodes").select("id,slug");
     if (error) fail(error, "listEpisodeSlugs");
     return data as { id: string; slug: string }[];
+  }
+
+  async resolveOldSlug(oldSlug: string) {
+    const { data, error } = await this.db.from("episode_slug_redirects").select("episodes(slug)").eq("old_slug", oldSlug).maybeSingle();
+    if (error) fail(error, "resolveOldSlug");
+    const episode = (data as { episodes: { slug: string } | null } | null)?.episodes;
+    return episode?.slug ?? null;
   }
 
   async incrementPlayCount(id: string) {

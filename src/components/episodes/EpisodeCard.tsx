@@ -3,9 +3,8 @@ import Link from "next/link";
 import { CalendarDays, Clock } from "lucide-react";
 import { AccessBadge, CategoryChip, DemoBadge, FormatBadges, LanguageBadge } from "@/components/ui/Badges";
 import { formatDate } from "@/lib/dates";
-import { episodeHref, hasArticle, hasAudio, hasDriveAudio, hasVideo, lengthLabel } from "@/lib/episodes";
+import { episodeHref, hasArticle, hasAudio, hasDriveAudio, hasVideo, lengthLabel, posterUrl } from "@/lib/episodes";
 import { localizeEpisode } from "@/lib/i18n";
-import { imageUrl } from "@/lib/media/urls";
 import { ZodiacWheel } from "@/components/layout/ZodiacWheel";
 import { CategoryIcon } from "./categoryIcons";
 import { MediaAction } from "./MediaAction";
@@ -14,7 +13,7 @@ import type { EpisodeListing, Locale } from "@/lib/types";
 export function EpisodeCard({ episode: raw, lang, priority = false }: { episode: EpisodeListing; lang: Locale; priority?: boolean }) {
   const episode = localizeEpisode(raw, lang);
   const href = episodeHref(episode, lang);
-  const cover = imageUrl(episode.cover_image_path);
+  const cover = posterUrl(episode);
   return (
     <article className="card group flex flex-col overflow-hidden transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-glow)]" data-testid="episode-card" data-episode-id={episode.id}>
       <div className="relative aspect-[16/10] overflow-hidden bg-plum">

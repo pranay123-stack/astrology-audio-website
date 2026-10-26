@@ -1,0 +1,64 @@
+import { describe, expect, it } from "vitest";
+import { hasFormat } from "@/lib/data/repository";
+import { parseListParams } from "@/lib/list-params";
+import { slugify } from "@/lib/slug";
+import { transliterateDevanagari } from "@/lib/transliterate";
+
+describe("Hindi titles → readable addresses", () => {
+  it("spells Devanagari in Latin letters as Hindi is spoken", () => {
+    // The real titles of the astrologer's planet videos.
+    expect(slugify("सूर्य ग्रह: स्वभाव, उपाय और हर भाव में प्रभाव")).toBe("surya-grah-svabhav-upay-aur-har-bhav-men-prabhav");
+    expect(slugify("शुक्र ग्रह: स्वभाव, उपाय और हर भाव में प्रभाव")).toBe("shukra-grah-svabhav-upay-aur-har-bhav-men-prabhav");
+    expect(slugify("चंद्रमा ग्रह")).toBe("chandrama-grah");
+    for (const [hi, en] of [
+      ["ज्योतिष", "jyotish"],
+      ["धर्म", "dharm"],
+      ["इन्द्र", "indra"],
+      ["सब लॉर्ड", "sab lord"],
+      ["ज़िंदगी", "zindagi"],
+      ["न", "na"],
+      ["७ चक्र", "7 chakra"],
+    ]) {
+      expect(transliterateDevanagari(hi)).toBe(en);
+    }
+  });
+
+  it("keeps English as before and mixes both", () => {
+    expect(slugify("Saturn Transit & You")).toBe("saturn-transit-and-you");
+    expect(slugify("KP पद्धति 2026")).toBe("kp-paddhati-2026");
+  });
+
+  it("cuts long titles at a word boundary", () => {
+    const s = slugify("कुंडली ".repeat(20));
+    expect(s.length).toBeLessThanOrEqual(80);
+    expect(s.endsWith("kundali")).toBe(true);
+  });
+});
+
+describe("post types (format filter)", () => {
+  const base = {
+    has_article: false,
+    has_article_alt: false,
+    audio_storage_path: null,
+    audio_link: "",
+    video_storage_path: null,
+    video_link: "",
+    video_format: "video" as const,
+  };
+  it("classifies posts by what they contain; a post can be several types", () => {
+    const both = { ...base, has_article: true, video_link: "https://youtu.be/dQw4w9WgXcQ" };
+    expect(hasFormat(both, "article")).toBe(true);
+    expect(hasFormat(both, "video")).toBe(true);
+    expect(hasFormat(both, "reel")).toBe(false);
+    expect(hasFormat({ ...base, video_storage_path: "video/x.mp4", video_format: "reel" }, "reel")).toBe(true);
+    expect(hasFormat({ ...base, audio_link: "https://drive.google.com/file/d/x/view" }, "audio")).toBe(true);
+    // The format alone (without any video) is not a video.
+    expect(hasFormat({ ...base, video_format: "reel" }, "reel")).toBe(false);
+  });
+
+  it("reads ?format= from the address, ignoring anything unknown", () => {
+    expect(parseListParams({ format: "reel" }).format).toBe("reel");
+    expect(parseListParams({ format: "podcast" }).format).toBe("");
+    expect(parseListParams({}).format).toBe("");
+  });
+});

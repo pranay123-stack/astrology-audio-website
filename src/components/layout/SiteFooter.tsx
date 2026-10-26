@@ -2,15 +2,16 @@ import Link from "next/link";
 import { Mail, Phone } from "lucide-react";
 import { siteConfig } from "@/lib/config";
 import { getDict, localePath, localizeProfile } from "@/lib/i18n";
-import { getProfile } from "@/lib/queries";
+import { getEpisodes, getProfile } from "@/lib/queries";
 import type { Locale } from "@/lib/types";
 import { LogoMark } from "./Logo";
-import { NAV_LINKS } from "./nav";
+import { learnPath, navLinks } from "./nav";
 
 export async function SiteFooter({ lang }: { lang: Locale }) {
   const t = getDict(lang);
   const href = (path: string) => localePath(lang, path);
-  const profile = localizeProfile(await getProfile(), lang);
+  const [rawProfile, premium] = await Promise.all([getProfile(), getEpisodes({ access: "premium", limit: 1 })]);
+  const profile = localizeProfile(rawProfile, lang);
   const socials = (Object.keys(t.footer.social) as (keyof typeof t.footer.social)[]).filter((k) => profile.social_links?.[k]);
 
   return (
@@ -43,13 +44,18 @@ export async function SiteFooter({ lang }: { lang: Locale }) {
         <nav aria-label={t.footer.explore}>
           <h2 className="eyebrow mb-4 font-sans">{t.footer.explore}</h2>
           <ul className="space-y-2 text-sm">
-            {NAV_LINKS.map((l) => (
+            {navLinks(premium.total > 0).map((l) => (
               <li key={l.href}>
                 <Link href={href(l.href)} className="text-ink/80 hover:text-gold-soft">
                   {t.nav[l.key]}
                 </Link>
               </li>
             ))}
+            <li>
+              <Link href={href(learnPath(t.learn.subject))} className="font-semibold text-gold-soft hover:underline">
+                {t.nav.learn}
+              </Link>
+            </li>
           </ul>
         </nav>
 

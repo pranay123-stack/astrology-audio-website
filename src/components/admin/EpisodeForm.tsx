@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { Loader2, Save } from "lucide-react";
 import { saveEpisode } from "@/app/admin/actions";
@@ -16,6 +16,7 @@ import { episodeInputSchema, fieldErrors, type EpisodeInput } from "@/lib/valida
 import { ArticleBody } from "@/components/episodes/ArticleBody";
 import { FileField } from "./FileField";
 import { GalleryField } from "./GalleryField";
+import { captureVideoFrame, uploadFile } from "./upload";
 
 interface FormValues {
   title: string;
@@ -61,7 +62,28 @@ export function EpisodeForm({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [audioPath, setAudioPath] = useState<string | null>(episode?.audio_storage_path ?? null);
-  const [coverPath, setCoverPath] = useState<string | null>(episode?.cover_image_path ?? null);
+  const [coverPath, setCoverPathState] = useState<string | null>(episode?.cover_image_path ?? null);
+  // Read inside async upload callbacks, which would otherwise see a stale value.
+  const coverRef = useRef(coverPath);
+  const setCoverPath = (p: string | null) => {
+    coverRef.current = p;
+    setCoverPathState(p);
+  };
+  const [thumbNote, setThumbNote] = useState<string | null>(null);
+
+  /** A video was uploaded: if the post has no cover yet, use a still from the video. */
+  async function coverFromVideo(file: File) {
+    if (coverRef.current) return;
+    setThumbNote("Taking a thumbnail from the video…");
+    const still = await captureVideoFrame(file);
+    if (!still || coverRef.current) return setThumbNote(null);
+    try {
+      setCoverPath(await uploadFile("cover", still, () => {}));
+      setThumbNote("Cover image taken from the video. Upload your own below to replace it.");
+    } catch {
+      setThumbNote(null);
+    }
+  }
   const [videoPath, setVideoPath] = useState<string | null>(episode?.video_storage_path ?? null);
   const [galleryPaths, setGalleryPaths] = useState<string[]>(episode?.gallery_paths ?? []);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -451,10 +473,18 @@ export function EpisodeForm({
           label="Cover image"
           hint="Square images work best (at least 600 × 600). JPG, PNG, WebP or AVIF, up to 5 MB."
           value={coverPath}
-          previewUrl={imageUrl(episode?.cover_image_path)}
-          onChange={setCoverPath}
+          previewUrl={imageUrl(coverPath)}
+          onChange={(p) => {
+            setCoverPath(p);
+            setThumbNote(null);
+          }}
           error={errors.cover_image_path}
         />
+        {thumbNote && (
+          <p className="-mt-3 text-xs text-gold-soft" data-testid="thumb-note">
+            {thumbNote}
+          </p>
+        )}
       </section>
 
       <section className="card space-y-5 p-6" data-testid="video-fields">
@@ -481,6 +511,7 @@ export function EpisodeForm({
           value={videoPath}
           previewUrl={episode?.video_storage_path ? videoUrl(episode.id) : null}
           onChange={setVideoPath}
+          onUploaded={(file) => void coverFromVideo(file)}
           error={errors.video_storage_path}
         />
         <div>

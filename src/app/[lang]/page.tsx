@@ -5,6 +5,7 @@ import { ArrowRight, Headphones, Mail } from "lucide-react";
 import { EpisodeCard } from "@/components/episodes/EpisodeCard";
 import { MatchCard } from "@/components/episodes/MatchCard";
 import { MediaAction } from "@/components/episodes/MediaAction";
+import { ReelsStrip } from "@/components/episodes/ReelsStrip";
 import { CategoryIcon } from "@/components/episodes/categoryIcons";
 import { QuotesBand } from "@/components/layout/QuotesBand";
 import { Starfield } from "@/components/layout/Starfield";
@@ -142,7 +143,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Latest general audio */}
+      {/* Latest general posts */}
       <section className="container-page py-16" aria-labelledby="featured-heading">
         <SectionHeading
           id="featured-heading"
@@ -162,6 +163,8 @@ export default async function HomePage() {
           <EmptyState title={t.home.noEpisodes}>{t.home.noEpisodesBody}</EmptyState>
         )}
       </section>
+
+      <ReelsStrip lang={lang} />
 
       {/* Cricket: further down for visitors who keep scrolling */}
       <section className="relative py-16" aria-labelledby="cricket-heading">

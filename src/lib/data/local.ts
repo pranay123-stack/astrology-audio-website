@@ -98,6 +98,12 @@ export class LocalRepository implements Repository {
     return (await this.db.read()).episodes.map((e) => ({ id: e.id, slug: e.slug }));
   }
 
+  async resolveOldSlug(oldSlug: string) {
+    const db = await this.db.read();
+    const id = db.slug_redirects?.find((r) => r.old_slug === oldSlug)?.episode_id;
+    return db.episodes.find((e) => e.id === id)?.slug ?? null;
+  }
+
   async incrementPlayCount(id: string) {
     await this.db.mutate((db) => {
       const e = db.episodes.find((x) => x.id === id);
@@ -168,6 +174,10 @@ export class LocalRepository implements Repository {
       const cat = this.assertReferences(db, { ...data, id } as EpisodeWrite);
       const { match: _match, ...fields } = data;
       void _match;
+      // Remember the old address so it keeps working (mirrors the Supabase trigger).
+      const redirects = (db.slug_redirects ??= []).filter((r) => r.old_slug !== fields.slug && r.old_slug !== episode.slug);
+      if (fields.slug !== episode.slug) redirects.push({ old_slug: episode.slug, episode_id: id });
+      db.slug_redirects = redirects;
       Object.assign(episode, fields, {
         article: fields.article.trim(),
         has_article: fields.article.trim().length > 0,

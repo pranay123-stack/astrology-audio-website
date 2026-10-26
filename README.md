@@ -154,6 +154,12 @@ Differences from the brief:
 - **Photo gallery:** up to 12 images (5 MB each), uploaded together and reordered with the arrows. Visitors see a grid and tap a photo to open it full size. Gallery photos are in the public `images` bucket, like covers.
 - **Storage budget (Supabase Free):** 1 GB of storage and 5 GB of downloads a month in total. A 20 MB clip watched 250 times uses those 5 GB, so prefer links for anything that may get many views.
 
+**Thumbnails and addresses:**
+
+- A video uploaded without a cover gets one automatically: the browser takes a still from the video (about 3 s in) and uploads it as the cover. Upload your own cover to replace it. A YouTube link without a cover uses YouTube's thumbnail on cards.
+- Hindi titles become readable addresses (`सूर्य ग्रह` → `surya-grah`, see `src/lib/transliterate.ts`). When a post's URL slug is changed, the old address keeps working: a database trigger records it in `episode_slug_redirects` and the post page redirects to the new address.
+- Listing pages filter by type with `?format=article|audio|video|reel`; only types that exist are offered.
+
 **How an upload works:**
 
 1. The browser asks `/api/admin/uploads` for a one-time target. The server checks the admin session, the file type and the file size.

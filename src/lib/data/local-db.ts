@@ -14,6 +14,8 @@ export interface LocalDatabase {
   episodes: LocalEpisode[];
   cricket_matches: CricketMatch[];
   contact_messages: ContactMessage[];
+  /** Old post slugs that redirect to a post's current address. */
+  slug_redirects?: { old_slug: string; episode_id: string }[];
 }
 
 /**

@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { ExternalLink, Lock, Mail } from "lucide-react";
-import { premiumContactHref } from "@/lib/episodes";
+import { posterUrl, premiumContactHref } from "@/lib/episodes";
 import { getDict } from "@/lib/i18n";
-import { imageUrl, videoUrl } from "@/lib/media/urls";
+import { videoUrl } from "@/lib/media/urls";
 import { parseVideoLink } from "@/lib/media/video-link";
 import type { EpisodeListing, Locale } from "@/lib/types";
 
@@ -36,7 +36,7 @@ export function VideoBlock({ episode, locked, lang }: { episode: EpisodeListing;
               controls
               playsInline
               preload="metadata"
-              poster={imageUrl(episode.cover_image_path) ?? undefined}
+              poster={posterUrl(episode) ?? undefined}
               src={videoUrl(episode.id)}
               className="h-full w-full"
               data-testid="post-video"

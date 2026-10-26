@@ -281,6 +281,24 @@ describe("video and photos", () => {
   });
 });
 
+describe("renamed posts", () => {
+  it("remembers the old slug for redirects; visitors can read it but never write it", async () => {
+    const slug = `rename-${randomUUID().slice(0, 8)}`;
+    const { data, error } = await service
+      .from("episodes")
+      .insert({ title: "Rename test", slug, category_id: generalCat, has_article: false, is_published: false })
+      .select("id")
+      .single();
+    expect(error).toBeNull();
+    cleanup.push(data!.id);
+    expect((await service.from("episodes").update({ slug: `${slug}-new` }).eq("id", data!.id)).error).toBeNull();
+    const row = await anon.from("episode_slug_redirects").select("old_slug, episode_id").eq("old_slug", slug).single();
+    expect(row.data).toEqual({ old_slug: slug, episode_id: data!.id });
+    expect((await anon.from("episode_slug_redirects").insert({ old_slug: `x-${slug}`, episode_id: data!.id })).error).not.toBeNull();
+    expect((await member.from("episode_slug_redirects").delete().eq("old_slug", slug).select()).data ?? []).toEqual([]);
+  });
+});
+
 describe("signed-in non-admin user", () => {
   it("is not an admin and cannot write content or read messages", async () => {
     expect((await member.rpc("is_admin")).data).toBe(false);

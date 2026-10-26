@@ -1,3 +1,5 @@
+import { POST_FORMATS, type PostFormat } from "./types";
+
 export const PAGE_SIZE = 9;
 
 type Raw = Record<string, string | string[] | undefined>;
@@ -18,6 +20,7 @@ export interface ListParams {
   from: string;
   to: string;
   sort: "latest" | "popular";
+  format: "" | PostFormat;
 }
 
 /** Normalises untrusted query-string values; anything unexpected falls back to a default. */
@@ -38,6 +41,7 @@ export function parseListParams(sp: Raw): ListParams {
     from: DATE_RE.test(from) ? from : "",
     to: DATE_RE.test(to) ? to : "",
     sort: sort === "popular" ? "popular" : "latest",
+    format: (POST_FORMATS as readonly string[]).includes(one(sp.format)) ? (one(sp.format) as PostFormat) : "",
   };
 }
 

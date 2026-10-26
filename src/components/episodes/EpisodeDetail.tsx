@@ -8,10 +8,9 @@ import { CricketDisclaimer } from "@/components/ui/Disclaimer";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { siteConfig } from "@/lib/config";
 import { formatDate, formatDateTime } from "@/lib/dates";
-import { episodeHref, hasAudio, hasDriveAudio, hasVideo, isLockedForVisitors, lengthLabel, premiumContactHref, toTrack } from "@/lib/episodes";
+import { episodeHref, hasAudio, hasDriveAudio, hasVideo, isLockedForVisitors, lengthLabel, posterUrl, premiumContactHref, toTrack } from "@/lib/episodes";
 import { getDict, localePath, localizeEpisode, type LocalizedEpisode } from "@/lib/i18n";
-import { imageUrl } from "@/lib/media/urls";
-import { getEpisodeBySlug, getEpisodes } from "@/lib/queries";
+import { getEpisodeBySlug, getEpisodes, getRedirectSlug } from "@/lib/queries";
 import { alternatesFor } from "@/lib/seo";
 import type { EpisodeListing, Locale, Section } from "@/lib/types";
 import { ZodiacWheel } from "@/components/layout/ZodiacWheel";
@@ -35,7 +34,7 @@ function isoDuration(seconds: number): string {
 /** Structured data only for real episodes; sample content is not described to search engines. */
 function JsonLd({ episode, lang }: { episode: LocalizedEpisode; lang: Locale }) {
   if (episode.is_demo) return null;
-  const cover = imageUrl(episode.cover_image_path);
+  const cover = posterUrl(episode);
   const common = {
     "@context": "https://schema.org",
     description: episode.excerpt,
@@ -60,7 +59,13 @@ function hasOtherLanguage(raw: EpisodeListing, lang: Locale): boolean {
 
 export async function EpisodeDetail({ slug, section, lang }: { slug: string; section: Section; lang: Locale }) {
   const raw = await getEpisodeBySlug(slug);
-  if (!raw) notFound();
+  if (!raw) {
+    // A renamed post: send the old address to the new one.
+    const current = await getRedirectSlug(slug);
+    const moved = current ? await getEpisodeBySlug(current) : null;
+    if (moved) permanentRedirect(episodeHref(moved, lang));
+    notFound();
+  }
   if (raw.category.section !== section) permanentRedirect(episodeHref(raw, lang));
   const episode = localizeEpisode(raw, lang);
   const t = getDict(lang);
@@ -81,7 +86,7 @@ export async function EpisodeDetail({ slug, section, lang }: { slug: string; sec
   const isCricketGuide = section === "cricket" && !isMatchReading;
   const relatedItems = related.items.length ? related.items : (fallback?.items ?? []);
 
-  const cover = imageUrl(episode.cover_image_path);
+  const cover = posterUrl(episode);
   const backHref = localePath(lang, section === "cricket" ? "/cricket-astrology" : "/astrology-audios");
   const match = episode.match;
   const paragraphs = episode.description.split(/\n{2,}/).filter(Boolean);
@@ -261,9 +266,15 @@ export async function EpisodeDetail({ slug, section, lang }: { slug: string; sec
 
 export async function episodeMetadata(slug: string, lang: Locale) {
   const raw = await getEpisodeBySlug(slug);
-  if (!raw) return { title: getDict(lang).episode.notFound };
+  if (!raw) {
+    // Also redirect here: metadata resolves before the page streams, so this can be a real 308.
+    const current = await getRedirectSlug(slug);
+    const moved = current ? await getEpisodeBySlug(current) : null;
+    if (moved) permanentRedirect(episodeHref(moved, lang));
+    return { title: getDict(lang).episode.notFound };
+  }
   const episode = localizeEpisode(raw, lang);
-  const cover = imageUrl(episode.cover_image_path);
+  const cover = posterUrl(episode);
   const url = episodeHref(episode, lang);
   return {
     title: episode.title,

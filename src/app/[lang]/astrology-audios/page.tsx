@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import Form from "next/form";
 import Link from "next/link";
 import { Suspense } from "react";
-import { Headphones, Search } from "lucide-react";
+import { Search, Sparkles } from "lucide-react";
 import { EpisodeCard } from "@/components/episodes/EpisodeCard";
+import { FormatChips } from "@/components/episodes/FormatChips";
 import { LoadMore } from "@/components/episodes/LoadMore";
 import { ListingSkeleton } from "@/components/episodes/ListingSkeleton";
 import { CategoryIcon } from "@/components/episodes/categoryIcons";
@@ -36,7 +37,7 @@ export default async function AstrologyAudiosPage({ searchParams }: PageProps<"/
         <Starfield />
         <div className="container-page relative py-14 sm:py-20">
           <div className="flex items-center gap-3 text-gold-soft">
-            <Headphones className="h-6 w-6" aria-hidden />
+            <Sparkles className="h-6 w-6" aria-hidden />
             <p className="eyebrow">{t.eyebrow}</p>
           </div>
           <h1 className="mt-3 text-5xl font-semibold sm:text-6xl">{t.title}</h1>
@@ -59,19 +60,24 @@ async function Results({ searchParams, lang }: Pick<PageProps<"/[lang]/astrology
   const p = parseListParams(await searchParams);
   const categories = (await getCategories()).filter((c) => c.section === "general").map((c) => localizeCategory(c, lang));
   const activeCategory = categories.find((c) => c.slug === p.category);
-  const filtered = !!(p.q || p.access || activeCategory);
+  const filtered = !!(p.q || p.access || activeCategory || p.format);
 
-  const [{ items, total }, popular] = await Promise.all([
+  const [{ items, total }, popular, all] = await Promise.all([
     getEpisodes({
       section: "general",
       categorySlug: activeCategory?.slug,
       search: p.q || undefined,
       access: p.access || undefined,
+      format: p.format || undefined,
       sort: p.sort,
       limit: p.page * PAGE_SIZE,
     }),
     filtered || p.sort === "popular" ? Promise.resolve(null) : getEpisodes({ section: "general", sort: "popular", limit: 3 }),
+    // Which types (articles, audio, videos, reels) exist, for the type filter.
+    getEpisodes({ section: "general", categorySlug: activeCategory?.slug }),
   ]);
+  // "Popular" only means something once posts have been played; until then it would repeat "Latest".
+  const showPopular = !!popular && popular.items.length > 0 && popular.items[0].play_count > 0;
 
   const chip = (slug: string, label: string, active: boolean) => (
     <Link
@@ -93,9 +99,11 @@ async function Results({ searchParams, lang }: Pick<PageProps<"/[lang]/astrology
         {chip("", t.allCategories, !activeCategory)}
         {categories.map((c) => chip(c.slug, c.name, c.slug === activeCategory?.slug))}
       </nav>
+      <FormatChips posts={all.items} params={p} base={base} defaults={{ sort: "latest" }} lang={lang} />
 
       <Form action={base} className="card grid gap-4 p-5 md:grid-cols-[2fr_1fr_1fr_auto]" role="search">
         {activeCategory && <input type="hidden" name="category" value={activeCategory.slug} />}
+        {p.format && <input type="hidden" name="format" value={p.format} />}
         <div>
           <label htmlFor="q" className="label">{t.searchLabel}</label>
           <div className="relative">
@@ -121,12 +129,12 @@ async function Results({ searchParams, lang }: Pick<PageProps<"/[lang]/astrology
         <div className="flex items-end gap-2">
           <button type="submit" className="btn-gold w-full md:w-auto">{d.common.apply}</button>
           {(p.q || p.access || p.sort !== "latest") && (
-            <Link href={`${base}${toQueryString({ category: p.category })}`} className="btn-ghost">{d.common.clear}</Link>
+            <Link href={`${base}${toQueryString({ category: p.category, format: p.format })}`} className="btn-ghost">{d.common.clear}</Link>
           )}
         </div>
       </Form>
 
-      {popular && popular.items.length > 0 && (
+      {showPopular && popular && (
         <section aria-labelledby="popular-heading">
           <SectionHeading id="popular-heading" eyebrow={t.mostPlayed} title={t.popularTitle} />
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

@@ -10,6 +10,7 @@ import type {
   EpisodeQuery,
   Profile,
   Team,
+  PostFormat,
   VideoFormat,
 } from "../types";
 import { dayBounds } from "../dates";
@@ -65,6 +66,8 @@ export interface Repository {
   getEpisodeBySlug(slug: string, opts?: { includeUnpublished?: boolean }): Promise<EpisodeListing | null>;
   getEpisodeById(id: string, opts?: { includeUnpublished?: boolean }): Promise<EpisodeListing | null>;
   listEpisodeSlugs(): Promise<{ id: string; slug: string }[]>;
+  /** The current slug of the post that used to live at `oldSlug`, or null. */
+  resolveOldSlug(oldSlug: string): Promise<string | null>;
   incrementPlayCount(id: string): Promise<void>;
 
   createEpisode(data: EpisodeWrite): Promise<Episode>;
@@ -110,6 +113,24 @@ export function hasContent(
   );
 }
 
+/** Whether a post contains `format`; mirrors the SQL filter in the Supabase adapter. */
+export function hasFormat(
+  e: Pick<Episode, "has_article" | "has_article_alt" | "audio_storage_path" | "audio_link" | "video_storage_path" | "video_link" | "video_format">,
+  format: PostFormat,
+): boolean {
+  const video = !!e.video_storage_path || !!e.video_link;
+  switch (format) {
+    case "article":
+      return e.has_article || e.has_article_alt;
+    case "audio":
+      return !!e.audio_storage_path || !!e.audio_link;
+    case "video":
+      return video && e.video_format === "video";
+    case "reel":
+      return video && e.video_format === "reel";
+  }
+}
+
 export function isLive(e: Pick<Episode, "is_published" | "published_at">, now = Date.now()): boolean {
   return e.is_published && !!e.published_at && Date.parse(e.published_at) <= now;
 }
@@ -132,6 +153,7 @@ export function filterAndSort(rows: EpisodeListing[], q: EpisodeQuery, now = Dat
     if (q.excludeId && r.id === q.excludeId) return false;
     if (q.section && r.category.section !== q.section) return false;
     if (q.withMatch && !r.match) return false;
+    if (q.format && !hasFormat(r, q.format)) return false;
     if (q.categorySlug && r.category.slug !== q.categorySlug) return false;
     if (q.competitionSlug && r.match?.competition.slug !== q.competitionSlug) return false;
     if (q.access === "free" && r.is_premium) return false;

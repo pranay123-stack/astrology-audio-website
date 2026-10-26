@@ -4,6 +4,7 @@ import { premiumConfig } from "./config";
 import { formatDurationLabel } from "./dates";
 import { getDict, localePath } from "./i18n";
 import { audioUrl, imageUrl } from "./media/urls";
+import { parseVideoLink } from "./media/video-link";
 import type { EpisodeListing, Locale } from "./types";
 
 export function episodeHref(e: Pick<EpisodeListing, "slug" | "category">, lang: Locale = "en"): string {
@@ -21,6 +22,11 @@ export function hasArticle(e: Pick<EpisodeListing, "has_article">): boolean {
 /** Audio played from Google Drive (no uploaded file). */
 export function hasDriveAudio(e: Pick<EpisodeListing, "audio_storage_path" | "audio_link">): boolean {
   return !e.audio_storage_path && !!e.audio_link;
+}
+
+/** The post's picture: its cover image, else the thumbnail of its YouTube video, else null. */
+export function posterUrl(e: Pick<EpisodeListing, "cover_image_path" | "video_link">): string | null {
+  return imageUrl(e.cover_image_path) ?? (e.video_link ? (parseVideoLink(e.video_link)?.thumbnailUrl ?? null) : null);
 }
 
 /** An uploaded video or an embeddable link. */
@@ -59,7 +65,7 @@ export function toTrack(e: EpisodeListing, lang: Locale = "en"): Track {
     id: e.id,
     title: e.title,
     category: e.match ? `${e.match.competition.short_name} · ${e.category.name}` : e.category.name,
-    coverUrl: imageUrl(e.cover_image_path),
+    coverUrl: posterUrl(e),
     href: episodeHref(e, lang),
     src: audioUrl(e.id),
     durationHint: e.duration_seconds,

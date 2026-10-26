@@ -48,6 +48,12 @@ export async function getEpisodeBySlug(slug: string) {
   return getPublicRepository().getEpisodeBySlug(slug);
 }
 
+export async function getRedirectSlug(oldSlug: string) {
+  "use cache";
+  contentCache();
+  return getPublicRepository().resolveOldSlug(oldSlug);
+}
+
 export async function getDemoContentCount() {
   "use cache";
   contentCache();

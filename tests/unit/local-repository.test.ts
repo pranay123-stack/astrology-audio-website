@@ -240,6 +240,16 @@ describe("video and photos", () => {
     expect(await repo.isStoragePathReferenced(PHOTO)).toBe(false);
   });
 
+  it("remembers a renamed post's old address", async () => {
+    const e = await repo.createEpisode(write({ slug: "pehla-naam" }));
+    await repo.updateEpisode(e.id, write({ slug: "naya-naam" }));
+    expect(await repo.resolveOldSlug("pehla-naam")).toBe("naya-naam");
+    // Renaming back makes the address a live one again, not a redirect.
+    await repo.updateEpisode(e.id, write({ slug: "pehla-naam" }));
+    expect(await repo.resolveOldSlug("pehla-naam")).toBeNull();
+    expect(await repo.resolveOldSlug("naya-naam")).toBe("pehla-naam");
+  });
+
   it("fills the new fields on databases written before video existed", async () => {
     const old = await repo.getEpisodeById("e1");
     expect(old).toMatchObject({ video_storage_path: null, video_format: "video", video_link: "", audio_link: "", gallery_paths: [] });

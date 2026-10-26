@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Search, Trophy } from "lucide-react";
 import { EpisodeCard } from "@/components/episodes/EpisodeCard";
+import { FormatChips } from "@/components/episodes/FormatChips";
 import { HeroMatch } from "@/components/episodes/HeroMatch";
 import { LearnCricketCta } from "@/components/episodes/LearnCricketCta";
 import { LoadMore } from "@/components/episodes/LoadMore";
@@ -52,7 +53,10 @@ export default async function CricketAstrologyPage({ searchParams }: PageProps<"
           <NextMatch lang={lang} />
         </div>
       </section>
-      <CricketGuide lang={lang} />
+      {/* The type filter reads the URL, so the unfiltered guide is the static fallback. */}
+      <Suspense fallback={<CricketGuide lang={lang} />}>
+        <FilteredCricketGuide searchParams={searchParams} lang={lang} />
+      </Suspense>
       <section className="container-page py-10">
         <Suspense fallback={<ListingSkeleton lang={lang} />}>
           <Results searchParams={searchParams} lang={lang} />
@@ -62,15 +66,31 @@ export default async function CricketAstrologyPage({ searchParams }: PageProps<"
   );
 }
 
-/** General articles on how cricket astrology works, with an invitation to learn it. Cached data only. */
-async function CricketGuide({ lang }: { lang: Locale }) {
+async function FilteredCricketGuide({ searchParams, lang }: Pick<PageProps<"/[lang]/cricket-astrology">, "searchParams"> & { lang: Locale }) {
+  const p = parseListParams(await searchParams);
+  return <CricketGuide lang={lang} params={p} />;
+}
+
+/** General posts on how cricket astrology works (articles, audio, videos), with an invitation to learn it. */
+async function CricketGuide({ lang, params }: { lang: Locale; params?: ListParams }) {
   const t = getDict(lang).cricket;
-  const { items } = await getEpisodes({ categorySlug: "cricket-astrology-guide", sort: "latest", limit: 24 });
-  if (items.length === 0) return null;
+  const format = params?.format || undefined;
+  const [{ items }, all] = await Promise.all([
+    getEpisodes({ categorySlug: "cricket-astrology-guide", format, sort: "latest", limit: 24 }),
+    format ? getEpisodes({ categorySlug: "cricket-astrology-guide" }) : null,
+  ]);
+  if (items.length === 0 && !format) return null;
   return (
     <section className="container-page py-12" aria-labelledby="guide-heading" data-testid="cricket-guide">
       <SectionHeading id="guide-heading" eyebrow={t.guideEyebrow} title={t.guideTitle} description={t.guideDesc} />
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <FormatChips
+        posts={(all ?? { items }).items}
+        params={{ format: params?.format ?? "", when: params?.when }}
+        base={localePath(lang, "/cricket-astrology")}
+        defaults={{ when: "upcoming" }}
+        lang={lang}
+      />
+      <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((e) => (
           <EpisodeCard key={e.id} episode={e} lang={lang} />
         ))}

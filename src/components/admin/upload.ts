@@ -83,3 +83,45 @@ export function readAudioDuration(file: File): Promise<number | null> {
     audio.src = url;
   });
 }
+
+/**
+ * Takes a still from a video file in the browser (about a tenth of the way in, at most 3 s, to
+ * skip black lead-in frames) as a JPEG, max 1280 px wide. Null if the browser cannot decode it.
+ */
+export function captureVideoFrame(file: File): Promise<File | null> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const video = document.createElement("video");
+    video.preload = "auto";
+    video.muted = true;
+    video.playsInline = true;
+    let settled = false;
+    const done = (v: File | null) => {
+      if (settled) return;
+      settled = true;
+      URL.revokeObjectURL(url);
+      resolve(v);
+    };
+    const timer = setTimeout(() => done(null), 15_000);
+    video.onerror = () => {
+      clearTimeout(timer);
+      done(null);
+    };
+    video.onloadedmetadata = () => {
+      const d = Number.isFinite(video.duration) ? video.duration : 0;
+      video.currentTime = Math.min(3, d * 0.1);
+    };
+    video.onseeked = () => {
+      clearTimeout(timer);
+      const scale = Math.min(1, 1280 / (video.videoWidth || 1280));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round((video.videoWidth || 1280) * scale);
+      canvas.height = Math.round((video.videoHeight || 720) * scale);
+      const ctx = canvas.getContext("2d");
+      if (!ctx || !video.videoWidth) return done(null);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((blob) => done(blob ? new File([blob], "video-thumbnail.jpg", { type: "image/jpeg" }) : null), "image/jpeg", 0.85);
+    };
+    video.src = url;
+  });
+}

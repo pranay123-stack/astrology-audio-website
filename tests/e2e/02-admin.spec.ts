@@ -277,6 +277,7 @@ test("sign out ends the session", async ({ page }) => {
 });
 
 test("admin posts a reel with photos, an MP4 and a YouTube link; premium video stays locked", async ({ page, request }) => {
+  test.setTimeout(150_000);
   // The tests above use up the login rate limit (10 per 15 min per client), so sign in as another client.
   await page.setExtraHTTPHeaders({ "x-forwarded-for": "10.0.0.25" });
   await login(page);
@@ -291,6 +292,9 @@ test("admin posts a reel with photos, an MP4 and a YouTube link; premium video s
   await page.getByTestId("video-input").setInputFiles({ name: "reel.webm", mimeType: "video/webm", buffer: readFileSync("tests/fixtures/reel-clip.webm") });
   await expect(page.getByTestId("video-ready")).toBeVisible();
   await expect(page.getByTestId("admin-video-preview")).toBeVisible();
+  // No cover was chosen, so a still from the video becomes the cover.
+  await expect(page.getByTestId("thumb-note")).toContainText("taken from the video", { timeout: 20_000 });
+  await expect(page.getByTestId("cover-ready")).toBeVisible();
   await page.getByTestId("format-reel").check();
 
   await page.getByTestId("gallery-input").setInputFiles([
@@ -315,6 +319,12 @@ test("admin posts a reel with photos, an MP4 and a YouTube link; premium video s
   await expect(card.getByTestId("video-badge")).toContainText("Reel");
   await expect(card.getByTestId("photos-badge")).toBeVisible();
   await expect(card.getByTestId("watch-button")).toBeVisible();
+
+  // The reel appears in the home page's reels strip, with its auto-made cover.
+  await gotoReady(page, "/");
+  const reel = page.getByTestId("reels-strip").getByTestId("reel-card").filter({ hasText: "E2E Reel And Photos" });
+  await expect(reel).toBeVisible();
+  await expect(reel.locator("img")).toHaveAttribute("src", /covers%2F/);
 
   await gotoReady(page, "/astrology-audios/e2e-reel-and-photos");
   const video = page.getByTestId("post-video");
@@ -376,9 +386,14 @@ test("admin posts a reel with photos, an MP4 and a YouTube link; premium video s
   await gotoReady(page, "/astrology-audios/e2e-youtube-only");
   await expect(page.getByTestId("video-embed")).toHaveAttribute("src", "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0");
   await expect(page.getByRole("link", { name: "Watch on YouTube" })).toHaveAttribute("href", "https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+  // Without a cover, the card uses the YouTube thumbnail.
+  // Plain goto: waiting for "network idle" would wait on the external thumbnail.
+  await page.goto("/astrology-audios?q=YouTube%20Only");
+  await expect(page.getByTestId("episode-card").filter({ visible: true }).filter({ hasText: "E2E YouTube Only" }).locator("img")).toHaveAttribute("src", /i\.ytimg\.com/);
 });
 
 test("questionnaire (Google Form) on the contact page, Drive audiobook post, and the quotes on the home page", async ({ page }) => {
+  test.setTimeout(120_000);
   await page.setExtraHTTPHeaders({ "x-forwarded-for": "10.0.0.26" });
   const FORM = "https://docs.google.com/forms/d/e/1FAIpQLSdAbCdEfGhIjKlMnOpQrStUvWxYz0123456789abcdEFG/viewform?usp=sf_link";
   const DRIVE = "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view?usp=sharing";
@@ -410,6 +425,28 @@ test("questionnaire (Google Form) on the contact page, Drive audiobook post, and
   );
   await gotoReady(page, "/hi/contact");
   await expect(page.getByTestId("questionnaire")).toContainText("क्रिकेट ज्योतिष सीखना");
+
+  // A Hindi title gets a readable address, and a renamed post's old address redirects.
+  await gotoReady(page, "/admin/episodes/new");
+  await page.getByLabel("Title").fill("सूर्य ग्रह परीक्षण");
+  await expect(page.getByLabel("URL slug")).toHaveValue("surya-grah-parikshan");
+  await page.getByLabel("Category").selectOption({ label: "Vedic Astrology" });
+  await page.getByLabel("Short description").fill("हिंदी शीर्षक से पढ़ने योग्य वेब पता बनता है।");
+  await page.getByLabel(/YouTube \/ Instagram link/).fill("https://youtu.be/dQw4w9WgXcQ");
+  await page.getByTestId("publish-checkbox").check();
+  await page.getByTestId("save-episode").click();
+  await expect(page).toHaveURL(/\/admin\/episodes\/[0-9a-f-]{36}/);
+  // After saving, the "new" page stays mounted but hidden, so pick the visible form.
+  await page.getByLabel("URL slug").filter({ visible: true }).fill("surya-grah-test");
+  await page.getByTestId("save-episode").filter({ visible: true }).click();
+  await expect(page.getByTestId("form-message").filter({ visible: true })).toContainText("saved");
+  // Post pages are prerendered shells, so the status is already 200 when the redirect is known;
+  // the page carries the redirect itself (refresh tag + client router), which browsers and Google follow.
+  const old = await page.request.get("/astrology-audios/surya-grah-parikshan", { maxRedirects: 0 });
+  expect(await old.text()).toContain("/astrology-audios/surya-grah-test");
+  // People's browsers are redirected too.
+  await gotoReady(page, "/astrology-audios/surya-grah-parikshan");
+  await expect(page).toHaveURL(/\/astrology-audios\/surya-grah-test$/);
 
   // An audiobook kept in Google Drive.
   await gotoReady(page, "/admin/episodes/new");

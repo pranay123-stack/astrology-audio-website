@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { GraduationCap, Mail } from "lucide-react";
+import { learnPath } from "@/components/layout/nav";
 import { getDict, localePath } from "@/lib/i18n";
 import type { Locale } from "@/lib/types";
 
-/** Invitation to learn cricket astrology from the astrologer; opens the contact form with the subject filled in. */
+/** Invitation to learn cricket astrology: opens the contact page at the questionnaire, with the form subject filled in. */
 export function LearnCricketCta({ lang, className = "" }: { lang: Locale; className?: string }) {
   const t = getDict(lang).learn;
-  const href = localePath(lang, `/contact?subject=${encodeURIComponent(t.subject)}`);
+  const href = localePath(lang, learnPath(t.subject));
   return (
     <aside className={`card grid gap-5 p-6 sm:grid-cols-[auto_1fr_auto] sm:items-center sm:p-8 ${className}`} data-testid="learn-cricket-cta">
       <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-gold/40 bg-gold/10 text-gold-soft">

@@ -18,9 +18,12 @@ test("home page shows the main sections and the sample-content notice", async ({
   );
   expect(order.every((y, i) => y > 0 && (i === 0 || y > order[i - 1]))).toBe(true);
   const nav = await page.getByRole("navigation", { name: "Main" }).filter({ visible: true }).getByRole("link").allInnerTexts();
-  expect(nav.indexOf("General Astrology")).toBeLessThan(nav.indexOf("Cricket Astrology"));
+  expect(nav.indexOf("Astrology")).toBeLessThan(nav.indexOf("Cricket Astrology"));
+  // Premium shows only because the sample content has premium posts.
+  expect(nav).toEqual(["Home", "Astrology", "Cricket Astrology", "Premium", "KP Chart", "About", "Contact"]);
+  await expect(page.getByTestId("nav-learn")).toHaveAttribute("href", "/contact?subject=Learning%20cricket%20astrology#questionnaire");
   await expect(page.getByTestId("demo-banner")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Latest Astrology Audio" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Latest in Astrology" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Cricket Astrology", exact: true })).toBeVisible();
   await expect(page.getByTestId("match-card").filter({ visible: true })).toHaveCount(3);
   await expect(page.getByTestId("category-tile").filter({ visible: true })).toHaveCount(8);
@@ -32,16 +35,16 @@ test("Hindi site: translated interface at /hi, and the switch keeps the page and
   await expect(page.locator("html")).toHaveAttribute("lang", "hi");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("ज्योतिष को जानिए");
   const nav = await page.getByRole("navigation", { name: "मुख्य" }).filter({ visible: true }).getByRole("link").allInnerTexts();
-  expect(nav).toEqual(["होम", "सामान्य ज्योतिष", "क्रिकेट ज्योतिष", "प्रीमियम ऑडियो", "KP कुंडली", "ज्योतिषी के बारे में", "संपर्क"]);
+  expect(nav).toEqual(["होम", "ज्योतिष", "क्रिकेट ज्योतिष", "प्रीमियम", "KP कुंडली", "परिचय", "संपर्क"]);
   // Category names come from the database's Hindi columns; links stay inside /hi.
   await expect(page.getByTestId("category-tile").filter({ visible: true }).first()).toContainText("दैनिक ज्योतिष");
-  await expect(page.getByRole("link", { name: "ज्योतिष ऑडियो सुनें" })).toHaveAttribute("href", "/hi/astrology-audios");
+  await expect(page.getByRole("link", { name: "ज्योतिष देखें" })).toHaveAttribute("href", "/hi/astrology-audios");
 
   // English → Hindi on a filtered listing keeps the filters.
   await gotoReady(page, "/astrology-audios?category=planets-grahas&sort=popular");
   await page.getByTestId("language-switch").filter({ visible: true }).click();
   await expect(page).toHaveURL(/\/hi\/astrology-audios\?category=planets-grahas&sort=popular$/);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("ज्योतिष ऑडियो");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("ज्योतिष");
 
   // Hindi → English goes back to the plain address; /en/... is never used.
   await page.getByTestId("language-switch").filter({ visible: true }).click();
@@ -78,7 +81,7 @@ test("audio really plays, survives navigation, and honours speed and seek", asyn
 
   // Navigate with the header link: the same audio element keeps playing.
   const before = await audioTime(page);
-  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "About Astrologer" }).click();
+  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "About", exact: true }).click();
   await expect(page).toHaveURL(/\/about$/);
   await expect(mini).toBeVisible();
   await expect.poll(() => audioTime(page)).toBeGreaterThan(before + 0.5);
@@ -147,6 +150,20 @@ test("general page filters by category and keyword", async ({ page }) => {
   await expect(page.getByTestId("episode-card").filter({ visible: true })).toHaveCount(2);
   await gotoReady(page, "/astrology-audios?q=nakshatras");
   await expect(page.getByTestId("episode-card").filter({ visible: true })).toHaveCount(1);
+
+  // Type filter: only the types that exist are offered (the sample content has audio and articles).
+  await gotoReady(page, "/astrology-audios");
+  const chips = page.getByTestId("format-chips").filter({ visible: true });
+  await expect(chips.getByRole("link")).toHaveText(["All", "Articles", "Audio"]);
+  await chips.getByRole("link", { name: "Articles" }).click();
+  await expect(page).toHaveURL(/\/astrology-audios\?format=article$/);
+  const articleCards = page.getByTestId("episode-card").filter({ visible: true });
+  await expect(articleCards.first()).toBeVisible();
+  for (const card of await articleCards.all()) await expect(card.getByTestId("article-badge")).toBeVisible();
+  await gotoReady(page, "/astrology-audios?format=audio");
+  const audioCards = page.getByTestId("episode-card").filter({ visible: true });
+  await expect(audioCards.first()).toBeVisible();
+  await expect(audioCards.filter({ hasText: "Sample: Hindi Article (Planets)" })).toHaveCount(0);
 });
 
 test("a missing audio file shows a helpful error", async ({ page }) => {
@@ -160,7 +177,8 @@ test("mobile menu opens and navigates", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await gotoReady(page, "/");
   await page.getByRole("button", { name: "Open menu" }).click();
-  await page.locator("#mobile-menu").getByRole("link", { name: "Cricket Astrology" }).click();
+  await expect(page.getByTestId("mobile-learn")).toBeVisible();
+  await page.locator("#mobile-menu").getByRole("link", { name: "Cricket Astrology", exact: true }).click();
   await expect(page).toHaveURL(/\/cricket-astrology$/);
   await expect(page.locator("#mobile-menu")).toHaveCount(0);
 });

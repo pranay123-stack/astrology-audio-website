@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { Languages, Menu, X } from "lucide-react";
+import { GraduationCap, Languages, Menu, X } from "lucide-react";
 import { localePath, splitLocale } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n/client";
-import { NAV_LINKS } from "./nav";
+import { learnPath, navLinks } from "./nav";
 
 /** `pathname` is the public URL (possibly /hi/...); `href` is language-free. */
 function isActive(pathname: string, href: string) {
@@ -63,21 +63,21 @@ function LanguageSwitchInner({ pathname, query, className }: { pathname: string;
   );
 }
 
-export function DesktopNav({ static: isStatic = false }: { static?: boolean }) {
+export function DesktopNav({ static: isStatic = false, showPremium }: { static?: boolean; showPremium: boolean }) {
   // `static` renders without the pathname (used as the Suspense fallback).
-  return isStatic ? <DesktopNavInner pathname="" /> : <DesktopNavWithPath />;
+  return isStatic ? <DesktopNavInner pathname="" showPremium={showPremium} /> : <DesktopNavWithPath showPremium={showPremium} />;
 }
 
-function DesktopNavWithPath() {
-  return <DesktopNavInner pathname={usePathname()} />;
+function DesktopNavWithPath({ showPremium }: { showPremium: boolean }) {
+  return <DesktopNavInner pathname={usePathname()} showPremium={showPremium} />;
 }
 
-function DesktopNavInner({ pathname }: { pathname: string }) {
+function DesktopNavInner({ pathname, showPremium }: { pathname: string; showPremium: boolean }) {
   const { t, href } = useI18n();
   return (
     <nav aria-label={t.nav.main} className="hidden lg:block">
       <ul className="flex items-center gap-1">
-        {NAV_LINKS.map((l) => {
+        {navLinks(showPremium).map((l) => {
           const active = pathname !== "" && isActive(pathname, l.href);
           return (
             <li key={l.href}>
@@ -98,7 +98,7 @@ function DesktopNavInner({ pathname }: { pathname: string }) {
   );
 }
 
-export function MobileNav() {
+export function MobileNav({ showPremium }: { showPremium: boolean }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const { t, href } = useI18n();
@@ -135,7 +135,12 @@ export function MobileNav() {
           className="absolute inset-x-0 top-full border-b border-line bg-night/98 shadow-2xl backdrop-blur-lg"
         >
           <ul className="container-page flex flex-col gap-1 py-4">
-            {NAV_LINKS.map((l) => {
+            <li className="pb-2">
+              <Link href={href(learnPath(t.learn.subject))} className="btn-gold w-full justify-center" data-testid="mobile-learn">
+                <GraduationCap className="h-4 w-4" aria-hidden /> {t.nav.learn}
+              </Link>
+            </li>
+            {navLinks(showPremium).map((l) => {
               const active = isActive(pathname, l.href);
               return (
                 <li key={l.href}>

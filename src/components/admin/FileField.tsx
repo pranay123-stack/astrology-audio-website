@@ -28,6 +28,7 @@ export function FileField({
   previewUrl,
   onChange,
   onDuration,
+  onUploaded,
   error,
 }: {
   id: string;
@@ -38,6 +39,8 @@ export function FileField({
   previewUrl: string | null;
   onChange: (path: string | null) => void;
   onDuration?: (seconds: number) => void;
+  /** Called with the original file after it uploaded successfully. */
+  onUploaded?: (file: File) => void;
   error?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -81,6 +84,7 @@ export function FileField({
     try {
       const path = await uploadFile(kind, file, setProgress);
       onChange(path);
+      onUploaded?.(file);
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Upload failed");
       setLocalPreview(null);

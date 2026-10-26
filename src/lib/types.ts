@@ -16,6 +16,9 @@ export type MatchStatus = (typeof MATCH_STATUSES)[number];
 /** "video" is shown landscape (16:9), "reel" as a short vertical clip (9:16). */
 export const VIDEO_FORMATS = ["video", "reel"] as const;
 export type VideoFormat = (typeof VIDEO_FORMATS)[number];
+/** What a post can be filtered by on the listing pages. A post with several media matches several. */
+export const POST_FORMATS = ["article", "audio", "video", "reel"] as const;
+export type PostFormat = (typeof POST_FORMATS)[number];
 /** Most photos a post's gallery can hold. */
 export const GALLERY_MAX = 12;
 
@@ -198,6 +201,8 @@ export interface EpisodeQuery {
   limit?: number;
   offset?: number;
   excludeId?: string;
+  /** Only posts containing this kind of media. */
+  format?: PostFormat;
   /** Only posts with match details (match readings), excluding cricket guide articles. */
   withMatch?: boolean;
   /** Admin listings include drafts and scheduled episodes. */

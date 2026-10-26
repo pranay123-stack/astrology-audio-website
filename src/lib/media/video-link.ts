@@ -10,6 +10,8 @@ export interface VideoEmbed {
   watchUrl: string;
   /** YouTube Shorts and Instagram reels are vertical clips. */
   vertical: boolean;
+  /** Public still image of the video (YouTube only; Instagram offers none without an API key). */
+  thumbnailUrl: string | null;
 }
 
 const YT_ID = /^[A-Za-z0-9_-]{11}$/;
@@ -41,6 +43,7 @@ export function parseVideoLink(raw: string): VideoEmbed | null {
       embedUrl: `https://www.youtube-nocookie.com/embed/${id}?rel=0`,
       watchUrl: vertical ? `https://www.youtube.com/shorts/${id}` : `https://www.youtube.com/watch?v=${id}`,
       vertical,
+      thumbnailUrl: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
     };
   }
 
@@ -56,6 +59,7 @@ export function parseVideoLink(raw: string): VideoEmbed | null {
       embedUrl: `https://www.instagram.com/${type}/${code}/embed`,
       watchUrl: `https://www.instagram.com/${type}/${code}/`,
       vertical: type === "reel",
+      thumbnailUrl: null,
     };
   }
   return null;
