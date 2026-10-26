@@ -82,6 +82,14 @@ test("Hindi first: a Hindi browser lands on the Hindi site, and a language choic
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await context.close();
 
+  // A page served from the CDN cache never reaches the server: the browser itself switches to Hindi.
+  // (The header says English, so the server does not redirect; the browser language is Hindi.)
+  const cached = await browser.newContext({ locale: "hi-IN", extraHTTPHeaders: { "accept-language": "en-US" } });
+  const cachedPage = await cached.newPage();
+  await cachedPage.goto("/contact");
+  await expect(cachedPage).toHaveURL(/\/hi\/contact$/);
+  await cached.close();
+
   // Search engines and English browsers are never redirected, and the redirect is never cached.
   const plain = await (await browser.newContext()).request.get("/about", { maxRedirects: 0 });
   expect(plain.status()).toBe(200);
