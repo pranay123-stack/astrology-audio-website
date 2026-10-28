@@ -21,8 +21,8 @@ export default function OpenGraphImage() {
           fontFamily: "serif",
         }}
       >
-        <div style={{ fontSize: 28, letterSpacing: 8, color: "#fcc419", textTransform: "uppercase" }}>Cricket astrology · Audio</div>
-        <div style={{ fontSize: 84, fontWeight: 700, marginTop: 24, lineHeight: 1.05 }}>Discover Astrology Through Audio</div>
+        <div style={{ fontSize: 28, letterSpacing: 8, color: "#fcc419", textTransform: "uppercase" }}>KP cricket predictions · Life astrology</div>
+        <div style={{ fontSize: 84, fontWeight: 700, marginTop: 24, lineHeight: 1.05 }}>Cricket Predictions & Life Astrology</div>
         <div style={{ fontSize: 36, marginTop: 28, color: "#ffe066" }}>{siteConfig.name}</div>
       </div>
     ),

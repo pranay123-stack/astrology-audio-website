@@ -60,9 +60,11 @@ export default async function HomePage() {
         <div className="container-page relative grid items-center gap-12 py-16 sm:py-24 lg:grid-cols-[1.15fr_1fr] lg:py-28">
           <div className="animate-rise space-y-7">
             <p className="eyebrow">{t.home.eyebrow}</p>
-            <h1 className="text-5xl leading-[1.05] font-semibold sm:text-6xl lg:text-7xl">
+            <h1 className="text-4xl leading-[1.08] font-semibold sm:text-5xl lg:text-6xl">
               {t.home.titleA}{" "}
-              <span className="bg-gradient-to-r from-gold-soft to-gold bg-clip-text text-transparent italic">{t.home.titleB}</span>
+              <span className="mt-3 block bg-gradient-to-r from-gold-soft to-gold bg-clip-text text-3xl leading-tight text-transparent italic sm:text-4xl lg:text-5xl">
+                {t.home.titleB}
+              </span>
             </h1>
             <p className="max-w-xl text-lg text-ink/80">{t.home.intro}</p>
             <div className="flex flex-wrap gap-3">

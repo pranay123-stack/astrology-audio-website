@@ -11,7 +11,7 @@ const audioState = (page: Page) =>
 test("home page shows the main sections and the sample-content notice", async ({ page }) => {
   await gotoReady(page, "/");
   // General astrology leads; cricket is further down the page for visitors who scroll.
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Discover Astrology");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Cricket Predictions & Life Astrology");
   await expect(page.getByTestId("hero-latest").filter({ visible: true })).toContainText("Latest reading");
   const order = await page.evaluate(() =>
     ["explore-heading", "featured-heading", "cricket-heading", "kp-promo-heading", "about-heading"].map((id) => document.getElementById(id)?.getBoundingClientRect().top ?? -1),
@@ -38,7 +38,7 @@ test("home page shows the main sections and the sample-content notice", async ({
 test("Hindi site: translated interface at /hi, and the switch keeps the page and filters", async ({ page }) => {
   await gotoReady(page, "/hi");
   await expect(page.locator("html")).toHaveAttribute("lang", "hi");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("ज्योतिष को जानिए");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("क्रिकेट भविष्यवाणी और जीवन ज्योतिष");
   const nav = await page.getByRole("navigation", { name: "मुख्य" }).filter({ visible: true }).getByRole("link").allInnerTexts();
   expect(nav).toEqual(["ज्योतिष", "एस्ट्रो क्रिकेट", "पुस्तक", "कुंडली शोध", "प्रीमियम", "अपनी KP कुंडली बनाएँ", "संपर्क", "नियम", "प्रशंसापत्र"]);
   // Menu links stay inside /hi.
