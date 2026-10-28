@@ -14,7 +14,7 @@ test("home page shows the main sections and the sample-content notice", async ({
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Cricket Predictions & Life Astrology");
   await expect(page.getByTestId("hero-latest").filter({ visible: true })).toContainText("Latest reading");
   const order = await page.evaluate(() =>
-    ["explore-heading", "featured-heading", "cricket-heading", "kp-promo-heading", "about-heading"].map((id) => document.getElementById(id)?.getBoundingClientRect().top ?? -1),
+    ["featured-heading", "cricket-heading", "kp-promo-heading", "mantra-heading", "about-heading"].map((id) => document.getElementById(id)?.getBoundingClientRect().top ?? -1),
   );
   expect(order.every((y, i) => y > 0 && (i === 0 || y > order[i - 1]))).toBe(true);
   // The astrologer's menu; Premium shows only because the sample content has premium posts.
@@ -27,11 +27,14 @@ test("home page shows the main sections and the sample-content notice", async ({
   await expect(page.getByRole("heading", { name: "Latest in Astrology" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Cricket Astrology", exact: true })).toBeVisible();
   await expect(page.getByTestId("match-card").filter({ visible: true })).toHaveCount(3);
-  // The sections of the menu, each with its sub-pages.
-  const explore = page.getByTestId("home-explore");
-  await expect(explore.locator("article")).toHaveCount(6);
-  await expect(explore.getByRole("link", { name: "12 Planets & 12 Bhav" })).toHaveAttribute("href", "/astrology/planets-bhav");
-  await expect(explore.getByRole("link", { name: "IPL" })).toHaveAttribute("href", "/horoscope-research/matches?competition=ipl");
+  // The menu lists every section, so the page doesn't repeat it: one featured post with the next ones beside it,
+  // the KP chart and the book side by side, and the daily mantra.
+  await expect(page.getByTestId("home-explore")).toHaveCount(0);
+  await expect(page.getByTestId("hero-kp")).toHaveAttribute("href", "/kp-chart");
+  await expect(page.getByTestId("hero-stats")).toContainText("lessons & videos");
+  await expect(page.getByTestId("home-more-latest").locator("li")).toHaveCount(4);
+  await expect(page.getByTestId("home-book").getByRole("link", { name: "Listen & read" })).toHaveAttribute("href", "/book");
+  await expect(page.getByTestId("home-mantra").getByRole("link")).toHaveAttribute("href", "/rules");
   await expect(page.getByText(/not guarantee match outcomes/).first()).toBeVisible();
 });
 
@@ -42,8 +45,8 @@ test("Hindi site: translated interface at /hi, and the switch keeps the page and
   const nav = await page.getByRole("navigation", { name: "मुख्य" }).filter({ visible: true }).getByRole("link").allInnerTexts();
   expect(nav).toEqual(["ज्योतिष", "एस्ट्रो क्रिकेट", "पुस्तक", "कुंडली शोध", "प्रीमियम", "अपनी KP कुंडली बनाएँ", "संपर्क", "नियम", "प्रशंसापत्र"]);
   // Menu links stay inside /hi.
-  await expect(page.getByTestId("home-explore").getByRole("link", { name: "12 ग्रह और 12 भाव" })).toHaveAttribute("href", "/hi/astrology/planets-bhav");
-  await expect(page.getByRole("link", { name: "ज्योतिष ज्ञान देखें" })).toHaveAttribute("href", "/hi/astrology");
+  await expect(page.getByTestId("home-book").getByRole("link", { name: "सुनें और पढ़ें" })).toHaveAttribute("href", "/hi/book");
+  await expect(page.getByTestId("hero-kp")).toHaveAttribute("href", "/hi/kp-chart");
 
   // English → Hindi on a filtered listing keeps the filters.
   await gotoReady(page, "/astrology-audios?category=planets-grahas&sort=popular");

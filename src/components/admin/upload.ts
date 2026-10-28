@@ -86,8 +86,10 @@ export function readAudioDuration(file: File): Promise<number | null> {
 }
 
 /**
- * Takes a still from a video file in the browser (about a tenth of the way in, at most 3 s, to
- * skip black lead-in frames) as a JPEG, max 1280 px wide. Null if the browser cannot decode it.
+ * Takes a still from a video file in the browser as a JPEG, max 1280 px wide, or null if the
+ * browser cannot decode it. It tries about a tenth of the way in (at most 3 s, to skip lead-in),
+ * then later points, and skips frames that come out black: drawn straight after the seek, the
+ * frame was sometimes not decoded yet, which gave two posts an all-black cover.
  */
 export function captureVideoFrame(file: File): Promise<File | null> {
   return new Promise((resolve) => {
@@ -97,32 +99,54 @@ export function captureVideoFrame(file: File): Promise<File | null> {
     video.muted = true;
     video.playsInline = true;
     let settled = false;
+    let times: number[] = [];
     const done = (v: File | null) => {
       if (settled) return;
       settled = true;
+      clearTimeout(timer);
       URL.revokeObjectURL(url);
       resolve(v);
     };
-    const timer = setTimeout(() => done(null), 15_000);
-    video.onerror = () => {
-      clearTimeout(timer);
-      done(null);
+    const timer = setTimeout(() => done(null), 20_000);
+    const next = () => {
+      const t = times.shift();
+      if (t === undefined) return done(null);
+      video.currentTime = t;
     };
-    video.onloadedmetadata = () => {
-      const d = Number.isFinite(video.duration) ? video.duration : 0;
-      video.currentTime = Math.min(3, d * 0.1);
-    };
-    video.onseeked = () => {
-      clearTimeout(timer);
+    const grab = () => {
       const scale = Math.min(1, 1280 / (video.videoWidth || 1280));
       const canvas = document.createElement("canvas");
       canvas.width = Math.round((video.videoWidth || 1280) * scale);
       canvas.height = Math.round((video.videoHeight || 720) * scale);
-      const ctx = canvas.getContext("2d");
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
       if (!ctx || !video.videoWidth) return done(null);
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      if (isDark(ctx, canvas.width, canvas.height)) return next();
       canvas.toBlob((blob) => done(blob ? new File([blob], "video-thumbnail.jpg", { type: "image/jpeg" }) : null), "image/jpeg", 0.85);
     };
+    video.onerror = () => done(null);
+    video.onloadedmetadata = () => {
+      const d = Number.isFinite(video.duration) ? video.duration : 0;
+      times = [Math.min(3, d * 0.1), d * 0.25, d * 0.5].filter((t, i, all) => t >= 0 && all.indexOf(t) === i);
+      next();
+    };
+    // The element is never on the page, so frame callbacks don't fire; give the decoder a moment instead.
+    video.onseeked = () => setTimeout(grab, 200);
     video.src = url;
   });
+}
+
+/** Average brightness of a small grid of samples below about 6%: a black (or not yet painted) frame. */
+function isDark(ctx: CanvasRenderingContext2D, w: number, h: number): boolean {
+  const { data } = ctx.getImageData(0, 0, w, h);
+  let sum = 0;
+  let n = 0;
+  for (let y = 0; y < h; y += Math.max(1, Math.floor(h / 24))) {
+    for (let x = 0; x < w; x += Math.max(1, Math.floor(w / 24))) {
+      const k = (y * w + x) * 4;
+      sum += (data[k] + data[k + 1] + data[k + 2]) / 3;
+      n++;
+    }
+  }
+  return n > 0 && sum / n < 15;
 }

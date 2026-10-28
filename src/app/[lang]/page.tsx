@@ -1,60 +1,65 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, BookOpen, Clapperboard, GraduationCap, Orbit, ScrollText, Sparkles, Telescope } from "lucide-react";
+import { ArrowRight, BookOpen, Compass, ExternalLink, GraduationCap, Headphones, Languages, Library, Quote, Sparkles } from "lucide-react";
 import { EpisodeCard } from "@/components/episodes/EpisodeCard";
-import { LearnCricketCta } from "@/components/episodes/LearnCricketCta";
 import { MatchCard } from "@/components/episodes/MatchCard";
 import { MediaAction } from "@/components/episodes/MediaAction";
 import { ReelsStrip } from "@/components/episodes/ReelsStrip";
-import { BookCard } from "@/components/layout/BookCard";
-import { KpPromo } from "@/components/layout/KpPromo";
 import { learnPath } from "@/components/layout/nav";
 import { QuotesBand } from "@/components/layout/QuotesBand";
 import { Starfield } from "@/components/layout/Starfield";
 import { ZodiacWheel } from "@/components/layout/ZodiacWheel";
 import { CricketDisclaimer } from "@/components/ui/Disclaimer";
 import { EmptyState, SectionHeading } from "@/components/ui/SectionHeading";
-import { ExploreMenu } from "@/components/topics/ExploreMenu";
-import { episodeHref, lengthLabel } from "@/lib/episodes";
+import { episodeHref, lengthLabel, posterUrl } from "@/lib/episodes";
 import { getDict, localePath, localizeEpisode, localizeProfile } from "@/lib/i18n";
 import { imageUrl } from "@/lib/media/urls";
 import { alternatesFor } from "@/lib/seo";
 import { getEpisodes, getProfile } from "@/lib/queries";
 import { getLang } from "@/lib/i18n/server";
+import { TOPICS } from "@/lib/topics";
+import type { EpisodeListing, Locale } from "@/lib/types";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { alternates: alternatesFor(await getLang(), "/") };
 }
 
+/**
+ * Home page, top to bottom: quotes, hero, the latest posts (one featured), cricket predictions,
+ * the KP chart and the book side by side, the daily mantra, testimonials and reels when there
+ * are any, and the astrologer. The menu already lists every section, so the page does not.
+ */
 export default async function HomePage() {
   const lang = await getLang();
   const t = getDict(lang);
   const href = (path: string) => localePath(lang, path);
-  const [latestGeneral, upcoming, recentCricket, guide, rawProfile] = await Promise.all([
-    getEpisodes({ section: "general", limit: 3, sort: "latest" }),
+  const [latest, upcoming, recentCricket, guide, testimonials, all, rawProfile] = await Promise.all([
+    getEpisodes({ section: "general", limit: 5, sort: "latest" }),
     getEpisodes({ section: "cricket", withMatch: true, timing: "upcoming", sort: "match_date_asc", limit: 3 }),
     getEpisodes({ section: "cricket", withMatch: true, sort: "latest", limit: 3 }),
     getEpisodes({ categorySlug: "cricket-astrology-guide", sort: "latest", limit: 3 }),
+    getEpisodes({ categorySlugs: [TOPICS.testimonialAudio.categorySlug, TOPICS.testimonialMessages.categorySlug], sort: "latest", limit: 3 }),
+    getEpisodes({ limit: 1 }),
     getProfile(),
   ]);
   const cricket = upcoming.items.length > 0 ? upcoming.items : recentCricket.items;
-  // Shortcuts under the hero to the menu's main pages.
-  const shortcuts = [
-    { key: "planetsBhav", path: "/astrology/planets-bhav", icon: Orbit },
-    { key: "kpResearch", path: "/astrology/kp-research", icon: Telescope },
-    { key: "podcast", path: "/astro-cricket/videos", icon: Clapperboard },
-    { key: "book", path: "/book", icon: BookOpen },
-    { key: "research", path: "/horoscope-research", icon: ScrollText },
-  ] as const;
   const profile = localizeProfile(rawProfile, lang);
   const portrait = imageUrl(profile.profile_image_path);
-  const heroEpisode = latestGeneral.items[0] ? localizeEpisode(latestGeneral.items[0], lang) : null;
+  const amazon = profile.social_links?.amazon;
+  const [featured, ...more] = latest.items;
+  const heroEpisode = featured ? localizeEpisode(featured, lang) : null;
+  const stats = [
+    { icon: Library, text: t.home.statPosts(all.total) },
+    { icon: Compass, text: t.home.statKp },
+    { icon: Languages, text: t.home.statLangs },
+  ];
 
   return (
     <>
       <QuotesBand lang={lang} />
-      {/* Hero: general astrology first; cricket readings are further down the page */}
+
+      {/* Hero */}
       <section className="relative isolate overflow-hidden">
         <Starfield />
         <div className="container-page relative grid items-center gap-12 py-16 sm:py-24 lg:grid-cols-[1.15fr_1fr] lg:py-28">
@@ -71,19 +76,14 @@ export default async function HomePage() {
               <Link href={href(learnPath(t.learn.subject))} className="btn-gold px-6 py-3 text-base" data-testid="hero-learn">
                 <GraduationCap className="h-5 w-5" aria-hidden /> {t.nav.learn}
               </Link>
-              <Link href={href("/astrology")} className="btn-ghost px-6 py-3 text-base">
-                <Sparkles className="h-5 w-5" aria-hidden /> {t.home.listen}
+              <Link href={href("/kp-chart")} className="btn-ghost px-6 py-3 text-base" data-testid="hero-kp">
+                <Compass className="h-5 w-5" aria-hidden /> {t.menu.kpChart}
               </Link>
             </div>
-            <ul className="flex flex-wrap gap-2" aria-label={t.home.popularCategories}>
-              {shortcuts.map((c) => (
-                <li key={c.key}>
-                  <Link
-                    href={href(c.path)}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-line bg-white/5 px-3 py-1.5 text-sm text-ink/80 hover:border-gold/50 hover:text-gold-soft"
-                  >
-                    <c.icon className="h-4 w-4" aria-hidden /> {t.menu[c.key]}
-                  </Link>
+            <ul className="flex flex-wrap gap-x-6 gap-y-2 border-t border-line pt-5 text-sm text-ink/75" data-testid="hero-stats">
+              {stats.map((s) => (
+                <li key={s.text} className="inline-flex items-center gap-2">
+                  <s.icon className="h-4 w-4 text-gold-soft" aria-hidden /> {s.text}
                 </li>
               ))}
             </ul>
@@ -112,9 +112,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <ExploreMenu lang={lang} youtube={profile.social_links?.youtube || undefined} />
-
-      {/* Latest general posts */}
+      {/* Latest: one featured post, the next ones listed beside it */}
       <section className="container-page py-16" aria-labelledby="featured-heading">
         <SectionHeading
           id="featured-heading"
@@ -124,18 +122,28 @@ export default async function HomePage() {
           href={href("/astrology")}
           linkLabel={t.home.browseAll}
         />
-        {latestGeneral.items.length ? (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {latestGeneral.items.map((e, i) => (
-              <EpisodeCard key={e.id} episode={e} lang={lang} priority={i === 0} />
-            ))}
+        {featured ? (
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+            <EpisodeCard episode={featured} lang={lang} priority />
+            {more.length > 0 && (
+              <div className="card flex flex-col p-5" data-testid="home-more-latest">
+                <p className="eyebrow mb-3">{t.home.moreLatest}</p>
+                <ul className="divide-y divide-line">
+                  {more.map((e) => (
+                    <li key={e.id}>
+                      <CompactPost episode={e} lang={lang} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         ) : (
           <EmptyState title={t.home.noEpisodes}>{t.home.noEpisodesBody}</EmptyState>
         )}
       </section>
 
-      {/* Cricket astrology: match readings when there are any, and the guide articles */}
+      {/* Cricket predictions: match readings when there are any, otherwise the guide */}
       <section className="relative py-16" aria-labelledby="cricket-heading">
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-transparent via-plum/30 to-transparent" />
         <div className="container-page">
@@ -144,35 +152,97 @@ export default async function HomePage() {
             eyebrow={t.home.cricketEyebrow}
             title={t.home.cricketTitle}
             description={upcoming.items.length ? t.home.cricketUpcoming : recentCricket.items.length ? t.home.cricketRecent : t.home.cricketGuide}
-            href={href("/horoscope-research/matches")}
-            linkLabel={t.home.allMatchReadings}
+            href={href(cricket.length ? "/horoscope-research/matches" : "/astrology/kp-research")}
+            linkLabel={cricket.length ? t.home.allMatchReadings : t.home.seeAll}
           />
-          {cricket.length > 0 && (
+          {cricket.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {cricket.map((e) => (
                 <MatchCard key={e.id} episode={e} lang={lang} />
               ))}
             </div>
-          )}
-          {guide.items.length > 0 && (
-            <div className={`grid gap-6 sm:grid-cols-2 lg:grid-cols-3 ${cricket.length ? "mt-8" : ""}`} data-testid="home-cricket-guide">
+          ) : guide.items.length > 0 ? (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-testid="home-cricket-guide">
               {guide.items.map((e) => (
                 <EpisodeCard key={e.id} episode={e} lang={lang} />
               ))}
             </div>
+          ) : (
+            <EmptyState title={t.home.matchSoon}>{t.home.matchSoonBody}</EmptyState>
           )}
-          {cricket.length === 0 && guide.items.length === 0 && <EmptyState title={t.home.matchSoon}>{t.home.matchSoonBody}</EmptyState>}
           <CricketDisclaimer lang={lang} className="mt-8" />
         </div>
       </section>
 
-      <KpPromo lang={lang} />
+      {/* Spotlights: the free KP chart and the book */}
+      <section className="container-page grid gap-6 py-16 lg:grid-cols-2">
+        <div className="card relative flex flex-col gap-5 overflow-hidden p-8" data-testid="kp-promo">
+          <ZodiacWheel className="pointer-events-none absolute -right-20 -bottom-24 h-80 w-80 opacity-15" />
+          <p className="eyebrow relative flex items-center gap-2">
+            <Compass className="h-4 w-4" aria-hidden /> {t.home.kpEyebrow}
+          </p>
+          <h2 id="kp-promo-heading" className="relative text-3xl font-semibold sm:text-4xl">{t.home.kpTitle}</h2>
+          <p className="relative text-ink/80">{t.home.kpBody}</p>
+          <Link href={href("/kp-chart")} className="btn-gold relative mt-auto self-start px-6 py-3 text-base">
+            <Sparkles className="h-5 w-5" aria-hidden /> {t.home.kpCta}
+          </Link>
+        </div>
+        <div className="card relative flex flex-col gap-5 overflow-hidden p-8 sm:flex-row sm:items-start" data-testid="home-book">
+          {/* A drawn book cover: no cover image is available. */}
+          <div className="flex h-44 w-32 shrink-0 flex-col justify-between rounded-r-lg rounded-l-sm border-l-4 border-gold bg-gradient-to-br from-plum-2 to-night p-3 shadow-[var(--shadow-glow)]">
+            <BookOpen className="h-5 w-5 text-gold-soft" aria-hidden />
+            <p lang="en" className="font-display text-sm leading-tight text-gold-soft">{t.home.bookTitle}</p>
+            <p className="text-[9px] tracking-wide text-ink/70 uppercase">{profile.display_name}</p>
+          </div>
+          <div className="flex flex-1 flex-col gap-4">
+            <p className="eyebrow">{t.home.bookEyebrow}</p>
+            <h2 lang="en" className="text-3xl font-semibold">“{t.home.bookTitle}”</h2>
+            <p className="text-ink/80">{t.home.bookBody}</p>
+            <div className="mt-auto flex flex-wrap gap-3">
+              <Link href={href("/book")} className="btn-gold">
+                <Headphones className="h-4 w-4" aria-hidden /> {t.home.bookListen}
+              </Link>
+              {amazon && (
+                <a href={amazon} target="_blank" rel="noopener noreferrer" className="btn-ghost" data-testid="book-buy">
+                  <ExternalLink className="h-4 w-4" aria-hidden /> {t.home.bookCta}
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* The daily mantra from the Shani rules */}
+      <section className="relative isolate overflow-hidden border-y border-line py-16" aria-labelledby="mantra-heading" data-testid="home-mantra">
+        <Starfield />
+        <div className="container-page relative mx-auto max-w-3xl space-y-5 text-center">
+          <p id="mantra-heading" className="eyebrow">{t.home.mantraEyebrow}</p>
+          <Quote className="mx-auto h-8 w-8 text-gold-soft" aria-hidden />
+          <p lang="en" className="font-display text-4xl leading-tight text-ink italic sm:text-5xl">“{t.home.mantra}”</p>
+          <Link href={href("/rules")} className="inline-flex items-center gap-1.5 text-sm font-semibold text-gold-soft hover:underline">
+            {t.home.mantraLink} <ArrowRight className="h-4 w-4" aria-hidden />
+          </Link>
+        </div>
+      </section>
+
+      {testimonials.items.length > 0 && (
+        <section className="container-page py-16" aria-labelledby="testimonials-heading">
+          <SectionHeading
+            id="testimonials-heading"
+            eyebrow={t.home.testimonialsEyebrow}
+            title={t.home.testimonialsTitle}
+            href={href("/testimonials")}
+            linkLabel={t.home.seeAll}
+          />
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {testimonials.items.map((e) => (
+              <EpisodeCard key={e.id} episode={e} lang={lang} />
+            ))}
+          </div>
+        </section>
+      )}
 
       <ReelsStrip lang={lang} />
-
-      <section className="container-page py-8">
-        <LearnCricketCta lang={lang} />
-      </section>
 
       {/* About the astrologer: last section before the footer */}
       <section className="container-page py-16" aria-labelledby="about-heading">
@@ -195,14 +265,38 @@ export default async function HomePage() {
                 ))}
               </ul>
             )}
-            <Link href={href("/about")} className="inline-flex items-center gap-1.5 text-sm font-semibold text-gold-soft">
-              {t.home.readMore} <ArrowRight className="h-4 w-4" aria-hidden />
-            </Link>
-            <BookCard amazonUrl={profile.social_links?.amazon} lang={lang} />
+            <div className="flex flex-wrap items-center gap-4 pt-2">
+              <Link href={href(learnPath(t.learn.subject))} className="btn-gold">
+                <GraduationCap className="h-4 w-4" aria-hidden /> {t.nav.learn}
+              </Link>
+              <Link href={href("/about")} className="inline-flex items-center gap-1.5 text-sm font-semibold text-gold-soft">
+                {t.home.readMore} <ArrowRight className="h-4 w-4" aria-hidden />
+              </Link>
+            </div>
           </div>
         </div>
       </section>
-
     </>
+  );
+}
+
+/** One line of the "more new posts" list: small cover, title and what it contains. */
+function CompactPost({ episode: raw, lang }: { episode: EpisodeListing; lang: Locale }) {
+  const e = localizeEpisode(raw, lang);
+  const cover = posterUrl(e);
+  return (
+    <Link href={episodeHref(e, lang)} className="group flex items-center gap-4 py-3">
+      <span className="relative h-16 w-24 shrink-0 overflow-hidden rounded-lg border border-line bg-plum">
+        {cover && <Image src={cover} alt="" fill sizes="96px" className="object-cover transition group-hover:scale-105" />}
+      </span>
+      <span className="min-w-0">
+        <span lang={e.text_lang} className="line-clamp-2 font-semibold leading-snug group-hover:text-gold-soft">
+          {e.title}
+        </span>
+        <span className="mt-1 block text-xs text-muted">
+          {e.category.name} · {lengthLabel(e, lang)}
+        </span>
+      </span>
+    </Link>
   );
 }
