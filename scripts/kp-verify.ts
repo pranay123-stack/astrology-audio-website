@@ -12,6 +12,7 @@
 import { readFileSync } from "node:fs";
 import { computeKpChart } from "../src/lib/kp/engine";
 import { formatDms, SIGNS, vimshottari } from "../src/lib/kp/lords";
+import { ASPECTS, computeAspects } from "../src/lib/kp/aspects";
 import { computeSignificators, KP9 } from "../src/lib/kp/significators";
 
 interface RefItem { key: string | number; sign: string; deg: number; min: number; sec: number; star: string; sub: string }
@@ -33,6 +34,8 @@ interface RefChart {
     retrograde_includes?: string[];
     padas?: Record<string, number>;
     strength_sub?: Record<string, number[][]>;
+    /** Planetary aspects rows as read off the screen: planet -> aspect -> planets (empty cells left out). */
+    aspects?: Record<string, Record<string, string[]>>;
   };
 }
 
@@ -119,6 +122,14 @@ for (const c of charts) {
       const ours = chart.planets.find((p) => p.key === k)!.pada;
       check(`pada ${k}`, ours === pada, `ref ${pada} ours ${ours}`);
     }
+    if (x.aspects) {
+      const ours = computeAspects(chart.planets);
+      for (const k of Object.keys(x.aspects) as (typeof KP9)[number][]) {
+        const mine = Object.fromEntries(ASPECTS.flatMap((a) => (ours[k][a.key].length ? [[a.key, ours[k][a.key]]] : [])));
+        const ref = Object.fromEntries(ASPECTS.flatMap((a) => (x.aspects![k][a.key] ? [[a.key, x.aspects![k][a.key]]] : [])));
+        check(`aspects ${k}`, same(mine, ref), `ref ${JSON.stringify(ref)} ours ${JSON.stringify(mine)}`);
+      }
+    }
   }
 
   // One Vimshottari cycle covers 120 years from birth, which includes every reference period.
@@ -134,7 +145,7 @@ console.log(`Charts: ${charts.length}`);
 console.log(`Degrees within 1.5": ${degOk}/${total} (largest difference among matches: ${worst.toFixed(2)}")`);
 console.log(`Star·sub lords identical: ${lordOk}/${total}`);
 console.log(`Maha dasha start and end dates: ${dashaOk * 2}/${charts.length * 2}`);
-console.log(`Displayed ayanamsa, tables and badges (ABCD, sub lord houses, U, R, pada): ${extraOk}/${extraTotal}`);
+console.log(`Displayed ayanamsa, tables and badges (ABCD, sub lord houses, U, R, pada, aspects): ${extraOk}/${extraTotal}`);
 if (problems.length) {
   console.log("\nMismatches:\n  " + problems.join("\n  "));
   process.exit(1);

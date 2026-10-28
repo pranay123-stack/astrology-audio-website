@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { computeAspects, type KpAspects } from "./aspects";
 import { computeKpChart, type KpCusp, type KpPlanet } from "./engine";
 import { vimshottari, type DashaPeriod } from "./lords";
 import { computeSignificators, type KpSignificators } from "./significators";
@@ -38,6 +39,7 @@ export interface KpChartResult {
   planets: KpPlanet[];
   cusps: KpCusp[];
   significators: KpSignificators;
+  aspects: KpAspects;
   dasha: DashaPeriod[];
 }
 
@@ -57,6 +59,7 @@ export function buildKpChart(data: BirthData): KpChartResult {
     planets: chart.planets,
     cusps: chart.cusps,
     significators: computeSignificators(chart.planets, chart.cusps),
+    aspects: computeAspects(chart.planets),
     dasha: vimshottari(utcMs, moon.lon, 3),
   };
 }

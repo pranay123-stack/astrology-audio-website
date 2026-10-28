@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { computeKpChart, kpNewMeanAyanamsa } from "@/lib/kp/engine";
 import { DASHA_YEAR_DAYS, describe as kp, formatDms, NAK_SPAN, vimshottari } from "@/lib/kp/lords";
+import { ASPECT_ORB, computeAspects, separation } from "@/lib/kp/aspects";
 import { computeSignificators, houseOf, KP9 } from "@/lib/kp/significators";
 import { formatOffset, localToUtc } from "@/lib/kp/time";
 
@@ -102,5 +103,33 @@ describe("KP chart engine", () => {
       const h = houseOf(chart.planets.find((p) => p.key === k)!.lon, cuspLons);
       expect(sig.houses[h].B).toContain(k);
     }
+  });
+});
+
+describe("planetary aspects", () => {
+  // Made-up positions: only the angles between planets matter.
+  const at = (lons: Record<string, number>) => KP9.map((key) => ({ key, ...kp(lons[key]) }));
+  const base = { Su: 0, Mo: 200, Ma: 92, Me: 333, Ju: 165, Ve: 47.5, Sa: 254.5, Ra: 300, Ke: 120 };
+
+  it("finds each aspect within the casting planet's orb", () => {
+    const a = computeAspects(at(base));
+    expect(a.Ma.square).toEqual(["Su"]); // 92°: within the Sun's orb
+    expect(a.Su.square).toEqual(["Ma"]); // and within Mars' 4°
+    expect(a.Ve.semiSquare).toEqual(["Su", "Ma"]); // 47.5° and 44.5°
+    expect(a.Ra.opposition).toEqual(["Ke"]);
+    expect(a.Ke.opposition).toEqual(["Ra"]);
+  });
+
+  it("gives the Sun a wider orb than the others, so an aspect can show in one row only", () => {
+    // Saturn 140.5° from the Sun: 5.5° off an exact sesquisquare.
+    const a = computeAspects(at({ ...base, Sa: 140.5 }));
+    expect(a.Sa.sesquisquare).toEqual(["Su"]); // the Sun's 6° orb
+    expect(a.Su.sesquisquare).toEqual([]); // Saturn's 4° orb
+    expect(ASPECT_ORB.Su).toBeGreaterThan(ASPECT_ORB.Sa);
+  });
+
+  it("measures separation the short way round", () => {
+    expect(separation(350, 10)).toBe(20);
+    expect(separation(10, 190)).toBe(180);
   });
 });

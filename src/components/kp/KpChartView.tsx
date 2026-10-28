@@ -1,53 +1,56 @@
 "use client";
 
-import { Fragment, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { Fragment, useMemo, useState, type ReactNode } from "react";
+import { ArrowLeft, ChevronDown, ChevronRight } from "lucide-react";
 import type { KpChartResult } from "@/lib/kp/build";
+import { ASPECTS } from "@/lib/kp/aspects";
 import type { KpCusp, KpPlanet } from "@/lib/kp/engine";
 import { formatDms, SIGN_LORDS, type DashaPeriod } from "@/lib/kp/lords";
-import { KP9, type Kp9 } from "@/lib/kp/significators";
+import { KP9, type Kp9, type Signification } from "@/lib/kp/significators";
 import { formatOffset } from "@/lib/kp/time";
 import { useI18n } from "@/lib/i18n/client";
 import { intlLocale } from "@/lib/i18n";
-import { PLANET_NAMES, ROMAN, SIGN_NAMES, SOUTH_INDIAN_CELL } from "./names";
+import { PLANET_NAMES, ROMAN, SIGN_GLYPHS, SIGN_NAMES, SOUTH_INDIAN_CELL } from "./names";
 
 type Item = { kind: "planet"; p: KpPlanet } | { kind: "cusp"; c: KpCusp };
+type Selected = { kind: "planet"; key: string } | { kind: "cusp"; house: number };
 
 const list = (h: number[]) => (h.length ? h.join(", ") : "–");
+/** d°mm'ss" with two-digit degrees, as KP software prints positions inside the chart. */
+const dms2 = (deg: number) => formatDms(deg).replace(/^(\d)°/, "0$1°");
+const union = (sigs: Signification[]) => ({
+  occupies: [...new Set(sigs.flatMap((s) => s.occupies))].sort((a, b) => a - b),
+  owns: [...new Set(sigs.flatMap((s) => s.owns))].sort((a, b) => a - b),
+});
 
 function Badges({ planet, unoccupied }: { planet: KpPlanet; unoccupied: boolean }) {
   const { t } = useI18n();
   return (
     <>
       {planet.retrograde && (
-        <sup className="ml-0.5 text-[10px] font-bold text-red-300" title={t.kp.retro}>R</sup>
+        <sub className="ml-px text-[0.7em] font-bold text-red-300" title={t.kp.retro}>R</sub>
       )}
       {unoccupied && (
-        <sup className="ml-0.5 text-[10px] font-bold text-sky-300" title={t.kp.unoccupied}>U</sup>
+        <sup className="ml-0.5 text-[0.7em] font-bold text-sky-300" title={t.kp.unoccupied}>U</sup>
       )}
     </>
   );
 }
 
-/** Interactive KP chart: South Indian grid with clickable boxes, tables and dasha. */
-export function KpChartView({ chart }: { chart: KpChartResult }) {
+/** Interactive KP chart: South Indian grid (details open in its centre), tables, aspects and dasha. */
+export function KpChartView({ chart, header }: { chart: KpChartResult; header?: ReactNode }) {
   const { lang, t } = useI18n();
   const k = t.kp;
   const sig = chart.significators;
   const signs = SIGN_NAMES[lang];
-  const pname = PLANET_NAMES[lang];
-  const [selected, setSelected] = useState<number | null>(null);
   const [abcdView, setAbcdView] = useState<"planets" | "houses">("planets");
+  const [tableView, setTableView] = useState<"planets" | "houses">("planets");
+  const [house, setHouse] = useState(0);
 
-  const bySign = useMemo(() => {
-    const out: Item[][] = Array.from({ length: 12 }, () => []);
-    for (const p of chart.planets) out[p.signIndex].push({ kind: "planet", p });
-    for (const c of chart.cusps) out[c.signIndex].push({ kind: "cusp", c });
-    for (const items of out) items.sort((a, b) => (a.kind === "planet" ? a.p.lon : a.c.lon) - (b.kind === "planet" ? b.p.lon : b.c.lon));
-    return out;
-  }, [chart]);
-
+  const retro = useMemo(() => new Set(chart.planets.filter((p) => p.retrograde).map((p) => p.key as string)), [chart]);
   const isU = (key: string) => sig.unoccupied.includes(key as Kp9);
+  /** A lord's abbreviation, red when that planet is retrograde (as in KP software). */
+  const lord = (of: string) => <span className={retro.has(of) ? "text-red-300" : undefined}>{of}</span>;
   const fmtDate = (ms: number, withTime = false) =>
     new Intl.DateTimeFormat(intlLocale(lang), {
       timeZone: "UTC",
@@ -56,13 +59,11 @@ export function KpChartView({ chart }: { chart: KpChartResult }) {
       year: "numeric",
       ...(withTime ? { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false } : {}),
     }).format(new Date(ms + (withTime ? chart.offsetMinutes * 60_000 : 0)));
-
   const asc = chart.cusps[0];
-  const sel = selected === null ? null : bySign[selected];
+  const hl = (houses: number[]) => (house && houses.includes(house) ? "bg-gold/25 font-semibold text-gold-soft" : "");
 
   return (
-    <div className="space-y-8" data-testid="kp-chart">
-      {/* Header */}
+    <div className="space-y-6" data-testid="kp-chart">
       <section className="card space-y-2 p-6">
         <h2 className="text-3xl font-semibold">{chart.input.name || k.chart}</h2>
         <p className="text-sm text-ink/85">
@@ -72,203 +73,30 @@ export function KpChartView({ chart }: { chart: KpChartResult }) {
           {chart.input.lat.toFixed(4)}°, {chart.input.lon.toFixed(4)}° · {chart.input.zone} · {k.ayanamsa} {formatDms(chart.ayanamsaShown)}
         </p>
         <p className="text-sm">
-          Asc: <strong>{signs[asc.signIndex]} {formatDms(asc.degInSign)}</strong> · {k.signLord} {asc.signLord} · {k.starLord} {asc.starLord} · {k.subLord} {asc.subLord}
+          Asc: <strong>{signs[asc.signIndex]} {formatDms(asc.degInSign)}</strong> · {k.signLord} {lord(asc.signLord)} · {k.starLord}{" "}
+          {lord(asc.starLord)} · {k.subLord} {lord(asc.subLord)}
         </p>
+        {header}
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-        {/* South Indian chart */}
-        <section aria-labelledby="kp-chart-heading">
-          <div className="mb-3 flex items-baseline justify-between gap-3">
-            <h2 id="kp-chart-heading" className="text-2xl font-semibold">{k.chart}</h2>
-            <span className="text-xs text-muted">{k.tapHint}</span>
-          </div>
-          <div className="grid aspect-square grid-cols-4 grid-rows-4 overflow-hidden rounded-2xl border border-gold/40 bg-night/60" data-testid="kp-grid">
-            {SOUTH_INDIAN_CELL.map(([row, col], signIndex) => {
-              const items = bySign[signIndex];
-              const active = selected === signIndex;
-              return (
-                <button
-                  key={signIndex}
-                  type="button"
-                  onClick={() => setSelected(active ? null : signIndex)}
-                  aria-pressed={active}
-                  aria-label={signs[signIndex]}
-                  style={{ gridRow: row + 1, gridColumn: col + 1 }}
-                  className={`relative flex min-w-0 flex-col overflow-hidden border border-gold/25 p-1 text-left transition sm:p-1.5 ${
-                    active ? "bg-gold/20 ring-2 ring-gold ring-inset" : "hover:bg-white/5"
-                  }`}
-                  data-testid={`kp-box-${signIndex}`}
-                  data-cusps={items.flatMap((it) => (it.kind === "cusp" ? [it.c.house] : [])).join(" ")}
-                >
-                  <span className="flex items-center justify-between text-[9px] text-muted sm:text-[11px]">
-                    <span className="truncate">{signs[signIndex]}</span>
-                  </span>
-                  <span className="mt-0.5 flex flex-col gap-px">
-                    {items.map((it) =>
-                      it.kind === "planet" ? (
-                        <span key={it.p.key} className="flex items-baseline gap-1 text-[10px] leading-tight sm:text-xs">
-                          <span className="font-semibold text-gold-soft">
-                            {it.p.key}
-                            <Badges planet={it.p} unoccupied={isU(it.p.key)} />
-                          </span>
-                          <span className="tabular-nums text-ink/90">{formatDms(it.p.degInSign).replace(/"$/, "")}</span>
-                          <span className="ml-auto hidden text-[9px] text-muted md:inline">{it.p.starLord}·{it.p.subLord}</span>
-                        </span>
-                      ) : (
-                        <span key={`c${it.c.house}`} className="flex items-baseline gap-1 text-[10px] leading-tight sm:text-xs">
-                          <span className="font-bold text-ink">{ROMAN[it.c.house - 1]}</span>
-                          <span className="tabular-nums text-ink/80">{formatDms(it.c.degInSign).replace(/"$/, "")}</span>
-                          <span className="ml-auto hidden text-[9px] text-muted md:inline">{it.c.starLord}·{it.c.subLord}</span>
-                        </span>
-                      ),
-                    )}
-                  </span>
-                </button>
-              );
-            })}
-            <div className="col-span-2 col-start-2 row-span-2 row-start-2 flex flex-col items-center justify-center gap-1 border border-gold/25 p-2 text-center">
-              <p className="font-display text-base font-semibold sm:text-xl">{chart.input.name || k.chart}</p>
-              <p className="text-[10px] text-muted sm:text-xs">{fmtDate(chart.utcMs, true)}</p>
-              <p className="text-[10px] text-gold sm:text-xs">KP New</p>
-            </div>
-          </div>
-        </section>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)_minmax(0,1fr)]">
+        <ChartGrid chart={chart} lord={lord} isU={isU} fmtDate={fmtDate} />
 
-        {/* Box details */}
-        <section className="card p-5" aria-live="polite" data-testid="kp-details">
-          {sel === null ? (
-            <p className="text-sm text-muted">{k.tapHint}.</p>
-          ) : (
-            <div className="space-y-4">
-              <h3 className="text-2xl font-semibold">
-                {signs[selected!]} <span className="text-base font-normal text-muted">· {k.signLord} {pname[SIGN_LORDS[selected!]]}</span>
-              </h3>
-              {sel.length === 0 && <p className="text-sm text-muted">{k.empty}</p>}
-              {sel.map((it) =>
-                it.kind === "planet" ? (
-                  <div key={it.p.key} className="rounded-xl border border-line p-3 text-sm">
-                    <p className="font-semibold text-gold-soft">
-                      {pname[it.p.key]} ({it.p.key}) {it.p.retrograde && <span className="text-red-300">· {k.retro}</span>}
-                    </p>
-                    <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1">
-                      <dt className="text-muted">{k.position}</dt><dd>{formatDms(it.p.degInSign)}</dd>
-                      <dt className="text-muted">{k.star}</dt><dd>{it.p.nakshatra} – {it.p.pada}</dd>
-                      <dt className="text-muted">{k.starLord}</dt><dd>{it.p.starLord}</dd>
-                      <dt className="text-muted">{k.subLord}</dt><dd>{it.p.subLord}</dd>
-                      <dt className="text-muted">{k.subSubLord}</dt><dd>{it.p.subSubLord}</dd>
-                      {KP9.includes(it.p.key as Kp9) && (
-                        <>
-                          <dt className="text-muted">{k.occupies}</dt><dd>{list(sig.self[it.p.key as Kp9].occupies)}</dd>
-                          <dt className="text-muted">{k.owns}</dt><dd>{list(sig.self[it.p.key as Kp9].owns)}</dd>
-                          <dt className="text-muted">A · B · C · D</dt>
-                          <dd>
-                            {(["A", "B", "C", "D"] as const).map((l) => list(sig.abcd[it.p.key as Kp9][l])).join(" · ")}
-                          </dd>
-                        </>
-                      )}
-                    </dl>
-                  </div>
-                ) : (
-                  <div key={`c${it.c.house}`} className="rounded-xl border border-line p-3 text-sm">
-                    <p className="font-semibold">{k.house} {ROMAN[it.c.house - 1]} ({it.c.house})</p>
-                    <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1">
-                      <dt className="text-muted">{k.position}</dt><dd>{formatDms(it.c.degInSign)}</dd>
-                      <dt className="text-muted">{k.star}</dt><dd>{it.c.nakshatra} – {it.c.pada}</dd>
-                      <dt className="text-muted">{k.signLord}</dt><dd>{it.c.signLord}</dd>
-                      <dt className="text-muted">{k.starLord}</dt><dd>{it.c.starLord}</dd>
-                      <dt className="text-muted">{k.subLord}</dt><dd>{it.c.subLord}</dd>
-                      <dt className="text-muted">{k.subSubLord}</dt><dd>{it.c.subSubLord}</dd>
-                    </dl>
-                    <p className="mt-2 text-xs text-muted">{k.signifiedBy}</p>
-                    <p className="text-xs">
-                      {(["A", "B", "C", "D"] as const).map((l) => `${l}: ${sig.houses[it.c.house][l].join(", ") || "–"}`).join(" · ")}
-                    </p>
-                  </div>
-                ),
-              )}
-            </div>
-          )}
-        </section>
-      </div>
-
-      {/* Planets */}
-      <section className="card overflow-x-auto p-5" aria-labelledby="kp-planets">
-        <h2 id="kp-planets" className="mb-4 text-2xl font-semibold">{k.planets}</h2>
-        <table className="w-full min-w-[720px] text-sm" data-testid="kp-planets-table">
-          <thead className="text-left text-xs text-muted">
-            <tr>
-              <th className="py-2">{k.planet}</th><th>{k.sign}</th><th>{k.position}</th><th>{k.star}</th>
-              <th>{k.signLord}</th><th>{k.starLord}</th><th>{k.subLord}</th><th>{k.occupies}</th><th>{k.owns}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {chart.planets.map((p) => {
-              const s = KP9.includes(p.key as Kp9) ? sig.self[p.key as Kp9] : null;
-              return (
-                <tr key={p.key} className="border-t border-line">
-                  <td className="py-2 font-semibold text-gold-soft">{p.key}<Badges planet={p} unoccupied={isU(p.key)} /></td>
-                  <td>{signs[p.signIndex]}</td>
-                  <td className="tabular-nums">{formatDms(p.degInSign)}</td>
-                  <td>{p.nakshatra} – {p.pada}</td>
-                  <td>{p.signLord}</td><td>{p.starLord}</td><td>{p.subLord}</td>
-                  <td>{s ? list(s.occupies) : ""}</td><td>{s ? list(s.owns) : ""}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </section>
-
-      {/* Cusps */}
-      <section className="card overflow-x-auto p-5" aria-labelledby="kp-cusps">
-        <h2 id="kp-cusps" className="mb-4 text-2xl font-semibold">{k.cusps}</h2>
-        <table className="w-full min-w-[640px] text-sm">
-          <thead className="text-left text-xs text-muted">
-            <tr><th className="py-2">{k.house}</th><th>{k.sign}</th><th>{k.position}</th><th>{k.star}</th><th>{k.signLord}</th><th>{k.starLord}</th><th>{k.subLord}</th></tr>
-          </thead>
-          <tbody>
-            {chart.cusps.map((c) => (
-              <tr key={c.house} className="border-t border-line">
-                <td className="py-2 font-bold">{ROMAN[c.house - 1]}</td>
-                <td>{signs[c.signIndex]}</td>
-                <td className="tabular-nums">{formatDms(c.degInSign)}</td>
-                <td>{c.nakshatra} – {c.pada}</td>
-                <td>{c.signLord}</td><td>{c.starLord}</td><td>{c.subLord}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
-
-      <div className="grid gap-6 lg:grid-cols-2">
         {/* ABCD */}
         <section className="card overflow-x-auto p-5" aria-labelledby="kp-abcd">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 id="kp-abcd" className="text-2xl font-semibold">{k.abcd}</h2>
-            <div className="flex rounded-full border border-line p-0.5 text-xs">
-              {(["planets", "houses"] as const).map((v) => (
-                <button
-                  key={v}
-                  type="button"
-                  onClick={() => setAbcdView(v)}
-                  aria-pressed={abcdView === v}
-                  className={`rounded-full px-3 py-1 ${abcdView === v ? "bg-gold text-night" : "text-ink/80"}`}
-                >
-                  {v === "planets" ? k.planetsView : k.housesView}
-                </button>
-              ))}
-            </div>
+            <ViewToggle value={abcdView} onChange={setAbcdView} />
           </div>
-          <table className="w-full text-sm" data-testid="kp-abcd-table">
+          <table className="w-full table-fixed text-sm" data-testid="kp-abcd-table">
             <thead className="text-left text-xs text-muted">
-              <tr><th className="py-2">{abcdView === "planets" ? k.planet : k.house}</th><th>A</th><th>B</th><th>C</th><th>D</th></tr>
+              <tr><th className="w-[24%] py-2">{abcdView === "planets" ? k.planet : k.house}</th><th>A</th><th>B</th><th>C</th><th>D</th></tr>
             </thead>
             <tbody>
               {abcdView === "planets"
                 ? KP9.map((key) => (
                     <tr key={key} className="border-t border-line">
-                      <td className="py-2 font-semibold text-gold-soft">{key}{isU(key) && <sup className="ml-0.5 text-[10px] text-sky-300">U</sup>}</td>
+                      <td className="py-2 font-semibold text-gold-soft">{key}{isU(key) && <sup className="ml-0.5 text-[10px] text-sky-300">U</sup>}{retro.has(key) && <sub className="text-[10px] text-red-300">R</sub>}</td>
                       {(["A", "B", "C", "D"] as const).map((l) => <td key={l}>{list(sig.abcd[key][l])}</td>)}
                     </tr>
                   ))
@@ -282,36 +110,291 @@ export function KpChartView({ chart }: { chart: KpChartResult }) {
           </table>
         </section>
 
-        {/* Signification and strength */}
-        <section className="card overflow-x-auto p-5" aria-labelledby="kp-strength">
-          <h2 id="kp-strength" className="mb-4 text-2xl font-semibold">{k.strength}</h2>
-          <table className="w-full min-w-[460px] text-sm">
-            <thead className="text-center text-xs text-muted">
+        <div className="lg:col-span-2 xl:col-span-1">
+          <DashaList dasha={chart.dasha} fmtDate={fmtDate} />
+        </div>
+      </div>
+
+      {/* Houses & planets */}
+      <section className="card overflow-x-auto p-5" aria-labelledby="kp-planets">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 id="kp-planets" className="text-2xl font-semibold">{k.housesPlanets}</h2>
+          <ViewToggle value={tableView} onChange={setTableView} />
+        </div>
+        {tableView === "planets" ? (
+          <table className="w-full min-w-[720px] text-sm" data-testid="kp-planets-table">
+            <thead className="text-left text-xs text-muted">
               <tr>
-                <th rowSpan={2} className="py-2 text-left">{k.planet}</th>
-                <th colSpan={2}>{k.starLord}</th><th colSpan={2}>{k.subLord}</th><th colSpan={2}>{k.self}</th>
+                <th className="py-2">{k.planet}</th><th>{k.sign}</th><th>{k.position}</th><th>{k.star}</th>
+                <th>{k.signLord}</th><th>{k.starLord}</th><th>{k.subLord}</th><th>{k.occupies}</th><th>{k.owns}</th>
               </tr>
-              <tr><th>{k.occupied}</th><th>{k.owned}</th><th>{k.occupied}</th><th>{k.owned}</th><th>{k.occupied}</th><th>{k.owned}</th></tr>
             </thead>
-            <tbody className="text-center">
-              {KP9.map((key) => {
-                const s = sig.strength[key];
+            <tbody>
+              {chart.planets.map((p) => {
+                const s = KP9.includes(p.key as Kp9) ? sig.self[p.key as Kp9] : null;
                 return (
-                  <tr key={key} className="border-t border-line">
-                    <td className="py-2 text-left font-semibold text-gold-soft">{key}</td>
-                    <td title={s.starLord}>{list(s.star.occupies)}</td><td>{list(s.star.owns)}</td>
-                    <td title={s.subLord}>{list(s.sub.occupies)}</td><td>{list(s.sub.owns)}</td>
-                    <td>{list(s.self.occupies)}</td><td>{list(s.self.owns)}</td>
+                  <tr key={p.key} className="border-t border-line">
+                    <td className="py-2 font-semibold text-gold-soft">{p.key}<Badges planet={p} unoccupied={isU(p.key)} /></td>
+                    <td>{signs[p.signIndex]}</td>
+                    <td className="tabular-nums">{formatDms(p.degInSign)}</td>
+                    <td>{p.nakshatra} – {p.pada}</td>
+                    <td>{lord(p.signLord)}</td><td>{lord(p.starLord)}</td><td>{lord(p.subLord)}</td>
+                    <td>{s ? list(s.occupies) : ""}</td><td>{s ? list(s.owns) : ""}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-        </section>
-      </div>
+        ) : (
+          <table className="w-full min-w-[640px] text-sm" data-testid="kp-cusps-table">
+            <thead className="text-left text-xs text-muted">
+              <tr><th className="py-2">{k.house}</th><th>{k.sign}</th><th>{k.position}</th><th>{k.star}</th><th>{k.signLord}</th><th>{k.starLord}</th><th>{k.subLord}</th></tr>
+            </thead>
+            <tbody>
+              {chart.cusps.map((c) => (
+                <tr key={c.house} className="border-t border-line">
+                  <td className="py-2 font-bold">{ROMAN[c.house - 1]}</td>
+                  <td>{signs[c.signIndex]}</td>
+                  <td className="tabular-nums">{formatDms(c.degInSign)}</td>
+                  <td>{c.nakshatra} – {c.pada}</td>
+                  <td>{lord(c.signLord)}</td><td>{lord(c.starLord)}</td><td>{lord(c.subLord)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
 
-      <DashaList dasha={chart.dasha} fmtDate={fmtDate} />
+      {/* Aspects */}
+      <section className="card overflow-x-auto p-5" aria-labelledby="kp-aspects">
+        <h2 id="kp-aspects" className="mb-4 text-2xl font-semibold">{k.aspects}</h2>
+        <table className="w-full min-w-[760px] text-sm" data-testid="kp-aspects-table">
+          <thead className="text-center text-xs text-muted">
+            <tr>
+              <th className="py-2 text-left">{k.planet}</th>
+              {ASPECTS.map((a) => (
+                <th key={a.key} className="px-1 font-normal">
+                  <span className="block text-base text-gold-soft" aria-hidden>{a.symbol}</span>
+                  {k.aspectNames[a.key]}
+                  <span className="block">({a.angle}°)</span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="text-center">
+            {KP9.map((key) => (
+              <tr key={key} className="border-t border-line">
+                <td className="py-2 text-left font-semibold text-gold-soft">{key}</td>
+                {ASPECTS.map((a) => <td key={a.key}>{chart.aspects[key][a.key].join(", ")}</td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+
+      {/* Signification and strength */}
+      <section className="card overflow-x-auto p-5" aria-labelledby="kp-strength">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 id="kp-strength" className="text-2xl font-semibold">{k.strength}</h2>
+          <label className="flex items-center gap-2 text-xs text-muted">
+            {k.selectHouse}
+            <select className="input w-auto py-1.5 text-sm" value={house} onChange={(e) => setHouse(Number(e.target.value))} data-testid="kp-house-select">
+              <option value={0}>{k.allHouses}</option>
+              {ROMAN.map((r, i) => <option key={r} value={i + 1}>{r} ({i + 1})</option>)}
+            </select>
+          </label>
+        </div>
+        <table className="w-full min-w-[760px] text-sm" data-testid="kp-strength-table">
+          <thead className="text-center text-xs text-muted">
+            <tr>
+              <th rowSpan={2} className="py-2 text-left">{k.planet}</th>
+              <th colSpan={2}>{k.starLord}</th><th colSpan={2}>{k.subLord}</th><th colSpan={2}>{k.conjLords}</th>
+              <th colSpan={2}>{k.oppLords}</th><th colSpan={2}>{k.self}</th>
+            </tr>
+            <tr>{Array.from({ length: 5 }, (_, i) => <Fragment key={i}><th>{k.occupied}</th><th>{k.owned}</th></Fragment>)}</tr>
+          </thead>
+          <tbody className="text-center">
+            {KP9.map((key) => {
+              const s = sig.strength[key];
+              const conj = chart.aspects[key].conjunction;
+              const opp = chart.aspects[key].opposition;
+              const groups: [Signification | null, string | undefined][] = [
+                [s.star, s.starLord],
+                [s.sub, s.subLord],
+                [conj.length ? union(conj.map((p) => sig.self[p])) : null, conj.join(", ")],
+                [opp.length ? union(opp.map((p) => sig.self[p])) : null, opp.join(", ")],
+                [s.self, undefined],
+              ];
+              return (
+                <tr key={key} className="border-t border-line">
+                  <td className="py-2 text-left font-semibold text-gold-soft">{key}</td>
+                  {groups.map(([g, by], i) => (
+                    <Fragment key={i}>
+                      <td title={by} className={g ? hl(g.occupies) : ""}>{g ? list(g.occupies) : "–"}</td>
+                      <td title={by} className={g ? hl(g.owns) : ""}>{g ? list(g.owns) : "–"}</td>
+                    </Fragment>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </section>
     </div>
+  );
+}
+
+function ViewToggle({ value, onChange }: { value: "planets" | "houses"; onChange: (v: "planets" | "houses") => void }) {
+  const { t } = useI18n();
+  return (
+    <div className="flex shrink-0 rounded-full border border-line p-0.5 text-xs">
+      {(["houses", "planets"] as const).map((v) => (
+        <button
+          key={v}
+          type="button"
+          onClick={() => onChange(v)}
+          aria-pressed={value === v}
+          className={`rounded-full px-3 py-1 ${value === v ? "bg-gold text-night" : "text-ink/80"}`}
+        >
+          {v === "planets" ? t.kp.planetsView : t.kp.housesView}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** South Indian chart. Each planet and cusp is a button; its details replace the centre box. */
+function ChartGrid({
+  chart,
+  lord,
+  isU,
+  fmtDate,
+}: {
+  chart: KpChartResult;
+  lord: (of: string) => ReactNode;
+  isU: (key: string) => boolean;
+  fmtDate: (ms: number, withTime?: boolean) => string;
+}) {
+  const { lang, t } = useI18n();
+  const k = t.kp;
+  const signs = SIGN_NAMES[lang];
+  const [selected, setSelected] = useState<Selected | null>(null);
+
+  const bySign = useMemo(() => {
+    const out: Item[][] = Array.from({ length: 12 }, () => []);
+    for (const p of chart.planets) out[p.signIndex].push({ kind: "planet", p });
+    for (const c of chart.cusps) out[c.signIndex].push({ kind: "cusp", c });
+    for (const items of out) items.sort((a, b) => (a.kind === "planet" ? a.p.lon : a.c.lon) - (b.kind === "planet" ? b.p.lon : b.c.lon));
+    return out;
+  }, [chart]);
+
+  const isSel = (it: Item) =>
+    !!selected && (it.kind === "planet" ? selected.kind === "planet" && selected.key === it.p.key : selected.kind === "cusp" && selected.house === it.c.house);
+  const point =
+    selected?.kind === "planet"
+      ? chart.planets.find((p) => p.key === selected.key)
+      : selected?.kind === "cusp"
+        ? chart.cusps.find((c) => c.house === selected.house)
+        : undefined;
+  const label = (it: Item) => (it.kind === "planet" ? PLANET_NAMES[lang][it.p.key] : `${k.house} ${it.c.house}`);
+
+  return (
+    <section aria-labelledby="kp-chart-heading" className="lg:row-span-1">
+      <div className="mb-3 flex items-baseline justify-between gap-3">
+        <h2 id="kp-chart-heading" className="text-2xl font-semibold">{k.chart}</h2>
+        <span className="text-xs text-muted">{k.tapHint}</span>
+      </div>
+      <div
+        className="grid auto-rows-[minmax(5.75rem,auto)] grid-cols-4 overflow-hidden rounded-2xl border border-gold/40 bg-night/60 sm:aspect-square sm:grid-rows-4"
+        data-testid="kp-grid"
+      >
+        {SOUTH_INDIAN_CELL.map(([row, col], signIndex) => {
+          const items = bySign[signIndex];
+          return (
+            <div
+              key={signIndex}
+              style={{ gridRow: row + 1, gridColumn: col + 1 }}
+              className="flex min-w-0 flex-col overflow-hidden border border-gold/25 p-1 sm:p-1.5"
+              data-testid={`kp-box-${signIndex}`}
+              data-cusps={items.flatMap((it) => (it.kind === "cusp" ? [it.c.house] : [])).join(" ")}
+            >
+              <div className="flex items-baseline justify-between gap-1 text-[8px] uppercase tracking-wide text-muted sm:text-[10px]">
+                <span className="truncate">
+                  <span aria-hidden>{SIGN_GLYPHS[signIndex]} </span>
+                  {signs[signIndex]}
+                </span>
+                <span className="normal-case">{lord(SIGN_LORDS[signIndex])}</span>
+              </div>
+              <ul className="mt-auto flex flex-col gap-px">
+                {items.map((it) => {
+                  const key = it.kind === "planet" ? it.p.key : `c${it.c.house}`;
+                  const pt = it.kind === "planet" ? it.p : it.c;
+                  return (
+                    <li key={key}>
+                      <button
+                        type="button"
+                        onClick={() => setSelected(isSel(it) ? null : it.kind === "planet" ? { kind: "planet", key: it.p.key } : { kind: "cusp", house: it.c.house })}
+                        aria-pressed={isSel(it)}
+                        aria-label={`${label(it)} ${formatDms(pt.degInSign)}`}
+                        className={`flex w-full items-baseline gap-1 rounded px-0.5 text-left text-[10px] leading-tight transition sm:text-xs ${
+                          isSel(it) ? "bg-gold/25 ring-1 ring-gold" : "hover:bg-white/10"
+                        }`}
+                        data-testid={`kp-item-${key}`}
+                      >
+                        {it.kind === "planet" ? (
+                          <span className={`w-[2.1em] shrink-0 font-semibold ${it.p.retrograde ? "text-red-300" : "text-gold-soft"}`}>
+                            {it.p.key}
+                            <Badges planet={it.p} unoccupied={isU(it.p.key)} />
+                          </span>
+                        ) : (
+                          <span className="w-[2.1em] shrink-0 font-bold text-ink">{ROMAN[it.c.house - 1]}</span>
+                        )}
+                        <span className={`tabular-nums ${it.kind === "planet" ? (it.p.retrograde ? "text-red-300" : "text-gold-soft") : "text-ink/90"}`}>
+                          {dms2(pt.degInSign)}
+                        </span>
+                        <span className="ml-auto hidden shrink-0 text-[9px] text-muted md:inline">
+                          {lord(pt.starLord)}·{lord(pt.subLord)}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          );
+        })}
+
+        <div className="col-span-2 col-start-2 row-span-2 row-start-2 flex min-w-0 flex-col border border-gold/25 p-2 sm:p-4" aria-live="polite" data-testid="kp-details">
+          {point && selected ? (
+            <div className="flex h-full flex-col text-[11px] sm:text-sm">
+              <div className="flex items-start justify-between gap-2">
+                <p className="font-display text-sm font-semibold text-gold-soft sm:text-xl">
+                  {selected.kind === "planet" ? selected.key : ROMAN[selected.house - 1]} – {signs[point.signIndex]} {dms2(point.degInSign)}
+                </p>
+                <button type="button" onClick={() => setSelected(null)} className="btn-ghost shrink-0 px-2 py-1 text-[10px] sm:text-xs" data-testid="kp-details-back">
+                  <ArrowLeft className="h-3 w-3" aria-hidden /> {k.back}
+                </button>
+              </div>
+              <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 sm:mt-3 sm:gap-y-1.5">
+                <dt className="text-muted">{k.sign}</dt><dd className="text-right font-semibold">{signs[point.signIndex]}</dd>
+                <dt className="text-muted">{k.star}</dt><dd className="text-right font-semibold">{point.nakshatra} – {point.pada}</dd>
+                <dt className="text-muted">{k.signLord}</dt><dd className="text-right font-semibold">{lord(point.signLord)}</dd>
+                <dt className="text-muted">{k.starLord}</dt><dd className="text-right font-semibold">{lord(point.starLord)}</dd>
+                <dt className="text-muted">{k.subLord}</dt><dd className="text-right font-semibold">{lord(point.subLord)}</dd>
+                <dt className="text-muted">{k.subSubLord}</dt><dd className="text-right font-semibold">{lord(point.subSubLord)}</dd>
+              </dl>
+            </div>
+          ) : (
+            <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
+              <p className="font-display text-base font-semibold sm:text-xl">{chart.input.name || k.chart}</p>
+              <p className="text-[10px] text-muted sm:text-xs">{fmtDate(chart.utcMs, true)}</p>
+              <p className="line-clamp-2 text-[10px] text-muted sm:text-xs">{chart.input.place}</p>
+              <p className="text-[10px] text-gold sm:text-xs">KP New</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -346,10 +429,12 @@ function DashaList({ dasha, fmtDate }: { dasha: DashaPeriod[]; fmtDate: (ms: num
             style={{ paddingLeft: `${0.75 + depth * 1.25}rem` }}
             aria-expanded={expandable ? expanded : undefined}
           >
-            {expandable ? (expanded ? <ChevronDown className="h-4 w-4" aria-hidden /> : <ChevronRight className="h-4 w-4" aria-hidden />) : <span className="w-4" />}
-            <span className="w-16 font-semibold">{id.split("-").join("-")}</span>
-            <span className="tabular-nums text-ink/85">
-              {fmtDate(p.start)} — {fmtDate(p.end)}
+            {expandable ? (expanded ? <ChevronDown className="h-4 w-4 shrink-0" aria-hidden /> : <ChevronRight className="h-4 w-4 shrink-0" aria-hidden />) : <span className="w-4 shrink-0" />}
+            <span className="flex min-w-0 flex-col">
+              <span className="font-semibold">{id}</span>
+              <span className="text-xs tabular-nums text-ink/85">
+                {fmtDate(p.start)} — {fmtDate(p.end)}
+              </span>
             </span>
             {isNow(p) && <span className="ml-auto text-xs">{t.kp.current}</span>}
           </button>
@@ -362,7 +447,7 @@ function DashaList({ dasha, fmtDate }: { dasha: DashaPeriod[]; fmtDate: (ms: num
   return (
     <section className="card p-5" aria-labelledby="kp-dasha" data-testid="kp-dasha">
       <h2 id="kp-dasha" className="mb-4 text-2xl font-semibold">{t.kp.dasha}</h2>
-      <ul className="space-y-0.5">{dasha.map((m) => row(m, m.lord, 0))}</ul>
+      <ul className="max-h-[42rem] space-y-0.5 overflow-y-auto pr-1">{dasha.map((m) => row(m, m.lord, 0))}</ul>
     </section>
   );
 }

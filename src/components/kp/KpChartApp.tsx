@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Loader2, MapPin, RotateCcw, Search, Sparkles } from "lucide-react";
+import { Loader2, MapPin, Pencil, RotateCcw, Save, Search, Sparkles } from "lucide-react";
 import { createKpChart } from "@/app/[lang]/kp-chart/actions";
 import type { BirthInput, KpChartResult } from "@/lib/kp/build";
 import { useI18n } from "@/lib/i18n/client";
+import { localePath } from "@/lib/i18n";
 import { formatOffset } from "@/lib/kp/time";
-import { KpAccountPanel, KpSaveAndNotes, PENDING_CHART_KEY, useKpAccount, type SavedChart } from "./KpAccount";
+import { KpAccountPanel, KpSaveAndNotes, KpSharePanel, PENDING_CHART_KEY, useKpAccount, type SavedChart } from "./KpAccount";
 import { KpChartView } from "./KpChartView";
 
 interface Place {
@@ -29,14 +30,25 @@ function parseOffset(v: string): number | undefined | null {
   return Number.isFinite(n) ? Math.round(n * 60) : null;
 }
 
-/** Birth-details form and the resulting interactive KP chart. */
-export function KpChartApp({ initial }: { initial?: KpChartResult | null }) {
+/**
+ * Birth-details form and the resulting interactive KP chart. A saved chart lives at
+ * /kp-chart/<id> (`initialId` when opened by that link): its owner can edit it in place and
+ * share the link; anyone else sees it only while sharing is on.
+ */
+export function KpChartApp({ initialId }: { initialId?: string }) {
   const { lang, t } = useI18n();
   const k = t.kp;
-  const [chart, setChart] = useState<KpChartResult | null>(initial ?? null);
+  const a = k.account;
+  const [chart, setChart] = useState<KpChartResult | null>(null);
+  const [showForm, setShowForm] = useState(!initialId);
   const account = useKpAccount();
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [owner, setOwner] = useState(true);
+  const [shared, setShared] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [lastInput, setLastInput] = useState<BirthInput | null>(null);
+  const [linkState, setLinkState] = useState<"idle" | "loading" | "missing">(initialId ? "loading" : "idle");
+  const [status, setStatus] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -51,6 +63,30 @@ export function KpChartApp({ initial }: { initial?: KpChartResult | null }) {
   const [lon, setLon] = useState("");
   const [zone, setZone] = useState("Asia/Kolkata");
   const [offset, setOffset] = useState("");
+
+  /** Puts the chart's own link in the address bar (or the plain page for an unsaved chart). */
+  const setUrl = (id: string | null) => {
+    try {
+      window.history.replaceState(window.history.state, "", localePath(lang, id ? `/kp-chart/${id}` : "/kp-chart"));
+    } catch {
+      /* the address bar simply keeps the old link */
+    }
+  };
+
+  /** Fills the form with a chart's birth details (to edit them), or clears it. */
+  const fillForm = (b: BirthInput | null) => {
+    setName(b?.name ?? "");
+    setDate(b?.date ?? "");
+    setTime(b?.time ?? "");
+    setQuery(b ? b.place.split(",")[0] : "");
+    setPlace(b ? { label: b.place, lat: b.lat, lon: b.lon, zone: b.zone } : null);
+    setLat(b ? b.lat.toFixed(4) : "");
+    setLon(b ? b.lon.toFixed(4) : "");
+    setZone(b?.zone ?? "Asia/Kolkata");
+    setOffset(b?.offsetMinutes === undefined ? "" : formatOffset(b.offsetMinutes));
+    setPlaces(null);
+    setError(null);
+  };
 
   const choose = (p: Place) => {
     setPlace(p);
@@ -95,22 +131,63 @@ export function KpChartApp({ initial }: { initial?: KpChartResult | null }) {
       zone,
       offsetMinutes: off,
     };
-    show(input, null);
+    if (editingId) {
+      const id = editingId;
+      show(input, { id, owner: true, shared }, async () => {
+        const ok = await account.update(id, name, input);
+        setStatus(ok ? a.updated : a.error);
+      });
+    } else show(input, null);
   };
 
-  const show = (input: BirthInput, id: string | null) =>
+  const show = (
+    input: BirthInput,
+    saved: { id: string; owner: boolean; shared: boolean } | null,
+    after?: () => Promise<void>,
+  ) =>
     startTransition(async () => {
       const res = await createKpChart(input);
       if (res.ok) {
         setLastInput(input);
-        setSavedId(id);
+        setSavedId(saved?.id ?? null);
+        setOwner(saved?.owner ?? true);
+        setShared(saved?.shared ?? false);
+        setEditingId(null);
+        setStatus(null);
         setChart(res.chart);
+        setShowForm(false);
+        setUrl(saved?.id ?? null);
         window.scrollTo({ top: 0, behavior: "smooth" });
+        await after?.();
       } else setError(res.error);
     });
 
+  // Opened by its link: load the chart once the visitor's session is known (again after signing in).
+  const userId = account.user?.id;
+  useEffect(() => {
+    if (!initialId) return;
+    if (!account.enabled) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- no accounts here, so no saved charts
+      setLinkState("missing");
+      return;
+    }
+    if (!account.ready) return;
+    let cancelled = false;
+    void account.get(initialId).then((c) => {
+      if (cancelled) return;
+      if (!c) return setLinkState("missing");
+      setLinkState("idle");
+      show(c.birth, { id: c.id, owner: c.is_owner, shared: c.is_shared });
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload only when the link or the signed-in user changes
+  }, [initialId, account.enabled, account.ready, userId]);
+
   // Back from "Sign in to save": show the chart the visitor was looking at again.
   useEffect(() => {
+    if (initialId) return;
     let pending: BirthInput | null = null;
     try {
       const raw = sessionStorage.getItem(PENDING_CHART_KEY);
@@ -120,30 +197,109 @@ export function KpChartApp({ initial }: { initial?: KpChartResult | null }) {
       pending = null;
     }
     if (pending) show(pending, null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on arrival
   }, []);
 
   const openSaved = (c: SavedChart) => {
     setError(null);
-    show(c.birth, c.id);
+    show(c.birth, { id: c.id, owner: true, shared: c.is_shared });
   };
 
-  if (chart) {
+  const newChart = () => {
+    fillForm(null);
+    setEditingId(null);
+    setSavedId(null);
+    setChart(null);
+    setShowForm(true);
+    setUrl(null);
+  };
+
+  const edit = () => {
+    if (!lastInput) return;
+    fillForm(lastInput);
+    setEditingId(savedId && owner ? savedId : null);
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  if (linkState !== "idle" && !chart) {
     return (
-      <div className="space-y-6">
-        <button type="button" className="btn-ghost" onClick={() => setChart(null)} data-testid="kp-new-chart">
+      <div className="card mx-auto max-w-xl space-y-4 p-6 text-center" data-testid="kp-link-state">
+        {linkState === "loading" ? (
+          <p className="flex items-center justify-center gap-2 text-sm text-muted">
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> {a.opening}
+          </p>
+        ) : (
+          <>
+            <p className="font-semibold">{a.notFound}</p>
+            {account.enabled && !account.user && <p className="text-sm text-muted">{a.notFoundSignIn}</p>}
+            <div className="flex flex-wrap justify-center gap-3">
+              {account.enabled && !account.user && (
+                <button type="button" className="btn-gold" onClick={() => void account.signIn()}>{a.signIn}</button>
+              )}
+              <button type="button" className="btn-ghost" onClick={() => { setLinkState("idle"); newChart(); }}>
+                <RotateCcw className="h-4 w-4" aria-hidden /> {k.newChart}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  if (chart && !showForm) {
+    const mine = !!savedId && owner;
+    const actions = (
+      <div className="flex flex-wrap items-start gap-3 pt-2">
+        {(mine || !savedId) && (
+          <button type="button" className="btn-ghost" onClick={edit} data-testid="kp-edit">
+            <Pencil className="h-4 w-4" aria-hidden /> {a.edit}
+          </button>
+        )}
+        <button type="button" className="btn-ghost" onClick={newChart} data-testid="kp-new-chart">
           <RotateCcw className="h-4 w-4" aria-hidden /> {k.newChart}
         </button>
-        {lastInput && (
+        {savedId && !owner && <span className="self-center text-xs text-muted">{a.sharedChart}</span>}
+        {savedId && !owner && account.user && lastInput && (
+          <button
+            type="button"
+            className="btn-gold"
+            onClick={async () => {
+              const id = await account.save(lastInput.name ?? "", lastInput);
+              if (!id) return setStatus(a.error);
+              setSavedId(id);
+              setOwner(true);
+              setShared(false);
+              setUrl(id);
+            }}
+          >
+            <Save className="h-4 w-4" aria-hidden /> {a.saveCopy}
+          </button>
+        )}
+        {status && <p className="self-center text-sm text-emerald-300" role="status">{status}</p>}
+        {mine && <KpSharePanel account={account} id={savedId} name={lastInput?.name ?? ""} shared={shared} onShared={setShared} />}
+      </div>
+    );
+    return (
+      <div className="space-y-6">
+        {lastInput && !savedId && (
           <KpSaveAndNotes
-            key={savedId ?? "new"}
+            key="new"
             account={account}
-            savedId={savedId}
-            onSaved={setSavedId}
+            savedId={null}
+            onSaved={(id) => {
+              setSavedId(id);
+              setOwner(true);
+              setUrl(id);
+            }}
             name={lastInput.name ?? ""}
             birth={lastInput}
           />
         )}
-        <KpChartView chart={chart} />
+        <KpChartView chart={chart} header={actions} />
+        {lastInput && mine && (
+          <KpSaveAndNotes key={savedId} account={account} savedId={savedId} onSaved={setSavedId} name={lastInput.name ?? ""} birth={lastInput} />
+        )}
       </div>
     );
   }
@@ -152,6 +308,9 @@ export function KpChartApp({ initial }: { initial?: KpChartResult | null }) {
   return (
     <div className={account.enabled ? "mx-auto grid max-w-5xl gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start" : "mx-auto max-w-2xl"}>
     <form onSubmit={submit} className="card space-y-5 p-6 sm:p-8" data-testid="kp-form" noValidate>
+      {editingId && (
+        <p className="rounded-xl border border-gold/40 bg-gold/10 px-4 py-3 text-sm text-gold-soft" data-testid="kp-editing">{a.editing}</p>
+      )}
       <div>
         <label htmlFor="kp-name" className="label">{k.name}</label>
         <input id="kp-name" className="input" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} />
@@ -237,10 +396,17 @@ export function KpChartApp({ initial }: { initial?: KpChartResult | null }) {
           {error}
         </p>
       )}
-      <button type="submit" className="btn-gold w-full sm:w-auto" disabled={pending} data-testid="kp-submit">
-        {pending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Sparkles className="h-4 w-4" aria-hidden />}
-        {pending ? k.making : k.make}
-      </button>
+      <div className="flex flex-wrap gap-3">
+        <button type="submit" className="btn-gold w-full sm:w-auto" disabled={pending} data-testid="kp-submit">
+          {pending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Sparkles className="h-4 w-4" aria-hidden />}
+          {pending ? k.making : editingId ? a.update : k.make}
+        </button>
+        {chart && (
+          <button type="button" className="btn-ghost w-full sm:w-auto" onClick={() => { setEditingId(null); setShowForm(false); }}>
+            {a.cancel}
+          </button>
+        )}
+      </div>
     </form>
     {account.enabled && (
       <aside id="saved-charts" className="scroll-mt-24 lg:sticky lg:top-24">

@@ -16,6 +16,9 @@ export const PLANET_NAMES: Record<Locale, Record<string, string>> = {
   },
 };
 
+/** Zodiac glyphs (Aries..Pisces), forced to text rather than emoji style. */
+export const SIGN_GLYPHS = ["♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓"].map((g) => `${g}\uFE0E`);
+
 export const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
 
 /** South Indian chart: signs keep fixed boxes. Grid [row, column] for Aries..Pisces. */

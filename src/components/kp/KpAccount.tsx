@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { FolderOpen, Loader2, LogIn, Save, Trash2 } from "lucide-react";
+import { Check, Copy, FolderOpen, Link2, Loader2, LogIn, Save, Share2, Trash2 } from "lucide-react";
 import type { BirthInput } from "@/lib/kp/build";
 import { useVisitor } from "@/lib/auth/visitor";
 import { useI18n } from "@/lib/i18n/client";
+import { localePath } from "@/lib/i18n";
 
 /** sessionStorage key: birth details of a chart to reopen after the Google sign-in round trip. */
 export const PENDING_CHART_KEY = "kp-pending-chart";
@@ -14,17 +15,23 @@ export interface SavedChart {
   name: string;
   birth: BirthInput;
   notes: string;
+  is_shared: boolean;
   created_at: string;
+}
+
+/** A chart opened by its link: the owner's own, or one someone shared. */
+export interface LinkedChart extends SavedChart {
+  is_owner: boolean;
 }
 
 /** Visitor's session (see useVisitor) and saved charts (Supabase, RLS: own rows only). */
 export function useKpAccount() {
-  const { client: sb, user, signIn, signOut } = useVisitor();
+  const { client: sb, ready, user, signIn, signOut } = useVisitor();
   const [charts, setCharts] = useState<SavedChart[]>([]);
 
   const refresh = useCallback(async () => {
     if (!sb) return;
-    const { data } = await sb.from("kp_charts").select("id, name, birth, notes, created_at").order("created_at", { ascending: false }).limit(500);
+    const { data } = await sb.from("kp_charts").select("id, name, birth, notes, is_shared, created_at").order("created_at", { ascending: false }).limit(500);
     setCharts((data as SavedChart[]) ?? []);
   }, [sb]);
 
@@ -47,13 +54,36 @@ export function useKpAccount() {
     if (!error) setCharts((cs) => cs.map((c) => (c.id === id ? { ...c, notes } : c)));
     return !error;
   };
+  /** Changes the birth details of a saved chart in place (same id and link, notes kept). */
+  const update = async (id: string, name: string, birth: BirthInput) => {
+    if (!sb) return false;
+    const { error } = await sb.from("kp_charts").update({ name, birth }).eq("id", id);
+    if (!error) setCharts((cs) => cs.map((c) => (c.id === id ? { ...c, name, birth } : c)));
+    return !error;
+  };
+  const setShared = async (id: string, isShared: boolean) => {
+    if (!sb) return false;
+    const { error } = await sb.from("kp_charts").update({ is_shared: isShared }).eq("id", id);
+    if (!error) setCharts((cs) => cs.map((c) => (c.id === id ? { ...c, is_shared: isShared } : c)));
+    return !error;
+  };
+  /** Opens a chart by id: the visitor's own (signed in) or a shared one. Null when neither. */
+  const get = useCallback(
+    async (id: string): Promise<LinkedChart | null> => {
+      if (!sb) return null;
+      const { data, error } = await sb.rpc("kp_chart_get", { p_id: id });
+      if (error || !Array.isArray(data) || !data.length) return null;
+      return data[0] as LinkedChart;
+    },
+    [sb],
+  );
   const remove = async (id: string) => {
     if (!sb) return;
     await sb.from("kp_charts").delete().eq("id", id);
     await refresh();
   };
 
-  return { enabled: !!sb, user, charts, signIn, signOut, save, saveNotes, remove };
+  return { enabled: !!sb, ready, user, charts, signIn, signOut, save, update, setShared, get, saveNotes, remove };
 }
 
 export type KpAccount = ReturnType<typeof useKpAccount>;
@@ -211,5 +241,65 @@ export function KpSaveAndNotes({
         {status && <p className="text-sm text-muted" role="status">{status}</p>}
       </div>
     </section>
+  );
+}
+
+/** Owner's sharing switch for a saved chart, with the link to copy or send on WhatsApp. */
+export function KpSharePanel({ account, id, name, shared, onShared }: { account: KpAccount; id: string; name: string; shared: boolean; onShared: (v: boolean) => void }) {
+  const { t, lang } = useI18n();
+  const a = t.kp.account;
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState(false);
+  const url = typeof window === "undefined" ? "" : `${window.location.origin}${localePath(lang, `/kp-chart/${id}`)}`;
+
+  const toggle = async (v: boolean) => {
+    setBusy(true);
+    const ok = await account.setShared(id, v);
+    setBusy(false);
+    setError(!ok);
+    if (ok) onShared(v);
+  };
+
+  return (
+    <div className="w-full">
+      <button type="button" className="btn-ghost" onClick={() => setOpen((o) => !o)} aria-expanded={open} data-testid="kp-share">
+        <Share2 className="h-4 w-4" aria-hidden /> {a.share}
+      </button>
+      {open && (
+        <div className="mt-3 space-y-3 rounded-xl border border-line p-4" data-testid="kp-share-panel">
+          <p className="text-sm font-semibold">{a.shareTitle}</p>
+          <p className="text-sm text-ink/80">{shared ? a.shareOn : a.shareOff}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <input readOnly className="input min-w-0 flex-1 text-xs" value={url} aria-label={a.shareTitle} onFocus={(e) => e.target.select()} data-testid="kp-share-url" />
+            <button
+              type="button"
+              className="btn-ghost shrink-0"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(url);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                } catch {
+                  /* clipboard blocked: the link can still be selected in the box */
+                }
+              }}
+            >
+              {copied ? <Check className="h-4 w-4" aria-hidden /> : <Copy className="h-4 w-4" aria-hidden />} {copied ? a.copied : a.copy}
+            </button>
+            {shared && (
+              <a className="btn-ghost shrink-0" href={`https://wa.me/?text=${encodeURIComponent(`${name || t.kp.chart}\n${url}`)}`} target="_blank" rel="noopener noreferrer">
+                {a.whatsapp}
+              </a>
+            )}
+          </div>
+          <button type="button" className={shared ? "btn-ghost" : "btn-gold"} disabled={busy} onClick={() => void toggle(!shared)} data-testid="kp-share-toggle">
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Link2 className="h-4 w-4" aria-hidden />} {shared ? a.turnOff : a.turnOn}
+          </button>
+          {error && <p className="text-sm text-red-300" role="alert">{a.error}</p>}
+        </div>
+      )}
+    </div>
   );
 }

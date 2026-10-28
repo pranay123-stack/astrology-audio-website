@@ -348,6 +348,36 @@ describe("saved KP charts", () => {
     expect(read.data ?? []).toEqual([]);
   });
 
+  it("opens a chart by its link only for its owner, or for anyone once shared (never the notes)", async () => {
+    const mine = await member.from("kp_charts").insert({ name: "rls link", birth, notes: "private notes" }).select("id").single();
+    expect(mine.error).toBeNull();
+    const id = mine.data!.id;
+    const get = async (c: typeof anon) => ((await c.rpc("kp_chart_get", { p_id: id })).data ?? []) as { name: string; notes: string; is_owner: boolean }[];
+
+    expect((await get(member)).map((r) => [r.name, r.notes, r.is_owner])).toEqual([["rls link", "private notes", true]]);
+    expect(await get(anon)).toEqual([]);
+    expect(await get(admin)).toEqual([]);
+
+    // Sharing is the owner's switch; nobody else can flip it or edit the chart.
+    expect((await admin.from("kp_charts").update({ is_shared: true }).eq("id", id).select("id")).data).toEqual([]);
+    expect((await member.from("kp_charts").update({ is_shared: true }).eq("id", id)).error).toBeNull();
+    expect((await get(anon)).map((r) => [r.name, r.notes, r.is_owner])).toEqual([["rls link", "", false]]);
+    expect((await get(admin)).map((r) => [r.notes, r.is_owner])).toEqual([["", false]]);
+    expect((await admin.from("kp_charts").update({ name: "hijack" }).eq("id", id).select("id")).data).toEqual([]);
+    // A shared chart still cannot be listed through the table.
+    expect((await anon.from("kp_charts").select("id")).data ?? []).toEqual([]);
+
+    // Editing in place keeps the id (and so the link) and the notes.
+    const edited = { ...birth, time: "19:39:47" };
+    expect((await member.from("kp_charts").update({ name: "rls link 2", birth: edited }).eq("id", id)).error).toBeNull();
+    const after = (await member.rpc("kp_chart_get", { p_id: id })).data as { name: string; birth: typeof birth; notes: string }[];
+    expect([after[0].name, after[0].birth.time, after[0].notes]).toEqual(["rls link 2", "19:39:47", "private notes"]);
+
+    await member.from("kp_charts").update({ is_shared: false }).eq("id", id);
+    expect(await get(anon)).toEqual([]);
+    await service.from("kp_charts").delete().eq("id", id);
+  });
+
   it("rejects oversized birth data and notes", async () => {
     expect((await member.from("kp_charts").insert({ name: "big", birth: { junk: "x".repeat(5000) } })).error).not.toBeNull();
     expect((await member.from("kp_charts").insert({ name: "notes", birth, notes: "x".repeat(20001) })).error).not.toBeNull();
