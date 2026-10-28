@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Check, Copy, FolderOpen, Link2, Loader2, LogIn, Save, Share2, Trash2 } from "lucide-react";
+import { Check, Copy, Link2, Loader2, LogIn, Save } from "lucide-react";
 import type { BirthInput } from "@/lib/kp/build";
 import { useVisitor } from "@/lib/auth/visitor";
 import { useI18n } from "@/lib/i18n/client";
@@ -16,11 +16,15 @@ export interface SavedChart {
   birth: BirthInput;
   notes: string;
   is_shared: boolean;
+  pinned: boolean;
+  view_count: number;
+  last_viewed_at: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 /** A chart opened by its link: the owner's own, or one someone shared. */
-export interface LinkedChart extends SavedChart {
+export interface LinkedChart extends Omit<SavedChart, "view_count" | "last_viewed_at"> {
   is_owner: boolean;
 }
 
@@ -28,11 +32,13 @@ export interface LinkedChart extends SavedChart {
 export function useKpAccount() {
   const { client: sb, ready, user, signIn, signOut } = useVisitor();
   const [charts, setCharts] = useState<SavedChart[]>([]);
+  const [loaded, setLoaded] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!sb) return;
-    const { data } = await sb.from("kp_charts").select("id, name, birth, notes, is_shared, created_at").order("created_at", { ascending: false }).limit(500);
+    const { data } = await sb.from("kp_charts").select("id, name, birth, notes, is_shared, pinned, view_count, last_viewed_at, created_at, updated_at").order("created_at", { ascending: false }).limit(500);
     setCharts((data as SavedChart[]) ?? []);
+    setLoaded(true);
   }, [sb]);
 
   useEffect(() => {
@@ -58,9 +64,25 @@ export function useKpAccount() {
   const update = async (id: string, name: string, birth: BirthInput) => {
     if (!sb) return false;
     const { error } = await sb.from("kp_charts").update({ name, birth }).eq("id", id);
-    if (!error) setCharts((cs) => cs.map((c) => (c.id === id ? { ...c, name, birth } : c)));
+    if (!error) setCharts((cs) => cs.map((c) => (c.id === id ? { ...c, name, birth, updated_at: new Date().toISOString() } : c)));
     return !error;
   };
+  const setPinned = async (id: string, pinned: boolean) => {
+    if (!sb) return false;
+    const { error } = await sb.from("kp_charts").update({ pinned }).eq("id", id);
+    if (!error) setCharts((cs) => cs.map((c) => (c.id === id ? { ...c, pinned } : c)));
+    return !error;
+  };
+  /** Counts a view of the owner's own chart (the dashboard's "viewed" figures). */
+  const markViewed = useCallback(
+    async (id: string) => {
+      if (!sb) return;
+      await sb.rpc("kp_chart_viewed", { p_id: id });
+      const now = new Date().toISOString();
+      setCharts((cs) => cs.map((c) => (c.id === id ? { ...c, view_count: c.view_count + 1, last_viewed_at: now } : c)));
+    },
+    [sb],
+  );
   const setShared = async (id: string, isShared: boolean) => {
     if (!sb) return false;
     const { error } = await sb.from("kp_charts").update({ is_shared: isShared }).eq("id", id);
@@ -83,67 +105,23 @@ export function useKpAccount() {
     await refresh();
   };
 
-  return { enabled: !!sb, ready, user, charts, signIn, signOut, save, update, setShared, get, saveNotes, remove };
+  return { enabled: !!sb, ready, user, charts, loaded, refresh, signIn, signOut, save, update, setShared, setPinned, markViewed, get, saveNotes, remove };
 }
 
 export type KpAccount = ReturnType<typeof useKpAccount>;
 
-/** Sign-in bar and the list of saved charts. */
-export function KpAccountPanel({ account, onOpen }: { account: KpAccount; onOpen: (c: SavedChart) => void }) {
-  const { t, lang } = useI18n();
+/** Invitation to sign in, beside the new-chart form (saved charts live on the dashboard). */
+export function KpSignInCard({ account }: { account: KpAccount }) {
+  const { t } = useI18n();
   const a = t.kp.account;
-  if (!account.enabled) return null;
-
-  if (!account.user) {
-    // Signing in and out lives in the header's account button; here just a short invitation.
-    return (
-      <div className="card space-y-3 p-5" data-testid="kp-signin">
-        <h2 className="text-xl font-semibold">{a.myCharts}</h2>
-        <p className="text-sm text-ink/80">{a.signInHint}</p>
-        <button type="button" className="btn-ghost w-full" onClick={() => void account.signIn()}>
-          <LogIn className="h-4 w-4" aria-hidden /> {a.signIn}
-        </button>
-      </div>
-    );
-  }
-
+  if (!account.enabled || account.user) return null;
   return (
-    <div className="card space-y-4 p-5" data-testid="kp-account">
-      <div>
-        <h2 className="mb-2 text-xl font-semibold">
-          {a.myCharts}
-          {account.charts.length > 0 && <span className="ml-2 text-sm font-normal text-muted">({account.charts.length})</span>}
-        </h2>
-        {account.charts.length === 0 ? (
-          <p className="text-sm text-muted">{a.none}</p>
-        ) : (
-          <ul className="max-h-[60vh] divide-y divide-line overflow-y-auto pr-1">
-            {account.charts.map((c) => (
-              <li key={c.id} className="flex items-center gap-3 py-2 text-sm">
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-semibold">{c.name || c.birth.place}</span>
-                  <span className="text-xs text-muted">
-                    {new Intl.DateTimeFormat(lang === "hi" ? "hi-IN" : "en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${c.birth.date}T00:00:00Z`))} · {c.birth.time} · {c.birth.place.split(",")[0]}
-                  </span>
-                </span>
-                <button type="button" className="btn-ghost px-3 py-1.5 text-xs" onClick={() => onOpen(c)}>
-                  <FolderOpen className="h-4 w-4" aria-hidden /> {a.open}
-                </button>
-                <button
-                  type="button"
-                  className="rounded-full p-2 text-muted hover:text-red-300"
-                  aria-label={a.delete}
-                  onClick={() => {
-                    if (window.confirm(a.confirmDelete)) void account.remove(c.id);
-                  }}
-                >
-                  <Trash2 className="h-4 w-4" aria-hidden />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+    <div className="card space-y-3 p-5" data-testid="kp-signin">
+      <h2 className="text-xl font-semibold">{a.myCharts}</h2>
+      <p className="text-sm text-ink/80">{a.signInHint}</p>
+      <button type="button" className="btn-ghost w-full" onClick={() => void account.signIn()}>
+        <LogIn className="h-4 w-4" aria-hidden /> {a.signIn}
+      </button>
     </div>
   );
 }
@@ -248,7 +226,6 @@ export function KpSaveAndNotes({
 export function KpSharePanel({ account, id, name, shared, onShared }: { account: KpAccount; id: string; name: string; shared: boolean; onShared: (v: boolean) => void }) {
   const { t, lang } = useI18n();
   const a = t.kp.account;
-  const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState(false);
@@ -263,43 +240,36 @@ export function KpSharePanel({ account, id, name, shared, onShared }: { account:
   };
 
   return (
-    <div className="w-full">
-      <button type="button" className="btn-ghost" onClick={() => setOpen((o) => !o)} aria-expanded={open} data-testid="kp-share">
-        <Share2 className="h-4 w-4" aria-hidden /> {a.share}
+    <div className="w-full space-y-3 rounded-xl border border-line p-4" data-testid="kp-share-panel">
+      <p className="text-sm font-semibold">{a.shareTitle}</p>
+      <p className="text-sm text-ink/80">{shared ? a.shareOn : a.shareOff}</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <input readOnly className="input min-w-0 flex-1 text-xs" value={url} aria-label={a.shareTitle} onFocus={(e) => e.target.select()} data-testid="kp-share-url" />
+        <button
+          type="button"
+          className="btn-ghost shrink-0"
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(url);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            } catch {
+              /* clipboard blocked: the link can still be selected in the box */
+            }
+          }}
+        >
+          {copied ? <Check className="h-4 w-4" aria-hidden /> : <Copy className="h-4 w-4" aria-hidden />} {copied ? a.copied : a.copy}
+        </button>
+        {shared && (
+          <a className="btn-ghost shrink-0" href={`https://wa.me/?text=${encodeURIComponent(`${name || t.kp.chart}\n${url}`)}`} target="_blank" rel="noopener noreferrer">
+            {a.whatsapp}
+          </a>
+        )}
+      </div>
+      <button type="button" className={shared ? "btn-ghost" : "btn-gold"} disabled={busy} onClick={() => void toggle(!shared)} data-testid="kp-share-toggle">
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Link2 className="h-4 w-4" aria-hidden />} {shared ? a.turnOff : a.turnOn}
       </button>
-      {open && (
-        <div className="mt-3 space-y-3 rounded-xl border border-line p-4" data-testid="kp-share-panel">
-          <p className="text-sm font-semibold">{a.shareTitle}</p>
-          <p className="text-sm text-ink/80">{shared ? a.shareOn : a.shareOff}</p>
-          <div className="flex flex-wrap items-center gap-2">
-            <input readOnly className="input min-w-0 flex-1 text-xs" value={url} aria-label={a.shareTitle} onFocus={(e) => e.target.select()} data-testid="kp-share-url" />
-            <button
-              type="button"
-              className="btn-ghost shrink-0"
-              onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(url);
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 2000);
-                } catch {
-                  /* clipboard blocked: the link can still be selected in the box */
-                }
-              }}
-            >
-              {copied ? <Check className="h-4 w-4" aria-hidden /> : <Copy className="h-4 w-4" aria-hidden />} {copied ? a.copied : a.copy}
-            </button>
-            {shared && (
-              <a className="btn-ghost shrink-0" href={`https://wa.me/?text=${encodeURIComponent(`${name || t.kp.chart}\n${url}`)}`} target="_blank" rel="noopener noreferrer">
-                {a.whatsapp}
-              </a>
-            )}
-          </div>
-          <button type="button" className={shared ? "btn-ghost" : "btn-gold"} disabled={busy} onClick={() => void toggle(!shared)} data-testid="kp-share-toggle">
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Link2 className="h-4 w-4" aria-hidden />} {shared ? a.turnOff : a.turnOn}
-          </button>
-          {error && <p className="text-sm text-red-300" role="alert">{a.error}</p>}
-        </div>
-      )}
+      {error && <p className="text-sm text-red-300" role="alert">{a.error}</p>}
     </div>
   );
 }

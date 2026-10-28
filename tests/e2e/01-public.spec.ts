@@ -229,16 +229,27 @@ test("KP chart: birth details give a South Indian chart whose items open in the 
   const chart = page.getByTestId("kp-chart");
   await expect(chart).toBeVisible({ timeout: 30_000 });
   // 1 Jan 2000, 12:00 UT: KP New mean ayanamsa is exactly 23°46'00", shown as 23°45'59".
-  await expect(chart).toContainText(`KP New ayanamsa 23°45'59"`);
+  await expect(chart).toContainText(`KP New | 23°45'59"`);
   // 13 planets and 12 cusps, each its own button inside the 12 sign boxes.
   await expect(page.getByTestId("kp-grid").locator("button")).toHaveCount(25);
   await expect(page.getByTestId("kp-planets-table").locator("tbody tr")).toHaveCount(13);
   await expect(page.getByTestId("kp-aspects-table").locator("tbody tr")).toHaveCount(9);
   await expect(page.getByTestId("kp-strength-table")).toContainText("Opposition lords");
+  // The header shows the birth moment, the ascendant and the coordinates.
+  await expect(page.getByTestId("kp-header")).toContainText("True Asc");
+  await expect(page.getByTestId("kp-header")).toContainText("28.6139°N, 77.2090°E");
+
+  // Picking a house ranks its significators with their levels.
+  await page.getByTestId("kp-house-select").selectOption("1");
+  await expect(page.getByTestId("kp-strength-table")).toContainText("Rank");
+  await expect(page.getByTestId("kp-strength-table").locator("tbody tr").first()).toContainText(/L[1-4]/);
+  await page.getByTestId("kp-house-select").selectOption("0");
+  await expect(page.getByTestId("kp-strength-table").locator("tbody tr")).toHaveCount(9);
 
   // Tapping a cusp shows its details inside the chart's centre box; Back restores the centre.
   const details = page.getByTestId("kp-details");
   await expect(details).toContainText("Public test");
+  await expect(details).toContainText("28.6139°N, 77.2090°E");
   await page.getByTestId("kp-item-c1").click();
   await expect(page.getByTestId("kp-item-c1")).toHaveAttribute("aria-pressed", "true");
   await expect(details).toContainText(/^I – \w+ \d\d°\d\d'\d\d"/);
@@ -251,17 +262,25 @@ test("KP chart: birth details give a South Indian chart whose items open in the 
   await expect(page.getByTestId("kp-dasha").locator("li")).not.toHaveCount(0);
 
   // Editing reopens the form with the same details; changing the time redraws the chart.
+  await page.getByTestId("kp-actions").click();
   await page.getByTestId("kp-edit").click();
   await expect(page.locator("#kp-name")).toHaveValue("Public test");
   await expect(page.locator("#kp-time")).toHaveValue("17:30:00");
   await page.fill("#kp-time", "05:30:00");
   await page.getByTestId("kp-submit").click();
-  await expect(chart).toContainText("05:30:00", { timeout: 30_000 });
+  await expect(chart).toContainText(/05:30:00 am/i, { timeout: 30_000 });
 
   // Starting over returns to an empty form.
+  await page.getByTestId("kp-actions").click();
   await page.getByTestId("kp-new-chart").click();
   await expect(page.getByTestId("kp-form")).toBeVisible();
   await expect(page.locator("#kp-name")).toHaveValue("");
+});
+
+test("KP chart: the new-chart page shows the form", async ({ page }) => {
+  await gotoReady(page, "/kp-chart/new");
+  await expect(page.getByTestId("kp-form")).toBeVisible();
+  await expect(page.getByTestId("kp-submit")).toBeVisible();
 });
 
 test("KP chart: a saved chart's link that is private or missing says so", async ({ page }) => {

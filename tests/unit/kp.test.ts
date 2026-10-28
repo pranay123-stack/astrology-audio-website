@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { computeKpChart, kpNewMeanAyanamsa } from "@/lib/kp/engine";
 import { DASHA_YEAR_DAYS, describe as kp, formatDms, NAK_SPAN, vimshottari } from "@/lib/kp/lords";
 import { ASPECT_ORB, computeAspects, separation } from "@/lib/kp/aspects";
+import { rankHouseSignificators } from "@/lib/kp/house-rank";
 import { computeSignificators, houseOf, KP9 } from "@/lib/kp/significators";
 import { formatOffset, localToUtc } from "@/lib/kp/time";
 
@@ -131,5 +132,37 @@ describe("planetary aspects", () => {
   it("measures separation the short way round", () => {
     expect(separation(350, 10)).toBe(20);
     expect(separation(10, 190)).toBe(180);
+  });
+});
+
+describe("house significators ranking", () => {
+  // Public made-up moment and place (New Delhi, 1 Jan 2000 17:30 IST).
+  const chart = computeKpChart(Date.UTC(2000, 0, 1, 12, 0, 0), 28.6139, 77.209);
+  const sig = computeSignificators(chart.planets, chart.cusps);
+  const aspects = computeAspects(chart.planets);
+
+  it("lists each house's significators strongest level first, using the KP levels", () => {
+    for (let h = 1; h <= 12; h++) {
+      const ranked = rankHouseSignificators(h, sig, aspects);
+      expect(ranked.map((r) => r.level)).toEqual([...ranked.map((r) => r.level)].sort((a, b) => a - b));
+      for (const { planet, level } of ranked) {
+        const s = sig.strength[planet];
+        if (level === 1) expect(s.star.occupies).toContain(h);
+        if (level === 2) expect(s.self.occupies).toContain(h);
+        if (level === 4) expect(s.self.owns).toContain(h);
+      }
+      // Occupants and owners are always listed (at their own level or a stronger one).
+      for (const k of KP9) if (sig.self[k].occupies.includes(h) || sig.self[k].owns.includes(h)) expect(ranked.map((r) => r.planet)).toContain(k);
+      expect(new Set(ranked.map((r) => r.planet)).size).toBe(ranked.length);
+    }
+  });
+
+  it("gives a planet the strongest level it reaches", () => {
+    // A planet that occupies a house it also owns is listed once, at L2 or stronger.
+    for (const k of KP9) {
+      const [occ] = sig.self[k].occupies;
+      const entry = rankHouseSignificators(occ, sig, aspects).find((r) => r.planet === k)!;
+      expect(entry.level).toBeLessThanOrEqual(2);
+    }
   });
 });

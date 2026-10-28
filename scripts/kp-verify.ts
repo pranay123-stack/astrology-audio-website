@@ -13,6 +13,7 @@ import { readFileSync } from "node:fs";
 import { computeKpChart } from "../src/lib/kp/engine";
 import { formatDms, SIGNS, vimshottari } from "../src/lib/kp/lords";
 import { ASPECTS, computeAspects } from "../src/lib/kp/aspects";
+import { rankHouseSignificators } from "../src/lib/kp/house-rank";
 import { computeSignificators, KP9 } from "../src/lib/kp/significators";
 
 interface RefItem { key: string | number; sign: string; deg: number; min: number; sec: number; star: string; sub: string }
@@ -36,6 +37,8 @@ interface RefChart {
     strength_sub?: Record<string, number[][]>;
     /** Planetary aspects rows as read off the screen: planet -> aspect -> planets (empty cells left out). */
     aspects?: Record<string, Record<string, string[]>>;
+    /** Strength table with a house picked: house -> [planet, level] in rank order. */
+    house_rank?: Record<string, [string, number][]>;
   };
 }
 
@@ -130,6 +133,10 @@ for (const c of charts) {
         check(`aspects ${k}`, same(mine, ref), `ref ${JSON.stringify(ref)} ours ${JSON.stringify(mine)}`);
       }
     }
+    for (const [h, ref] of Object.entries(x.house_rank ?? {})) {
+      const ours = rankHouseSignificators(Number(h), sig, computeAspects(chart.planets)).map((r) => [r.planet, r.level]);
+      check(`house ${h} ranking`, same(ours, ref), `ref ${JSON.stringify(ref)} ours ${JSON.stringify(ours)}`);
+    }
   }
 
   // One Vimshottari cycle covers 120 years from birth, which includes every reference period.
@@ -145,7 +152,7 @@ console.log(`Charts: ${charts.length}`);
 console.log(`Degrees within 1.5": ${degOk}/${total} (largest difference among matches: ${worst.toFixed(2)}")`);
 console.log(`Star·sub lords identical: ${lordOk}/${total}`);
 console.log(`Maha dasha start and end dates: ${dashaOk * 2}/${charts.length * 2}`);
-console.log(`Displayed ayanamsa, tables and badges (ABCD, sub lord houses, U, R, pada, aspects): ${extraOk}/${extraTotal}`);
+console.log(`Displayed ayanamsa, tables and badges (ABCD, sub lord houses, U, R, pada, aspects, house ranking): ${extraOk}/${extraTotal}`);
 if (problems.length) {
   console.log("\nMismatches:\n  " + problems.join("\n  "));
   process.exit(1);

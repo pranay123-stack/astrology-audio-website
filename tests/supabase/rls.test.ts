@@ -378,6 +378,30 @@ describe("saved KP charts", () => {
     await service.from("kp_charts").delete().eq("id", id);
   });
 
+  it("counts the owner's views and keeps pins, without changing the edited date", async () => {
+    const mine = await member.from("kp_charts").insert({ name: "rls dash", birth }).select("id, updated_at").single();
+    expect(mine.error).toBeNull();
+    const id = mine.data!.id;
+    const row = async () => (await member.from("kp_charts").select("view_count, last_viewed_at, pinned, updated_at").eq("id", id).single()).data!;
+
+    expect((await member.rpc("kp_chart_viewed", { p_id: id })).error).toBeNull();
+    await member.rpc("kp_chart_viewed", { p_id: id });
+    expect((await member.from("kp_charts").update({ pinned: true }).eq("id", id)).error).toBeNull();
+    const after = await row();
+    expect([after.view_count, after.pinned, after.last_viewed_at !== null]).toEqual([2, true, true]);
+    expect(after.updated_at).toBe(mine.data!.updated_at);
+
+    // Nobody else's views are counted on it; an anonymous visitor cannot call it at all.
+    expect((await admin.rpc("kp_chart_viewed", { p_id: id })).error).toBeNull();
+    expect((await row()).view_count).toBe(2);
+    expect((await anon.rpc("kp_chart_viewed", { p_id: id })).error).not.toBeNull();
+
+    // A real edit does move the edited date.
+    await member.from("kp_charts").update({ name: "rls dash 2" }).eq("id", id);
+    expect((await row()).updated_at).not.toBe(mine.data!.updated_at);
+    await service.from("kp_charts").delete().eq("id", id);
+  });
+
   it("rejects oversized birth data and notes", async () => {
     expect((await member.from("kp_charts").insert({ name: "big", birth: { junk: "x".repeat(5000) } })).error).not.toBeNull();
     expect((await member.from("kp_charts").insert({ name: "notes", birth, notes: "x".repeat(20001) })).error).not.toBeNull();

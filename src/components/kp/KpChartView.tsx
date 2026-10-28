@@ -1,9 +1,10 @@
 "use client";
 
 import { Fragment, useMemo, useState, type ReactNode } from "react";
-import { ArrowLeft, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowLeft, ArrowUp, CalendarDays, ChevronDown, ChevronRight, Globe, MapPin, Plus, Settings, User } from "lucide-react";
 import type { KpChartResult } from "@/lib/kp/build";
 import { ASPECTS } from "@/lib/kp/aspects";
+import { rankHouseSignificators } from "@/lib/kp/house-rank";
 import type { KpCusp, KpPlanet } from "@/lib/kp/engine";
 import { formatDms, SIGN_LORDS, type DashaPeriod } from "@/lib/kp/lords";
 import { KP9, type Kp9, type Signification } from "@/lib/kp/significators";
@@ -23,6 +24,43 @@ const union = (sigs: Signification[]) => ({
   owns: [...new Set(sigs.flatMap((s) => s.owns))].sort((a, b) => a - b),
 });
 
+/** "26.1197°N, 85.3910°E" */
+export const formatCoords = (lat: number, lon: number) =>
+  `${Math.abs(lat).toFixed(4)}°${lat >= 0 ? "N" : "S"}, ${Math.abs(lon).toFixed(4)}°${lon >= 0 ? "E" : "W"}`;
+
+/** Birth date and local time as the chart header shows them ("Sun, 24 Jul 1994", "07:39:48 pm IST"). */
+export function birthMoment(chart: KpChartResult, locale: string) {
+  const local = new Date(chart.utcMs + chart.offsetMinutes * 60_000);
+  const date = new Intl.DateTimeFormat(locale, { timeZone: "UTC", weekday: "short", day: "numeric", month: "short", year: "numeric" }).format(local);
+  const time = new Intl.DateTimeFormat(locale, { timeZone: "UTC", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true }).format(local);
+  let zone = `UTC${formatOffset(chart.offsetMinutes)}`;
+  if (chart.input.offsetMinutes === undefined) {
+    try {
+      zone =
+        new Intl.DateTimeFormat("en-IN", { timeZone: chart.input.zone, timeZoneName: "short" })
+          .formatToParts(new Date(chart.utcMs))
+          .find((x) => x.type === "timeZoneName")?.value ?? zone;
+    } catch {
+      /* unknown zone name: keep the UTC offset */
+    }
+  }
+  return { date, time: `${time} ${zone}` };
+}
+
+function KpBadges({ chart, full }: { chart: KpChartResult; full?: boolean }) {
+  const { t } = useI18n();
+  return (
+    <span className="flex flex-wrap items-center gap-2 text-[10px] font-semibold uppercase tracking-wide sm:text-xs">
+      <span className="inline-flex items-center gap-1 rounded bg-rose-400/15 px-2 py-0.5 text-rose-200">
+        <User className="h-3 w-3" aria-hidden /> {full ? t.kp.dash.birthChart : t.kp.dash.birth}
+      </span>
+      <span className="inline-flex items-center gap-1 rounded bg-emerald-400/15 px-2 py-0.5 text-emerald-200">
+        <Settings className="h-3 w-3" aria-hidden /> KP New{full && <span className="font-normal normal-case"> | {formatDms(chart.ayanamsaShown)}</span>}
+      </span>
+    </span>
+  );
+}
+
 function Badges({ planet, unoccupied }: { planet: KpPlanet; unoccupied: boolean }) {
   const { t } = useI18n();
   return (
@@ -38,7 +76,7 @@ function Badges({ planet, unoccupied }: { planet: KpPlanet; unoccupied: boolean 
 }
 
 /** Interactive KP chart: South Indian grid (details open in its centre), tables, aspects and dasha. */
-export function KpChartView({ chart, header }: { chart: KpChartResult; header?: ReactNode }) {
+export function KpChartView({ chart, header, createdAt }: { chart: KpChartResult; header?: ReactNode; createdAt?: string }) {
   const { lang, t } = useI18n();
   const k = t.kp;
   const sig = chart.significators;
@@ -60,27 +98,46 @@ export function KpChartView({ chart, header }: { chart: KpChartResult; header?: 
       ...(withTime ? { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false } : {}),
     }).format(new Date(ms + (withTime ? chart.offsetMinutes * 60_000 : 0)));
   const asc = chart.cusps[0];
-  const hl = (houses: number[]) => (house && houses.includes(house) ? "bg-gold/25 font-semibold text-gold-soft" : "");
+  const moment = birthMoment(chart, intlLocale(lang));
+  // With a house picked, the strength table lists only that house's significators, strongest first.
+  const rows = house ? rankHouseSignificators(house, sig, chart.aspects) : KP9.map((planet) => ({ planet, level: 0 }));
 
   return (
     <div className="space-y-6" data-testid="kp-chart">
-      <section className="card space-y-2 p-6">
-        <h2 className="text-3xl font-semibold">{chart.input.name || k.chart}</h2>
-        <p className="text-sm text-ink/85">
-          {k.born}: {fmtDate(chart.utcMs, true)} (UTC{formatOffset(chart.offsetMinutes)}) · {chart.input.place}
-        </p>
-        <p className="text-xs text-muted">
-          {chart.input.lat.toFixed(4)}°, {chart.input.lon.toFixed(4)}° · {chart.input.zone} · {k.ayanamsa} {formatDms(chart.ayanamsaShown)}
-        </p>
-        <p className="text-sm">
-          Asc: <strong>{signs[asc.signIndex]} {formatDms(asc.degInSign)}</strong> · {k.signLord} {lord(asc.signLord)} · {k.starLord}{" "}
-          {lord(asc.starLord)} · {k.subLord} {lord(asc.subLord)}
-        </p>
-        {header}
+      <section className="card space-y-4 p-6" data-testid="kp-header">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-2">
+            <h2 className="text-3xl font-semibold">{chart.input.name || k.chart}</h2>
+            <KpBadges chart={chart} full />
+          </div>
+          {header}
+        </div>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-ink/90">
+          <span className="inline-flex items-center gap-2">
+            <CalendarDays className="h-4 w-4 text-gold-soft" aria-hidden /> {moment.date}
+            <span className="ml-3 tabular-nums">{moment.time}</span>
+          </span>
+          <span className="inline-flex flex-wrap items-center gap-1.5">
+            <ArrowUp className="h-4 w-4 text-gold-soft" aria-hidden /> {k.trueAsc}:{" "}
+            <strong>{signs[asc.signIndex]} {formatDms(asc.degInSign)}</strong>
+            <span className="text-muted">|</span> SgL {lord(asc.signLord)} · StL {lord(asc.starLord)} · SbL {lord(asc.subLord)}
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-ink/90">
+          <span className="inline-flex items-center gap-2"><MapPin className="h-4 w-4 text-gold-soft" aria-hidden /> {chart.input.place}</span>
+          <span className="inline-flex items-center gap-2"><Globe className="h-4 w-4 text-gold-soft" aria-hidden /> {formatCoords(chart.input.lat, chart.input.lon)}</span>
+          <span className="text-xs text-muted">{chart.input.zone}</span>
+        </div>
+        {createdAt && (
+          <p className="inline-flex items-center gap-1 text-xs text-muted">
+            <Plus className="h-3 w-3" aria-hidden /> {k.dash.created}{" "}
+            {new Intl.DateTimeFormat(intlLocale(lang), { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(createdAt))}
+          </p>
+        )}
       </section>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
-        <ChartGrid chart={chart} lord={lord} isU={isU} fmtDate={fmtDate} />
+        <ChartGrid chart={chart} lord={lord} isU={isU} moment={moment} />
 
         {/* ABCD */}
         <section className="card overflow-x-auto p-5" aria-labelledby="kp-abcd">
@@ -200,21 +257,23 @@ export function KpChartView({ chart, header }: { chart: KpChartResult; header?: 
             {k.selectHouse}
             <select className="input w-auto py-1.5 text-sm" value={house} onChange={(e) => setHouse(Number(e.target.value))} data-testid="kp-house-select">
               <option value={0}>{k.allHouses}</option>
-              {ROMAN.map((r, i) => <option key={r} value={i + 1}>{r} ({i + 1})</option>)}
+              {ROMAN.map((r, i) => <option key={r} value={i + 1}>{k.house} {i + 1} ({r})</option>)}
             </select>
           </label>
         </div>
         <table className="w-full min-w-[760px] text-sm" data-testid="kp-strength-table">
           <thead className="text-center text-xs text-muted">
             <tr>
+              {house > 0 && <th rowSpan={2} className="py-2">{k.rank}</th>}
               <th rowSpan={2} className="py-2 text-left">{k.planet}</th>
+              {house > 0 && <th rowSpan={2}>{k.level}</th>}
               <th colSpan={2}>{k.starLord}</th><th colSpan={2}>{k.subLord}</th><th colSpan={2}>{k.conjLords}</th>
               <th colSpan={2}>{k.oppLords}</th><th colSpan={2}>{k.self}</th>
             </tr>
             <tr>{Array.from({ length: 5 }, (_, i) => <Fragment key={i}><th>{k.occupied}</th><th>{k.owned}</th></Fragment>)}</tr>
           </thead>
           <tbody className="text-center">
-            {KP9.map((key) => {
+            {rows.map(({ planet: key, level }, i) => {
               const s = sig.strength[key];
               const conj = chart.aspects[key].conjunction;
               const opp = chart.aspects[key].opposition;
@@ -227,11 +286,13 @@ export function KpChartView({ chart, header }: { chart: KpChartResult; header?: 
               ];
               return (
                 <tr key={key} className="border-t border-line">
+                  {house > 0 && <td className="py-2 font-semibold">{i + 1}</td>}
                   <td className="py-2 text-left font-semibold text-gold-soft">{key}</td>
-                  {groups.map(([g, by], i) => (
-                    <Fragment key={i}>
-                      <td title={by} className={g ? hl(g.occupies) : ""}>{g ? list(g.occupies) : "–"}</td>
-                      <td title={by} className={g ? hl(g.owns) : ""}>{g ? list(g.owns) : "–"}</td>
+                  {house > 0 && <td className="font-semibold">L{level}</td>}
+                  {groups.map(([g, by], j) => (
+                    <Fragment key={j}>
+                      <td title={by}>{g ? list(g.occupies) : "–"}</td>
+                      <td title={by}>{g ? list(g.owns) : "–"}</td>
                     </Fragment>
                   ))}
                 </tr>
@@ -268,12 +329,12 @@ function ChartGrid({
   chart,
   lord,
   isU,
-  fmtDate,
+  moment,
 }: {
   chart: KpChartResult;
   lord: (of: string) => ReactNode;
   isU: (key: string) => boolean;
-  fmtDate: (ms: number, withTime?: boolean) => string;
+  moment: { date: string; time: string };
 }) {
   const { lang, t } = useI18n();
   const k = t.kp;
@@ -385,11 +446,24 @@ function ChartGrid({
               </dl>
             </div>
           ) : (
-            <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
-              <p className="font-display text-base font-semibold sm:text-xl xl:text-2xl">{chart.input.name || k.chart}</p>
-              <p className="text-[10px] text-muted sm:text-xs">{fmtDate(chart.utcMs, true)}</p>
-              <p className="line-clamp-2 text-[10px] text-muted sm:text-xs">{chart.input.place}</p>
-              <p className="text-[10px] text-gold sm:text-xs">KP New</p>
+            <div className="flex h-full flex-col gap-2 text-[10px] sm:gap-3 sm:text-sm xl:text-base" data-testid="kp-centre-default">
+              <p className="text-center font-display text-base font-semibold sm:text-xl xl:text-2xl">{chart.input.name || k.chart}</p>
+              <div className="flex items-center justify-between gap-2">
+                <KpBadges chart={chart} />
+              </div>
+              <p className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                <CalendarDays className="hidden h-4 w-4 text-gold-soft sm:inline" aria-hidden />
+                <span>{moment.date}</span>
+                <span className="tabular-nums">{moment.time}</span>
+              </p>
+              <p className="flex items-start gap-2">
+                <MapPin className="mt-0.5 hidden h-4 w-4 shrink-0 text-gold-soft sm:inline" aria-hidden />
+                <span className="line-clamp-2">{chart.input.place}</span>
+              </p>
+              <p className="flex items-center gap-2">
+                <Globe className="hidden h-4 w-4 text-gold-soft sm:inline" aria-hidden />
+                <span>{formatCoords(chart.input.lat, chart.input.lon)}</span>
+              </p>
             </div>
           )}
         </div>
