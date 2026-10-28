@@ -40,8 +40,16 @@ export function AccountButton() {
 
   if (!visitor.user) {
     return (
-      <button type="button" onClick={() => void visitor.signIn()} className="btn-ghost px-3 py-1.5 text-sm" data-testid="nav-signin">
-        <UserRound className="h-4 w-4" aria-hidden /> {t.nav.signIn}
+      <button
+        type="button"
+        onClick={() => void visitor.signIn()}
+        className="btn-ghost whitespace-nowrap px-3 py-1.5 text-sm"
+        aria-label={t.nav.signIn}
+        title={t.nav.signIn}
+        data-testid="nav-signin"
+      >
+        {/* With the full menu beside it, the label shows only on very wide screens. */}
+        <UserRound className="h-4 w-4" aria-hidden /> <span className="hidden 2xl:inline">{t.nav.signIn}</span>
       </button>
     );
   }

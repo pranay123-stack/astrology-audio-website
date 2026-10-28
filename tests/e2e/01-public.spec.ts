@@ -19,18 +19,17 @@ test("home page shows the main sections and the sample-content notice", async ({
   expect(order.every((y, i) => y > 0 && (i === 0 || y > order[i - 1]))).toBe(true);
   // The astrologer's menu; Premium shows only because the sample content has premium posts.
   const nav = await page.getByRole("navigation", { name: "Main" }).filter({ visible: true }).getByRole("link").allInnerTexts();
-  expect(nav).toEqual(["Astrology", "Astro Cricket", "Book", "Horoscope Research", "Premium", "Make Your KP Chart", "Contact"]);
+  expect(nav).toEqual(["Astrology", "Astro Cricket", "Book", "Horoscope Research", "Premium", "Make Your KP Chart", "Contact", "Rules", "Testimonials"]);
   // The hero's main button is the course; the KP chart has its own invitation.
   await expect(page.getByTestId("hero-learn")).toHaveAttribute("href", "/contact?subject=Learning%20cricket%20astrology#questionnaire");
   await expect(page.getByTestId("kp-promo").getByRole("link")).toHaveAttribute("href", "/kp-chart");
-  await expect(page.getByTestId("nav-learn")).toHaveAttribute("href", "/contact?subject=Learning%20cricket%20astrology#questionnaire");
   await expect(page.getByTestId("demo-banner")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Latest in Astrology" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Cricket Astrology", exact: true })).toBeVisible();
   await expect(page.getByTestId("match-card").filter({ visible: true })).toHaveCount(3);
   // The sections of the menu, each with its sub-pages.
   const explore = page.getByTestId("home-explore");
-  await expect(explore.locator("article")).toHaveCount(4);
+  await expect(explore.locator("article")).toHaveCount(6);
   await expect(explore.getByRole("link", { name: "12 Planets & 12 Bhav" })).toHaveAttribute("href", "/astrology/planets-bhav");
   await expect(explore.getByRole("link", { name: "IPL" })).toHaveAttribute("href", "/horoscope-research/matches?competition=ipl");
   await expect(page.getByText(/not guarantee match outcomes/).first()).toBeVisible();
@@ -41,7 +40,7 @@ test("Hindi site: translated interface at /hi, and the switch keeps the page and
   await expect(page.locator("html")).toHaveAttribute("lang", "hi");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("ज्योतिष को जानिए");
   const nav = await page.getByRole("navigation", { name: "मुख्य" }).filter({ visible: true }).getByRole("link").allInnerTexts();
-  expect(nav).toEqual(["ज्योतिष", "एस्ट्रो क्रिकेट", "पुस्तक", "कुंडली शोध", "प्रीमियम", "अपनी KP कुंडली बनाएँ", "संपर्क"]);
+  expect(nav).toEqual(["ज्योतिष", "एस्ट्रो क्रिकेट", "पुस्तक", "कुंडली शोध", "प्रीमियम", "अपनी KP कुंडली बनाएँ", "संपर्क", "नियम", "प्रशंसापत्र"]);
   // Menu links stay inside /hi.
   await expect(page.getByTestId("home-explore").getByRole("link", { name: "12 ग्रह और 12 भाव" })).toHaveAttribute("href", "/hi/astrology/planets-bhav");
   await expect(page.getByRole("link", { name: "ज्योतिष ज्ञान देखें" })).toHaveAttribute("href", "/hi/astrology");
@@ -257,6 +256,17 @@ test("site menu: dropdowns lead to each section's pages, with their content", as
   await expect(page.getByTestId("topic-posts").getByTestId("episode-card").first()).toBeVisible();
   await gotoReady(page, "/horoscope-research/players");
   await expect(page.getByTestId("empty-state")).toBeVisible();
+
+  // The astrologer's rules, in his words: 7 spiritual (with planet and chakra), 9 cricket, 9 Shani.
+  await page.getByTestId("menu-toggle-rules").click();
+  await page.getByTestId("menu-panel-rules").getByRole("link", { name: "Shani Rules" }).click();
+  await expect(page).toHaveURL(/\/rules#shani$/);
+  await expect(page.getByTestId("rules-spiritual").getByTestId("rule")).toHaveCount(7);
+  await expect(page.getByTestId("rules-cricket").getByTestId("rule")).toHaveCount(9);
+  await expect(page.getByTestId("rules-shani").getByTestId("rule")).toHaveCount(9);
+  await expect(page.getByTestId("rules-spiritual").getByTestId("rule").first()).toContainText("Mooladhar Chakra");
+  await expect(page.getByTestId("rules-cricket")).toContainText("LPL or CPL");
+  await expect(page.getByTestId("rules-shani").getByTestId("rule").last()).toContainText("Sab ho raha hai, I am doing nothing.");
 });
 
 test("KP chart: birth details give a South Indian chart whose items open in the centre box, and can be edited", async ({ page }) => {

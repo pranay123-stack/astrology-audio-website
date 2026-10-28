@@ -26,7 +26,7 @@ export function Logo({ lang }: { lang: Locale }) {
   return (
     <Link href={localePath(lang, "/")} className="group flex items-center gap-2.5" aria-label={getDict(lang).nav.homeAria(siteConfig.name)}>
       <LogoMark />
-      <span className="font-display text-xl leading-none font-semibold tracking-wide text-ink group-hover:text-gold-soft sm:text-2xl">
+      <span className="font-display text-xl leading-none font-semibold tracking-wide whitespace-nowrap text-ink group-hover:text-gold-soft sm:text-2xl">
         {siteConfig.name}
       </span>
     </Link>

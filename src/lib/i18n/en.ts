@@ -365,6 +365,13 @@ export const en = {
     contact: "Contact",
     premium: "Premium",
     overview: "Overview",
+    rules: "Rules",
+    spiritualRules: "Spiritual",
+    cricketRules: "Cricket",
+    shaniRules: "Shani Rules",
+    testimonials: "Testimonials",
+    testimonialAudio: "Audio with cricket data",
+    messageProof: "Message proof",
   },
 
   topics: {
@@ -422,6 +429,29 @@ export const en = {
     },
     matches: { eyebrow: "Horoscope Research", title: "Cricket Matches", intro: "Match kundlis for the Big Bash, IPL and international T20 games." },
     players: { eyebrow: "Horoscope Research", title: "Players", intro: "Horoscope research on cricket players." },
+    rules: {
+      eyebrow: "Rules",
+      title: "Rules",
+      intro: "The astrologer's rules for spiritual life, for working with cricket matches, and Shani's rules for money and karma.",
+      spiritual: "Spiritual rules",
+      spiritualIntro: "Seven rules, one for each chakra and the planet that rules it.",
+      cricket: "Cricket rules",
+      cricketIntro: "How to work with match kundlis: which matches, how often, and how to take success and failure.",
+      shani: "Shani rules",
+      shaniIntro: "Saturn's rules for money, plans and giving.",
+      rules: (n: number) => `${n} rules`,
+      planet: "Planet",
+      chakra: "Chakra",
+    },
+    testimonials: {
+      eyebrow: "Testimonials",
+      title: "Testimonials",
+      intro: "What people say about the readings: audio testimonials with the match they are about, and their messages.",
+      audio: "Audio with cricket data",
+      audioIntro: "Listen to people talk about the readings, with the details of each match.",
+      messages: "Message proof",
+      messagesIntro: "Screenshots of messages received. Tap one to see it full size.",
+    },
   },
 
   learn: {

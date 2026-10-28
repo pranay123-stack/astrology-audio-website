@@ -14,6 +14,8 @@ export const TOPICS = {
   oldVideos: { formats: ["video", "reel"], archived: true },
   matches: { categorySlug: "cricket-astrology", withMatch: true, sort: "match_date_desc" },
   players: { categorySlug: "player-horoscopes" },
+  testimonialAudio: { categorySlug: "testimonial-audio", sort: "match_date_desc" },
+  testimonialMessages: { categorySlug: "testimonial-messages", sort: "latest" },
   bookHindi: { categorySlug: "book-hindi", sort: "latest" },
   bookEnglish: { categorySlug: "book-english", sort: "latest" },
 } satisfies Record<string, EpisodeQuery>;

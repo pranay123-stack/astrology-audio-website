@@ -522,4 +522,22 @@ test("book PDF post and an old video land on their menu pages", async ({ page, r
   await expect(page.getByTestId("topic-posts").getByTestId("episode-card").filter({ hasText: "E2E Old Cricket Video" })).toBeVisible();
   await gotoReady(page, "/astro-cricket/videos");
   await expect(page.getByTestId("episode-card").filter({ visible: true }).filter({ hasText: "E2E Old Cricket Video" })).toHaveCount(0);
+
+  // Testimonials › Message proof: screenshots posted as photos show on the page and open full size.
+  await gotoReady(page, "/admin/episodes/new");
+  await page.getByLabel("Title").fill("E2E Messages After The Final");
+  await page.getByLabel("Category").selectOption({ label: "Message Proof" });
+  await page.getByLabel("Short description").fill("Messages received after the final.");
+  await page.getByTestId("gallery-input").setInputFiles([
+    { name: "msg-1.png", mimeType: "image/png", buffer: readFileSync("tests/fixtures/reel-frame.png") },
+    { name: "msg-2.jpg", mimeType: "image/jpeg", buffer: readFileSync("tests/fixtures/wide-frame.jpg") },
+  ]);
+  await expect(page.getByTestId("gallery-list").locator("li")).toHaveCount(2);
+  await page.getByTestId("publish-checkbox").check();
+  await page.getByTestId("save-episode").click();
+  await expect(page).toHaveURL(/\/admin\/episodes\/[0-9a-f-]{36}/);
+  await gotoReady(page, "/testimonials#messages");
+  const proof = page.getByTestId("message-proof").filter({ hasText: "E2E Messages After The Final" });
+  await expect(proof.locator("img")).toHaveCount(2);
+  await expect(page.getByTestId("testimonials-audio").getByTestId("empty-state")).toBeVisible();
 });

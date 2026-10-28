@@ -160,7 +160,7 @@ function DesktopNavInner({ pathname, menu }: { pathname: string; menu: MenuNode[
         {menu.map((l) => {
           const active = isCurrent(pathname, l);
           const isOpen = open === l.key;
-          const top = `rounded-full px-3 py-2 text-sm font-medium transition ${active ? "bg-white/10 text-gold-soft" : "text-ink/80 hover:bg-white/5 hover:text-ink"}`;
+          const top = `rounded-full px-2.5 py-2 text-sm font-medium whitespace-nowrap transition 2xl:px-3 ${active ? "bg-white/10 text-gold-soft" : "text-ink/80 hover:bg-white/5 hover:text-ink"}`;
           if (!l.children) {
             return (
               <li key={l.key}>
@@ -178,11 +178,11 @@ function DesktopNavInner({ pathname, menu }: { pathname: string; menu: MenuNode[
               onFocus={(e) => openBy(l.key, e.timeStamp)}
               onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && setOpen((o) => (o === l.key ? null : o))}
             >
-              <span className={`inline-flex items-center ${top} pr-1.5`}>
+              <span className={`inline-flex items-center ${top} pr-1`}>
                 <MenuLink node={l} className="" />
                 <button
                   type="button"
-                  className="ml-0.5 rounded-full p-0.5 hover:bg-white/10"
+                  className="rounded-full p-0.5 hover:bg-white/10"
                   aria-expanded={isOpen}
                   aria-label={t.nav.showMenu(t.menu[l.key])}
                   onClick={(e) => (isOpen && e.timeStamp - openedAt.current > 400 ? setOpen(null) : openBy(l.key, e.timeStamp))}

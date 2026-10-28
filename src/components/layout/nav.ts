@@ -12,8 +12,9 @@ export interface MenuNode {
 
 /**
  * The site menu, as the astrologer laid it out: Astrology, Astro Cricket, Book, Horoscope
- * Research, Make Your KP Chart, Contact. Premium appears only while a premium post is published,
- * so visitors never land on an empty page; YouTube only when the channel link is set.
+ * Research, Make Your KP Chart, Contact, Rules, Testimonials. Premium appears only while a
+ * premium post is published, so visitors never land on an empty page; YouTube only when the
+ * channel link is set.
  */
 export function siteMenu({ showPremium, youtube }: { showPremium: boolean; youtube?: string }): MenuNode[] {
   const menu: MenuNode[] = [
@@ -72,6 +73,23 @@ export function siteMenu({ showPremium, youtube }: { showPremium: boolean; youtu
     },
     { key: "kpChart", href: "/kp-chart" },
     { key: "contact", href: "/contact" },
+    {
+      key: "rules",
+      href: "/rules",
+      children: [
+        { key: "spiritualRules", href: "/rules#spiritual" },
+        { key: "cricketRules", href: "/rules#cricket" },
+        { key: "shaniRules", href: "/rules#shani" },
+      ],
+    },
+    {
+      key: "testimonials",
+      href: "/testimonials",
+      children: [
+        { key: "testimonialAudio", href: "/testimonials#audio" },
+        { key: "messageProof", href: "/testimonials#messages" },
+      ],
+    },
   ];
   if (showPremium) menu.splice(4, 0, { key: "premium", href: "/premium" });
   return menu;
