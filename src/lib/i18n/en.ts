@@ -91,6 +91,7 @@ export const en = {
     categoriesDesc: "Daily readings, transits, Vedic astrology, meditation and lessons.",
     allCategories: "All categories",
     comingSoon: "Posts coming soon",
+    heroImageAlt: "A batsman and a bowler at the centre of the zodiac wheel, with the Sun, Moon, Mars, Mercury, Jupiter, Venus and Saturn around the match",
     statPosts: (n: number) => `${n} lessons & videos`,
     statKp: "KP New, accurate to the second",
     statLangs: "Hindi & English",

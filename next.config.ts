@@ -15,8 +15,8 @@ const nextConfig: NextConfig = {
   partialPrefetching: true,
   images: {
     formats: ["image/avif", "image/webp"],
-    // Local mode serves uploaded images through this route.
-    localPatterns: [{ pathname: "/api/media/image/**" }],
+    // Local mode serves uploaded images through this route; the home page picture lives in public/.
+    localPatterns: [{ pathname: "/api/media/image/**" }, { pathname: "/hero-cricket-astrology.webp" }],
     // Supabase mode serves them from the public `images` bucket. Hosted projects are
     // always https://<ref>.supabase.co, allowed statically so images keep working even
     // if the host only provides NEXT_PUBLIC_* variables at build time (this file is

@@ -90,10 +90,20 @@ export default async function HomePage() {
           </div>
 
           <div className="relative mx-auto w-full max-w-md lg:max-w-lg">
-            <ZodiacWheel className="w-full drop-shadow-[0_0_60px_rgb(252_196_25/0.35)]" />
+            {/* The wheel of planets around a match; its square corners fade into the page. */}
+            <Image
+              src="/hero-cricket-astrology.webp"
+              alt={t.home.heroImageAlt}
+              width={1254}
+              height={1254}
+              priority
+              sizes="(min-width: 1024px) 512px, 90vw"
+              className="h-auto w-full drop-shadow-[0_0_60px_rgb(252_196_25/0.35)] [mask-image:radial-gradient(circle,black_70%,transparent_80%)]"
+              data-testid="hero-image"
+            />
             {heroEpisode && (
               <div
-                className="absolute inset-x-4 -bottom-6 flex items-center gap-4 rounded-2xl border border-gold/30 bg-night/85 p-4 shadow-[var(--shadow-glow)] backdrop-blur-md sm:inset-x-10"
+                className="relative mx-4 -mt-2 flex items-center gap-4 rounded-2xl border border-gold/30 bg-night/85 p-4 shadow-[var(--shadow-glow)] backdrop-blur-md sm:mx-10"
                 data-testid="hero-latest"
               >
                 <MediaAction episode={heroEpisode} lang={lang} label={heroEpisode.title} />
