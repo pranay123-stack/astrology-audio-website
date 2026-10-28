@@ -102,6 +102,9 @@ const write = (over: Partial<EpisodeWrite> = {}): EpisodeWrite => ({
   video_link: "",
   audio_link: "",
   gallery_paths: [],
+  pdf_storage_path: null,
+  pdf_link: "",
+  is_archived: false,
   duration_seconds: 120,
   is_published: true,
   is_premium: false,
@@ -252,7 +255,36 @@ describe("video and photos", () => {
 
   it("fills the new fields on databases written before video existed", async () => {
     const old = await repo.getEpisodeById("e1");
-    expect(old).toMatchObject({ video_storage_path: null, video_format: "video", video_link: "", audio_link: "", gallery_paths: [] });
+    expect(old).toMatchObject({ video_storage_path: null, video_format: "video", video_link: "", audio_link: "", gallery_paths: [], pdf_storage_path: null, pdf_link: "", is_archived: false });
+  });
+});
+
+describe("site menu: PDFs, old videos, grouped categories", () => {
+  it("publishes a PDF-only post and finds it by format", async () => {
+    await repo.createEpisode(write({ slug: "book-pdf", audio_storage_path: null, pdf_storage_path: "documents/00000000-0000-4000-a000-000000000009.pdf" }));
+    await repo.createEpisode(write({ slug: "book-drive-pdf", audio_storage_path: null, pdf_link: "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view" }));
+    const pdfs = (await repo.queryEpisodes({ format: "pdf" })).items.map((e) => e.slug);
+    expect(pdfs).toEqual(expect.arrayContaining(["book-pdf", "book-drive-pdf"]));
+    expect(await repo.isStoragePathReferenced("documents/00000000-0000-4000-a000-000000000009.pdf")).toBe(true);
+  });
+
+  it("keeps old videos apart from the current ones", async () => {
+    await repo.createEpisode(write({ slug: "new-video", audio_storage_path: null, video_link: "https://youtu.be/dQw4w9WgXcQ" }));
+    await repo.createEpisode(write({ slug: "old-video", audio_storage_path: null, video_link: "https://youtu.be/dQw4w9WgXcQ", is_archived: true }));
+    await repo.createEpisode(write({ slug: "old-reel", audio_storage_path: null, video_link: "https://youtu.be/dQw4w9WgXcQ", video_format: "reel", is_archived: true }));
+    const old = (await repo.queryEpisodes({ formats: ["video", "reel"], archived: true })).items.map((e) => e.slug).sort();
+    expect(old).toEqual(["old-reel", "old-video"]);
+    const current = (await repo.queryEpisodes({ formats: ["video", "reel"], archived: false })).items.map((e) => e.slug);
+    expect(current).toContain("new-video");
+    expect(current).not.toContain("old-video");
+  });
+
+  it("lists several categories together", async () => {
+    const all = (await repo.queryEpisodes({})).items;
+    const cats = [...new Set(all.map((e) => e.category.slug))].slice(0, 2);
+    const both = (await repo.queryEpisodes({ categorySlugs: cats })).items;
+    expect(both.length).toBe(all.filter((e) => cats.includes(e.category.slug)).length);
+    expect(both.every((e) => cats.includes(e.category.slug))).toBe(true);
   });
 });
 

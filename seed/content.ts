@@ -21,10 +21,17 @@ export const categories = [
   { slug: "astrology-learning", requires_match: false, name: "Astrology Learning", name_hi: "ज्योतिष सीखें", description_hi: "उन श्रोताओं के लिए पाठ जो स्वयं ज्योतिष सीखना चाहते हैं।", section: "general", description: "Lessons for listeners who want to learn astrology themselves." },
   { slug: "planets-grahas", requires_match: false, name: "Planets (Grahas)", name_hi: "ग्रह", description_hi: "शनि, शुक्र, गुरु और अन्य ग्रह: उनका स्वभाव, प्रभाव और उपाय।", section: "general", description: "Shani, Shukra, Guru and the other grahas: their nature, influence and remedies." },
   { slug: "cricket-astrology-guide", requires_match: false, name: "Cricket Astrology Guide", name_hi: "क्रिकेट ज्योतिष ज्ञान", description_hi: "ज्योतिषी क्रिकेट मैच को कैसे पढ़ते हैं: पद्धति, भाव, समय और सीमाएँ, सीखने वालों के लिए सरल भाषा में।", section: "cricket", description: "How astrologers read a cricket match: the method, the houses, timing and the limits, explained for learners." },
+  { slug: "kp-research", requires_match: true, name: "KP Research Kundli", name_hi: "KP शोध कुंडली", description_hi: "मैच डेटा के साथ KP शोध कुंडलियाँ।", section: "cricket", description: "KP research kundlis with the match data." },
+  { slug: "cricket-podcast", requires_match: false, name: "Astro Cricket Videos", name_hi: "एस्ट्रो क्रिकेट वीडियो", description_hi: "क्रिकेट और ज्योतिष पर वीडियो पॉडकास्ट।", section: "cricket", description: "Video podcasts on cricket and astrology." },
+  { slug: "player-horoscopes", requires_match: false, name: "Player Horoscopes", name_hi: "खिलाड़ियों की कुंडली", description_hi: "क्रिकेट खिलाड़ियों की कुंडली पर शोध।", section: "cricket", description: "Horoscope research on cricket players." },
+  { slug: "book-hindi", requires_match: false, name: "Book (Hindi)", name_hi: "पुस्तक (हिंदी)", description_hi: "A Spiritual Punter, Bookie & Astrologer, हिंदी में।", section: "general", description: "A Spiritual Punter, Bookie & Astrologer, in Hindi." },
+  { slug: "book-english", requires_match: false, name: "Book (English)", name_hi: "पुस्तक (अंग्रेज़ी)", description_hi: "A Spiritual Punter, Bookie & Astrologer, अंग्रेज़ी में।", section: "general", description: "A Spiritual Punter, Bookie & Astrologer, in English." },
 ] as const;
 
 export const competitions = [
   { slug: "bbl", name: "Big Bash League", short_name: "BBL", description: "Australia's men's T20 domestic league." },
+  { slug: "ipl", name: "Indian Premier League", short_name: "IPL", description: "India's men's T20 league." },
+  { slug: "t20i", name: "International T20", short_name: "T20I", description: "Men's T20 internationals." },
 ] as const;
 
 export const bblTeams = [

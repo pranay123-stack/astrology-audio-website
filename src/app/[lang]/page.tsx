@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, GraduationCap, Sparkles } from "lucide-react";
+import { ArrowRight, BookOpen, Clapperboard, GraduationCap, Orbit, ScrollText, Sparkles, Telescope } from "lucide-react";
 import { EpisodeCard } from "@/components/episodes/EpisodeCard";
 import { LearnCricketCta } from "@/components/episodes/LearnCricketCta";
 import { MatchCard } from "@/components/episodes/MatchCard";
 import { MediaAction } from "@/components/episodes/MediaAction";
 import { ReelsStrip } from "@/components/episodes/ReelsStrip";
-import { CategoryIcon } from "@/components/episodes/categoryIcons";
 import { BookCard } from "@/components/layout/BookCard";
 import { KpPromo } from "@/components/layout/KpPromo";
 import { learnPath } from "@/components/layout/nav";
@@ -16,11 +15,12 @@ import { Starfield } from "@/components/layout/Starfield";
 import { ZodiacWheel } from "@/components/layout/ZodiacWheel";
 import { CricketDisclaimer } from "@/components/ui/Disclaimer";
 import { EmptyState, SectionHeading } from "@/components/ui/SectionHeading";
+import { ExploreMenu } from "@/components/topics/ExploreMenu";
 import { episodeHref, lengthLabel } from "@/lib/episodes";
-import { getDict, localePath, localizeCategory, localizeEpisode, localizeProfile } from "@/lib/i18n";
+import { getDict, localePath, localizeEpisode, localizeProfile } from "@/lib/i18n";
 import { imageUrl } from "@/lib/media/urls";
 import { alternatesFor } from "@/lib/seo";
-import { getCategories, getEpisodes, getProfile } from "@/lib/queries";
+import { getEpisodes, getProfile } from "@/lib/queries";
 import { getLang } from "@/lib/i18n/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -31,20 +31,22 @@ export default async function HomePage() {
   const lang = await getLang();
   const t = getDict(lang);
   const href = (path: string) => localePath(lang, path);
-  const [latestGeneral, upcoming, recentCricket, guide, categories, general, rawProfile] = await Promise.all([
+  const [latestGeneral, upcoming, recentCricket, guide, rawProfile] = await Promise.all([
     getEpisodes({ section: "general", limit: 3, sort: "latest" }),
     getEpisodes({ section: "cricket", withMatch: true, timing: "upcoming", sort: "match_date_asc", limit: 3 }),
     getEpisodes({ section: "cricket", withMatch: true, sort: "latest", limit: 3 }),
     getEpisodes({ categorySlug: "cricket-astrology-guide", sort: "latest", limit: 3 }),
-    getCategories(),
-    getEpisodes({ section: "general", sort: "latest" }),
     getProfile(),
   ]);
   const cricket = upcoming.items.length > 0 ? upcoming.items : recentCricket.items;
-  // Only categories that have posts: empty "coming soon" boxes make the site look unfinished.
-  const generalCategories = categories
-    .filter((c) => c.section === "general" && general.items.some((e) => e.category.id === c.id))
-    .map((c) => localizeCategory(c, lang));
+  // Shortcuts under the hero to the menu's main pages.
+  const shortcuts = [
+    { key: "planetsBhav", path: "/astrology/planets-bhav", icon: Orbit },
+    { key: "kpResearch", path: "/astrology/kp-research", icon: Telescope },
+    { key: "podcast", path: "/astro-cricket/videos", icon: Clapperboard },
+    { key: "book", path: "/book", icon: BookOpen },
+    { key: "research", path: "/horoscope-research", icon: ScrollText },
+  ] as const;
   const profile = localizeProfile(rawProfile, lang);
   const portrait = imageUrl(profile.profile_image_path);
   const heroEpisode = latestGeneral.items[0] ? localizeEpisode(latestGeneral.items[0], lang) : null;
@@ -67,18 +69,18 @@ export default async function HomePage() {
               <Link href={href(learnPath(t.learn.subject))} className="btn-gold px-6 py-3 text-base" data-testid="hero-learn">
                 <GraduationCap className="h-5 w-5" aria-hidden /> {t.nav.learn}
               </Link>
-              <Link href={href("/astrology-audios")} className="btn-ghost px-6 py-3 text-base">
+              <Link href={href("/astrology")} className="btn-ghost px-6 py-3 text-base">
                 <Sparkles className="h-5 w-5" aria-hidden /> {t.home.listen}
               </Link>
             </div>
             <ul className="flex flex-wrap gap-2" aria-label={t.home.popularCategories}>
-              {generalCategories.slice(0, 4).map((c) => (
-                <li key={c.id}>
+              {shortcuts.map((c) => (
+                <li key={c.key}>
                   <Link
-                    href={href(`/astrology-audios?category=${c.slug}`)}
+                    href={href(c.path)}
                     className="inline-flex items-center gap-1.5 rounded-full border border-line bg-white/5 px-3 py-1.5 text-sm text-ink/80 hover:border-gold/50 hover:text-gold-soft"
                   >
-                    <CategoryIcon slug={c.slug} className="h-4 w-4" /> {c.name}
+                    <c.icon className="h-4 w-4" aria-hidden /> {t.menu[c.key]}
                   </Link>
                 </li>
               ))}
@@ -108,6 +110,8 @@ export default async function HomePage() {
         </div>
       </section>
 
+      <ExploreMenu lang={lang} youtube={profile.social_links?.youtube || undefined} />
+
       {/* Latest general posts */}
       <section className="container-page py-16" aria-labelledby="featured-heading">
         <SectionHeading
@@ -115,7 +119,7 @@ export default async function HomePage() {
           eyebrow={t.home.latestEyebrow}
           title={t.home.latestTitle}
           description={t.home.latestDesc}
-          href={href("/astrology-audios")}
+          href={href("/astrology")}
           linkLabel={t.home.browseAll}
         />
         {latestGeneral.items.length ? (
@@ -138,7 +142,7 @@ export default async function HomePage() {
             eyebrow={t.home.cricketEyebrow}
             title={t.home.cricketTitle}
             description={upcoming.items.length ? t.home.cricketUpcoming : recentCricket.items.length ? t.home.cricketRecent : t.home.cricketGuide}
-            href={href("/cricket-astrology")}
+            href={href("/horoscope-research/matches")}
             linkLabel={t.home.allMatchReadings}
           />
           {cricket.length > 0 && (
@@ -167,50 +171,6 @@ export default async function HomePage() {
       <section className="container-page py-8">
         <LearnCricketCta lang={lang} />
       </section>
-
-      {/* Categories with posts */}
-      {generalCategories.length > 0 && (
-        <section className="container-page py-16" aria-labelledby="general-heading">
-          <SectionHeading
-            id="general-heading"
-            eyebrow={t.home.categoriesEyebrow}
-            title={t.home.categoriesTitle}
-            description={t.home.categoriesDesc}
-            href={href("/astrology-audios")}
-            linkLabel={t.home.allCategories}
-          />
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {generalCategories.map((cat) => {
-              const items = general.items.filter((e) => e.category.id === cat.id).map((e) => localizeEpisode(e, lang));
-              return (
-                <div key={cat.id} className="card flex flex-col p-5" data-testid="category-tile">
-                  <div className="mb-3 flex items-center gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-plum-2 to-navy text-gold-soft">
-                      <CategoryIcon slug={cat.slug} />
-                    </span>
-                    <h3 className="text-xl leading-tight font-semibold">
-                      <Link href={href(`/astrology-audios?category=${cat.slug}`)} className="hover:text-gold-soft">
-                        {cat.name}
-                      </Link>
-                    </h3>
-                  </div>
-                  <p className="mb-4 text-sm text-muted">{cat.description}</p>
-                  <ul className="mt-auto space-y-2 border-t border-line pt-3">
-                    {items.slice(0, 2).map((e) => (
-                      <li key={e.id}>
-                        <Link href={episodeHref(e, lang)} className="group flex items-baseline justify-between gap-2 text-sm">
-                          <span className="line-clamp-1 group-hover:text-gold-soft" lang={e.text_lang}>{e.title}</span>
-                          <span className="shrink-0 text-xs text-muted">{lengthLabel(e, lang)}</span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
 
       {/* About the astrologer: last section before the footer */}
       <section className="container-page py-16" aria-labelledby="about-heading">

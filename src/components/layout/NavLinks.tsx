@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
-import { GraduationCap, Languages, Menu, X } from "lucide-react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { ChevronDown, ExternalLink, GraduationCap, Languages, Menu, X } from "lucide-react";
 import { localePath, splitLocale } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n/client";
 import { AccountMenuItems } from "./AccountButton";
-import { learnPath, navLinks } from "./nav";
+import { learnPath, type MenuNode } from "./nav";
 
 /** `pathname` is the public URL (possibly /hi/...); `href` is language-free. */
 function isActive(pathname: string, href: string) {
@@ -68,33 +68,137 @@ function LanguageSwitchInner({ pathname, query, className }: { pathname: string;
   );
 }
 
-export function DesktopNav({ static: isStatic = false, showPremium }: { static?: boolean; showPremium: boolean }) {
-  // `static` renders without the pathname (used as the Suspense fallback).
-  return isStatic ? <DesktopNavInner pathname="" showPremium={showPremium} /> : <DesktopNavWithPath showPremium={showPremium} />;
+/** Whether `node` (or one of the older pages it covers) is the current page or one of its ancestors. */
+function isCurrent(pathname: string, node: MenuNode): boolean {
+  if (!pathname || node.external) return false;
+  return [node.href.split(/[?#]/)[0], ...(node.also ?? [])].some((h) => isActive(pathname, h));
 }
 
-function DesktopNavWithPath({ showPremium }: { showPremium: boolean }) {
-  return <DesktopNavInner pathname={usePathname()} showPremium={showPremium} />;
-}
-
-function DesktopNavInner({ pathname, showPremium }: { pathname: string; showPremium: boolean }) {
+function MenuLink({ node, className, onNavigate }: { node: MenuNode; className: string; onNavigate?: () => void }) {
   const { t, href } = useI18n();
+  if (node.external) {
+    return (
+      <a href={node.href} target="_blank" rel="noopener noreferrer" className={className} onClick={onNavigate}>
+        {t.menu[node.key]} <ExternalLink className="ml-1 inline h-3.5 w-3.5 opacity-70" aria-hidden />
+      </a>
+    );
+  }
   return (
-    <nav aria-label={t.nav.main} className="hidden lg:block">
-      <ul className="flex items-center gap-1">
-        {navLinks(showPremium).map((l) => {
-          const active = pathname !== "" && isActive(pathname, l.href);
+    <Link href={href(node.href)} className={className} onClick={onNavigate}>
+      {t.menu[node.key]}
+    </Link>
+  );
+}
+
+/** A dropdown's contents: plain links, and groups (e.g. "12 Planets & 12 Bhav") with their own sub-links. */
+function MenuPanel({ items, onNavigate, compact = false }: { items: MenuNode[]; onNavigate?: () => void; compact?: boolean }) {
+  const sub = compact ? "block rounded-lg px-3 py-2 text-sm text-ink/80 hover:bg-white/5 hover:text-ink" : "block rounded-lg px-3 py-1.5 text-sm text-ink/80 hover:bg-white/5 hover:text-ink";
+  return (
+    <ul className="space-y-1">
+      {items.map((c) => (
+        <li key={c.key + c.href}>
+          <MenuLink
+            node={c}
+            onNavigate={onNavigate}
+            className={`block rounded-lg px-3 py-2 font-semibold hover:bg-white/5 ${c.children ? "text-gold-soft" : "text-ink"} ${compact ? "text-base" : "text-sm"}`}
+          />
+          {c.children && (
+            <ul className="ml-3 border-l border-line pl-2">
+              {c.children.map((g) => (
+                <li key={g.key + g.href}>
+                  <MenuLink node={g} onNavigate={onNavigate} className={sub} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function DesktopNav({ static: isStatic = false, menu }: { static?: boolean; menu: MenuNode[] }) {
+  // `static` renders without the pathname (used as the Suspense fallback).
+  return isStatic ? <DesktopNavInner pathname="" menu={menu} /> : <DesktopNavWithPath menu={menu} />;
+}
+
+function DesktopNavWithPath({ menu }: { menu: MenuNode[] }) {
+  return <DesktopNavInner pathname={usePathname()} menu={menu} />;
+}
+
+/** Top-level items open their dropdown on hover, on keyboard focus, or with the arrow button (touch screens). */
+function DesktopNavInner({ pathname, menu }: { pathname: string; menu: MenuNode[] }) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState<string | null>(null);
+  // When the pointer opened a menu: the click that follows right after must not close it again.
+  const openedAt = useRef(0);
+  const openBy = (key: string, at: number) => {
+    if (open !== key) openedAt.current = at;
+    setOpen(key);
+  };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- close after navigating
+    setOpen(null);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(null);
+    const onClick = (e: MouseEvent) => !(e.target as Element).closest?.("[data-menu-item]") && setOpen(null);
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("click", onClick);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("click", onClick);
+    };
+  }, [open]);
+
+  return (
+    <nav aria-label={t.nav.main} className="hidden xl:block">
+      <ul className="flex items-center gap-0.5">
+        {menu.map((l) => {
+          const active = isCurrent(pathname, l);
+          const isOpen = open === l.key;
+          const top = `rounded-full px-3 py-2 text-sm font-medium transition ${active ? "bg-white/10 text-gold-soft" : "text-ink/80 hover:bg-white/5 hover:text-ink"}`;
+          if (!l.children) {
+            return (
+              <li key={l.key}>
+                <MenuLink node={l} className={top} />
+              </li>
+            );
+          }
           return (
-            <li key={l.href}>
-              <Link
-                href={href(l.href)}
-                aria-current={active ? "page" : undefined}
-                className={`rounded-full px-3 py-2 text-sm font-medium transition ${
-                  active ? "bg-white/10 text-gold-soft" : "text-ink/80 hover:bg-white/5 hover:text-ink"
-                }`}
-              >
-                {t.nav[l.key]}
-              </Link>
+            <li
+              key={l.key}
+              className="relative"
+              data-menu-item
+              onMouseEnter={(e) => openBy(l.key, e.timeStamp)}
+              onMouseLeave={() => setOpen((o) => (o === l.key ? null : o))}
+              onFocus={(e) => openBy(l.key, e.timeStamp)}
+              onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && setOpen((o) => (o === l.key ? null : o))}
+            >
+              <span className={`inline-flex items-center ${top} pr-1.5`}>
+                <MenuLink node={l} className="" />
+                <button
+                  type="button"
+                  className="ml-0.5 rounded-full p-0.5 hover:bg-white/10"
+                  aria-expanded={isOpen}
+                  aria-label={t.nav.showMenu(t.menu[l.key])}
+                  onClick={(e) => (isOpen && e.timeStamp - openedAt.current > 400 ? setOpen(null) : openBy(l.key, e.timeStamp))}
+                  data-testid={`menu-toggle-${l.key}`}
+                >
+                  <ChevronDown className={`h-4 w-4 transition ${isOpen ? "rotate-180" : ""}`} aria-hidden />
+                </button>
+              </span>
+              {isOpen && (
+                // The padding bridges the gap to the item, so the pointer can move into the panel.
+                <div className="absolute left-0 top-full z-50 pt-2" data-testid={`menu-panel-${l.key}`}>
+                  <div className="w-72 rounded-2xl border border-line bg-night/98 p-3 shadow-2xl backdrop-blur-lg">
+                    <MenuPanel items={[{ key: "overview", href: l.href }, ...l.children]} onNavigate={() => setOpen(null)} />
+                  </div>
+                </div>
+              )}
             </li>
           );
         })}
@@ -103,8 +207,9 @@ function DesktopNavInner({ pathname, showPremium }: { pathname: string; showPrem
   );
 }
 
-export function MobileNav({ showPremium }: { showPremium: boolean }) {
+export function MobileNav({ menu }: { menu: MenuNode[] }) {
   const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState<string | null>(null);
   const pathname = usePathname();
   const { t, href } = useI18n();
 
@@ -122,7 +227,7 @@ export function MobileNav({ showPremium }: { showPremium: boolean }) {
   }, [open]);
 
   return (
-    <div className="lg:hidden">
+    <div className="xl:hidden">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -137,7 +242,7 @@ export function MobileNav({ showPremium }: { showPremium: boolean }) {
         <nav
           id="mobile-menu"
           aria-label={t.nav.main}
-          className="absolute inset-x-0 top-full border-b border-line bg-night/98 shadow-2xl backdrop-blur-lg"
+          className="absolute inset-x-0 top-full max-h-[calc(100dvh-4rem)] overflow-y-auto border-b border-line bg-night shadow-2xl"
         >
           <ul className="container-page flex flex-col gap-1 py-4">
             <li className="pb-2">
@@ -145,19 +250,32 @@ export function MobileNav({ showPremium }: { showPremium: boolean }) {
                 <GraduationCap className="h-4 w-4" aria-hidden /> {t.nav.learn}
               </Link>
             </li>
-            {navLinks(showPremium).map((l) => {
-              const active = isActive(pathname, l.href);
+            {menu.map((l) => {
+              const active = isCurrent(pathname, l);
+              const isExpanded = expanded === l.key;
+              const row = `block flex-1 rounded-xl px-4 py-3 text-base font-medium ${active ? "bg-white/10 text-gold-soft" : "text-ink/90 hover:bg-white/5"}`;
               return (
-                <li key={l.href}>
-                  <Link
-                    href={href(l.href)}
-                    aria-current={active ? "page" : undefined}
-                    className={`block rounded-xl px-4 py-3 text-base font-medium ${
-                      active ? "bg-white/10 text-gold-soft" : "text-ink/90 hover:bg-white/5"
-                    }`}
-                  >
-                    {t.nav[l.key]}
-                  </Link>
+                <li key={l.key}>
+                  <div className="flex items-center gap-1">
+                    <MenuLink node={l} className={row} onNavigate={() => setOpen(false)} />
+                    {l.children && (
+                      <button
+                        type="button"
+                        className="rounded-xl p-3 text-ink/80 hover:bg-white/5"
+                        aria-expanded={isExpanded}
+                        aria-label={t.nav.showMenu(t.menu[l.key])}
+                        onClick={() => setExpanded(isExpanded ? null : l.key)}
+                        data-testid={`mobile-toggle-${l.key}`}
+                      >
+                        <ChevronDown className={`h-5 w-5 transition ${isExpanded ? "rotate-180" : ""}`} aria-hidden />
+                      </button>
+                    )}
+                  </div>
+                  {l.children && isExpanded && (
+                    <div className="mb-2 ml-4 border-l border-line pl-2">
+                      <MenuPanel items={l.children} onNavigate={() => setOpen(false)} compact />
+                    </div>
+                  )}
                 </li>
               );
             })}

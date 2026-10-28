@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { BookOpen, Clapperboard, Headphones, LayoutGrid, Video } from "lucide-react";
+import { BookOpen, Clapperboard, FileText, Headphones, LayoutGrid, Video } from "lucide-react";
 import { getDict } from "@/lib/i18n";
 import { hasFormat } from "@/lib/data/repository";
 import { toQueryString, type ListParams } from "@/lib/list-params";
 import { POST_FORMATS, type EpisodeListing, type Locale, type PostFormat } from "@/lib/types";
 
-const ICONS = { article: BookOpen, audio: Headphones, video: Video, reel: Clapperboard } as const;
+const ICONS = { article: BookOpen, audio: Headphones, video: Video, reel: Clapperboard, pdf: FileText } as const;
 
 /**
  * "All · Articles · Audio · Videos · Reels" filter. Only types that exist among `posts` are

@@ -459,7 +459,7 @@ test("questionnaire (Google Form) on the contact page, Drive audiobook post, and
   await page.getByLabel("Title").fill("E2E Audiobook From Drive");
   await page.getByLabel("Category").selectOption({ label: "Vedic Astrology" });
   await page.getByLabel("Short description").fill("An audiobook chapter that plays from Google Drive.");
-  await page.getByLabel(/Google Drive link/).fill(DRIVE);
+  await page.getByLabel(/Google Drive link \(for long audio/).fill(DRIVE);
   await expect(page.getByTestId("drive-link-ok")).toBeVisible();
   await page.getByLabel("Minutes").fill("95");
   await page.getByTestId("publish-checkbox").check();
@@ -473,4 +473,53 @@ test("questionnaire (Google Form) on the contact page, Drive audiobook post, and
   await gotoReady(page, "/astrology-audios/e2e-audiobook-from-drive");
   await expect(page.getByTestId("drive-embed")).toHaveAttribute("src", "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/preview");
   await expect(page.getByRole("link", { name: "Open in Google Drive" })).toHaveAttribute("href", "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view");
+});
+
+test("book PDF post and an old video land on their menu pages", async ({ page, request }) => {
+  test.setTimeout(150_000);
+  await page.setExtraHTTPHeaders({ "x-forwarded-for": "10.0.0.31" });
+  await login(page);
+
+  // A chapter of the book in Hindi, as a PDF only.
+  await gotoReady(page, "/admin/episodes/new");
+  await page.getByLabel("Title").fill("E2E Book Chapter One");
+  await page.getByLabel("Category").selectOption({ label: "Book (Hindi)" });
+  await page.getByLabel("Short description").fill("The first chapter of the book as a PDF.");
+  await page.getByTestId("pdf-input").setInputFiles({ name: "fake.pdf", mimeType: "application/pdf", buffer: Buffer.from("<html>not a pdf</html>") });
+  await page.getByTestId("publish-checkbox").check();
+  await page.getByTestId("save-episode").click();
+  await expect(page.getByRole("alert").filter({ hasText: /could not be verified|do not match/ }).first()).toBeVisible();
+  await page.getByTestId("pdf-input").setInputFiles({ name: "chapter-1.pdf", mimeType: "application/pdf", buffer: readFileSync("tests/fixtures/book-sample.pdf") });
+  await expect(page.getByTestId("pdf-ready")).toBeVisible();
+  await page.getByTestId("save-episode").click();
+  await expect(page).toHaveURL(/\/admin\/episodes\/[0-9a-f-]{36}/);
+
+  await gotoReady(page, "/book");
+  const chapter = page.getByTestId("book-pdf-hindi").getByTestId("episode-card").filter({ hasText: "E2E Book Chapter One" });
+  await expect(chapter).toBeVisible();
+  await expect(chapter).toContainText("PDF");
+  await expect(page.getByTestId("book-audio-hindi").getByTestId("empty-state")).toBeVisible();
+  await chapter.getByRole("link").first().click();
+  await expect(page.getByTestId("pdf-block")).toBeVisible();
+  const pdfHref = await page.getByTestId("pdf-download").getAttribute("href");
+  const pdf = await request.get(pdfHref!);
+  expect(pdf.status()).toBe(200);
+  expect(pdf.headers()["content-type"]).toBe("application/pdf");
+  expect((await pdf.body()).subarray(0, 5).toString()).toBe("%PDF-");
+
+  // An Astro Cricket video marked as old moves to Old Videos.
+  await gotoReady(page, "/admin/episodes/new");
+  await page.getByLabel("Title").fill("E2E Old Cricket Video");
+  await page.getByLabel("Category").selectOption({ label: "Astro Cricket Videos" });
+  await page.getByLabel("Short description").fill("An older Astro Cricket video podcast.");
+  await page.getByLabel("…or YouTube / Instagram link").fill("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+  await page.getByTestId("archived-checkbox").check();
+  await page.getByTestId("publish-checkbox").check();
+  await page.getByTestId("save-episode").click();
+  await expect(page).toHaveURL(/\/admin\/episodes\/[0-9a-f-]{36}/);
+
+  await gotoReady(page, "/astro-cricket/old-videos");
+  await expect(page.getByTestId("topic-posts").getByTestId("episode-card").filter({ hasText: "E2E Old Cricket Video" })).toBeVisible();
+  await gotoReady(page, "/astro-cricket/videos");
+  await expect(page.getByTestId("episode-card").filter({ visible: true }).filter({ hasText: "E2E Old Cricket Video" })).toHaveCount(0);
 });

@@ -7,7 +7,7 @@ import { ARTICLE_LANGS, GALLERY_MAX, MATCH_STATUSES, VIDEO_FORMATS } from "./typ
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 /** Storage keys created by the upload endpoint: `<folder>/<uuid>.<ext>`. */
-const STORAGE_PATH_RE = /^(audio|video|covers|gallery|teams|profile)\/[0-9a-f-]{36}\.[a-z0-9]{2,5}$/;
+const STORAGE_PATH_RE = /^(audio|video|covers|gallery|teams|profile|documents)\/[0-9a-f-]{36}\.[a-z0-9]{2,5}$/;
 
 const optionalUrl = z
   .string()
@@ -71,6 +71,17 @@ export const episodeInputSchema = z.object({
     .refine((v) => v === "" || parseDriveLink(v) !== null, "Paste a Google Drive file link (drive.google.com/file/d/…)")
     .default(""),
   gallery_paths: z.array(storagePathSchema).max(GALLERY_MAX, `Up to ${GALLERY_MAX} photos`).default([]),
+  /** Uploaded PDF (free to read and download). */
+  pdf_storage_path: storagePathSchema.nullable().default(null),
+  /** Google Drive link to a PDF; "" = none. */
+  pdf_link: z
+    .string()
+    .trim()
+    .max(300)
+    .refine((v) => v === "" || parseDriveLink(v) !== null, "Paste a Google Drive file link (drive.google.com/file/d/…)")
+    .default(""),
+  /** Listed under Old Videos instead of the current videos. */
+  is_archived: z.boolean().default(false),
   duration_seconds: z.number().int().min(0).max(60 * 60 * 12),
   is_published: z.boolean(),
   is_premium: z.boolean(),
@@ -172,7 +183,7 @@ export const loginInputSchema = z.object({
 });
 
 export const uploadRequestSchema = z.object({
-  kind: z.enum(["audio", "video", "cover", "gallery", "team", "profile"]),
+  kind: z.enum(["audio", "video", "cover", "gallery", "team", "profile", "pdf"]),
   filename: z.string().min(1).max(255),
   contentType: z.string().min(1).max(100),
   size: z.number().int().positive(),

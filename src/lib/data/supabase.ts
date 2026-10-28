@@ -19,7 +19,7 @@ import { slugify, uniqueSlug } from "../slug";
 import { hasContent, RepositoryError, type DashboardStats, type EpisodeWrite, type Repository } from "./repository";
 
 const EPISODE_COLUMNS =
-  "id,title,slug,excerpt,description,has_article,article_lang,title_alt,excerpt_alt,description_alt,has_article_alt,category_id,audio_storage_path,audio_mime_type,cover_image_path,video_storage_path,video_mime_type,video_format,video_link,audio_link,gallery_paths,duration_seconds,is_published,is_premium,is_demo,play_count,published_at,created_at,updated_at";
+  "id,title,slug,excerpt,description,has_article,article_lang,title_alt,excerpt_alt,description_alt,has_article_alt,category_id,audio_storage_path,audio_mime_type,cover_image_path,video_storage_path,video_mime_type,video_format,video_link,audio_link,gallery_paths,pdf_storage_path,pdf_link,is_archived,duration_seconds,is_published,is_premium,is_demo,play_count,published_at,created_at,updated_at";
 
 type ListingRow = Episode & {
   article: string | null;
@@ -54,6 +54,7 @@ const FORMAT_FILTERS: Record<PostFormat, string> = {
   audio: 'audio_storage_path.not.is.null,audio_link.neq.""',
   video: 'and(video_format.eq.video,video_storage_path.not.is.null),and(video_format.eq.video,video_link.neq."")',
   reel: 'and(video_format.eq.reel,video_storage_path.not.is.null),and(video_format.eq.reel,video_link.neq."")',
+  pdf: 'pdf_storage_path.not.is.null,pdf_link.neq.""',
 };
 
 function toListing(r: ListingRow): EpisodeListing {
@@ -79,6 +80,9 @@ function toListing(r: ListingRow): EpisodeListing {
     video_link: r.video_link ?? "",
     audio_link: r.audio_link ?? "",
     gallery_paths: r.gallery_paths ?? [],
+    pdf_storage_path: r.pdf_storage_path ?? null,
+    pdf_link: r.pdf_link ?? "",
+    is_archived: r.is_archived ?? false,
     duration_seconds: r.duration_seconds,
     is_published: r.is_published,
     is_premium: r.is_premium,
@@ -195,7 +199,10 @@ export class SupabaseRepository implements Repository {
     if (q.section) query = query.eq("category_section", q.section);
     if (q.withMatch) query = query.not("match_id", "is", null);
     if (q.format) query = query.or(FORMAT_FILTERS[q.format]);
+    if (q.formats?.length) query = query.or(q.formats.map((f) => FORMAT_FILTERS[f]).join(","));
     if (q.categorySlug) query = query.eq("category_slug", q.categorySlug);
+    if (q.categorySlugs?.length) query = query.in("category_slug", q.categorySlugs);
+    if (q.archived !== undefined) query = query.eq("is_archived", q.archived);
     if (q.competitionSlug) query = query.eq("competition_slug", q.competitionSlug);
     if (q.access) query = query.eq("is_premium", q.access === "premium");
     if (q.excludeId) query = query.neq("id", q.excludeId);
@@ -324,7 +331,7 @@ export class SupabaseRepository implements Repository {
 
   async isStoragePathReferenced(p: string): Promise<boolean> {
     const checks = await Promise.all([
-      this.db.from("episodes").select("id", { count: "exact", head: true }).or(`audio_storage_path.eq."${p}",cover_image_path.eq."${p}",video_storage_path.eq."${p}",gallery_paths.cs.{"${p}"}`),
+      this.db.from("episodes").select("id", { count: "exact", head: true }).or(`audio_storage_path.eq."${p}",cover_image_path.eq."${p}",video_storage_path.eq."${p}",pdf_storage_path.eq."${p}",gallery_paths.cs.{"${p}"}`),
       this.db.from("teams").select("id", { count: "exact", head: true }).eq("logo_path", p),
       this.db.from("profiles").select("id", { count: "exact", head: true }).eq("profile_image_path", p),
     ]);

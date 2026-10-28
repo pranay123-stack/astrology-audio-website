@@ -6,7 +6,28 @@ import { getEpisodes } from "@/lib/queries";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteConfig.url;
-  const pages = ["/", "/cricket-astrology", "/astrology-audios", "/premium", "/about", "/contact", "/privacy", "/terms", "/disclaimer"];
+  const pages = [
+    "/",
+    "/astrology",
+    "/astrology/planets-bhav",
+    "/astrology/kp-research",
+    "/astro-cricket",
+    "/astro-cricket/videos",
+    "/astro-cricket/old-videos",
+    "/book",
+    "/horoscope-research",
+    "/horoscope-research/matches",
+    "/horoscope-research/players",
+    "/kp-chart",
+    "/cricket-astrology",
+    "/astrology-audios",
+    "/premium",
+    "/about",
+    "/contact",
+    "/privacy",
+    "/terms",
+    "/disclaimer",
+  ];
   const { items } = await getEpisodes({ sort: "latest" });
   // Every page exists in English and Hindi; each entry lists both versions as alternates.
   const languages = (path: string) => ({ en: `${base}${localePath("en", path)}`, hi: `${base}${localePath("hi", path)}` });

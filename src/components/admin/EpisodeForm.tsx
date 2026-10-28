@@ -7,7 +7,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { Loader2, Save } from "lucide-react";
 import { saveEpisode } from "@/app/admin/actions";
 import { formatDuration, fromZonedInputValue, toZonedInputValue } from "@/lib/dates";
-import { audioUrl, imageUrl, videoUrl } from "@/lib/media/urls";
+import { audioUrl, documentUrl, imageUrl, videoUrl } from "@/lib/media/urls";
 import { parseDriveLink } from "@/lib/media/drive-link";
 import { parseVideoLink } from "@/lib/media/video-link";
 import { slugify } from "@/lib/slug";
@@ -44,6 +44,8 @@ interface FormValues {
   video_format: VideoFormat;
   video_link: string;
   audio_link: string;
+  pdf_link: string;
+  is_archived: boolean;
 }
 
 export function EpisodeForm({
@@ -86,6 +88,7 @@ export function EpisodeForm({
   }
   const [videoPath, setVideoPath] = useState<string | null>(episode?.video_storage_path ?? null);
   const [galleryPaths, setGalleryPaths] = useState<string[]>(episode?.gallery_paths ?? []);
+  const [pdfPath, setPdfPath] = useState<string | null>(episode?.pdf_storage_path ?? null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<{ kind: "error" | "success"; text: string } | null>(null);
   const [slugTouched, setSlugTouched] = useState(!!episode);
@@ -118,6 +121,8 @@ export function EpisodeForm({
       video_format: episode?.video_format ?? "video",
       video_link: episode?.video_link ?? "",
       audio_link: episode?.audio_link ?? "",
+      pdf_link: episode?.pdf_link ?? "",
+      is_archived: episode?.is_archived ?? false,
     },
   });
 
@@ -138,6 +143,8 @@ export function EpisodeForm({
   const linkInfo = videoLink.trim() ? parseVideoLink(videoLink) : null;
   const audioLink = useWatch({ control, name: "audio_link" });
   const driveInfo = audioLink.trim() ? parseDriveLink(audioLink) : null;
+  const pdfLink = useWatch({ control, name: "pdf_link" });
+  const pdfDriveInfo = pdfLink.trim() ? parseDriveLink(pdfLink) : null;
   // Match readings need teams and a date; other categories (incl. the cricket guide) do not.
   const needsMatch = categories.find((c) => c.id === categoryId)?.requires_match ?? false;
   const competitionTeams = useMemo(() => teams.filter((t) => t.competition_id === competitionId), [teams, competitionId]);
@@ -169,6 +176,9 @@ export function EpisodeForm({
       video_link: v.video_link.trim(),
       audio_link: v.audio_link.trim(),
       gallery_paths: galleryPaths,
+      pdf_storage_path: pdfPath,
+      pdf_link: v.pdf_link.trim(),
+      is_archived: v.is_archived,
       duration_seconds: Math.max(0, Math.round(Number(v.duration_minutes) || 0) * 60 + Math.round(Number(v.duration_secs) || 0)),
       is_published: v.is_published,
       is_premium: v.is_premium,
@@ -198,9 +208,11 @@ export function EpisodeForm({
       !!(payload.article_alt ?? "").trim() ||
       !!videoPath ||
       !!v.video_link.trim() ||
-      galleryPaths.length > 0;
+      galleryPaths.length > 0 ||
+      !!pdfPath ||
+      !!v.pdf_link.trim();
     if (payload.is_published && !hasSomething) {
-      const msg = "Add audio, an article, a video or photos to publish";
+      const msg = "Add audio, an article, a video, photos or a PDF to publish";
       setErrors({ audio_storage_path: msg, article: msg });
       setMessage({ kind: "error", text: `${msg}.` });
       return;
@@ -533,7 +545,38 @@ export function EpisodeForm({
           <p className="mt-1 text-xs text-muted">Links are public on YouTube/Instagram anyway, so don&apos;t use a link for premium content.</p>
           {err("video_link")}
         </div>
+        <label className="flex items-start gap-3">
+          <input type="checkbox" className="mt-1 h-4 w-4 accent-[#d4af37]" {...register("is_archived")} data-testid="archived-checkbox" />
+          <span>
+            <span className="font-medium">Old video</span>
+            <span className="block text-sm text-muted">Listed under Astro Cricket › Old Videos instead of the current videos.</span>
+          </span>
+        </label>
         <GalleryField value={galleryPaths} onChange={setGalleryPaths} error={errors.gallery_paths} />
+      </section>
+
+      <section className="card space-y-5 p-6" data-testid="pdf-fields">
+        <div className="space-y-1">
+          <h2 className="text-2xl font-semibold">PDF <span className="text-base font-normal text-muted">(optional)</span></h2>
+          <p className="text-sm text-muted">For the book or any document. Visitors can read it on the page and download it free.</p>
+        </div>
+        <FileField
+          id="pdf"
+          kind="pdf"
+          label="PDF file"
+          hint="Up to 50 MB. For a larger file, use a Google Drive link below."
+          value={pdfPath}
+          previewUrl={documentUrl(episode?.pdf_storage_path)}
+          onChange={setPdfPath}
+          error={errors.pdf_storage_path}
+        />
+        <div>
+          <label htmlFor="pdf_link" className="label">…or Google Drive link to the PDF</label>
+          <input id="pdf_link" className="input" inputMode="url" placeholder="https://drive.google.com/file/d/…/view" {...register("pdf_link")} />
+          {pdfLink.trim() && !pdfDriveInfo && <p className="mt-1 text-sm text-red-300">This doesn&apos;t look like a Google Drive file link.</p>}
+          {pdfDriveInfo && <p className="mt-1 text-xs text-emerald-300" data-testid="pdf-link-ok">Google Drive file recognised. Share it as “Anyone with the link”.</p>}
+          {err("pdf_link")}
+        </div>
       </section>
 
       <section className="card space-y-5 p-6">

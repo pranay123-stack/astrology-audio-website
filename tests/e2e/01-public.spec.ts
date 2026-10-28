@@ -14,13 +14,12 @@ test("home page shows the main sections and the sample-content notice", async ({
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Discover Astrology");
   await expect(page.getByTestId("hero-latest").filter({ visible: true })).toContainText("Latest reading");
   const order = await page.evaluate(() =>
-    ["featured-heading", "cricket-heading", "kp-promo-heading", "general-heading", "about-heading"].map((id) => document.getElementById(id)?.getBoundingClientRect().top ?? -1),
+    ["explore-heading", "featured-heading", "cricket-heading", "kp-promo-heading", "about-heading"].map((id) => document.getElementById(id)?.getBoundingClientRect().top ?? -1),
   );
   expect(order.every((y, i) => y > 0 && (i === 0 || y > order[i - 1]))).toBe(true);
+  // The astrologer's menu; Premium shows only because the sample content has premium posts.
   const nav = await page.getByRole("navigation", { name: "Main" }).filter({ visible: true }).getByRole("link").allInnerTexts();
-  expect(nav.indexOf("Jyotish Gyan")).toBeLessThan(nav.indexOf("Cricket Astrology"));
-  // Premium shows only because the sample content has premium posts.
-  expect(nav).toEqual(["Home", "Jyotish Gyan", "Cricket Astrology", "Premium", "KP Chart", "About", "Contact"]);
+  expect(nav).toEqual(["Astrology", "Astro Cricket", "Book", "Horoscope Research", "Premium", "Make Your KP Chart", "Contact"]);
   // The hero's main button is the course; the KP chart has its own invitation.
   await expect(page.getByTestId("hero-learn")).toHaveAttribute("href", "/contact?subject=Learning%20cricket%20astrology#questionnaire");
   await expect(page.getByTestId("kp-promo").getByRole("link")).toHaveAttribute("href", "/kp-chart");
@@ -29,7 +28,11 @@ test("home page shows the main sections and the sample-content notice", async ({
   await expect(page.getByRole("heading", { name: "Latest in Astrology" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Cricket Astrology", exact: true })).toBeVisible();
   await expect(page.getByTestId("match-card").filter({ visible: true })).toHaveCount(3);
-  await expect(page.getByTestId("category-tile").filter({ visible: true })).toHaveCount(8);
+  // The sections of the menu, each with its sub-pages.
+  const explore = page.getByTestId("home-explore");
+  await expect(explore.locator("article")).toHaveCount(4);
+  await expect(explore.getByRole("link", { name: "12 Planets & 12 Bhav" })).toHaveAttribute("href", "/astrology/planets-bhav");
+  await expect(explore.getByRole("link", { name: "IPL" })).toHaveAttribute("href", "/horoscope-research/matches?competition=ipl");
   await expect(page.getByText(/not guarantee match outcomes/).first()).toBeVisible();
 });
 
@@ -38,10 +41,10 @@ test("Hindi site: translated interface at /hi, and the switch keeps the page and
   await expect(page.locator("html")).toHaveAttribute("lang", "hi");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("ज्योतिष को जानिए");
   const nav = await page.getByRole("navigation", { name: "मुख्य" }).filter({ visible: true }).getByRole("link").allInnerTexts();
-  expect(nav).toEqual(["होम", "ज्योतिष ज्ञान", "क्रिकेट ज्योतिष", "प्रीमियम", "KP कुंडली", "परिचय", "संपर्क"]);
-  // Category names come from the database's Hindi columns; links stay inside /hi.
-  await expect(page.getByTestId("category-tile").filter({ visible: true }).first()).toContainText("दैनिक ज्योतिष");
-  await expect(page.getByRole("link", { name: "ज्योतिष ज्ञान देखें" })).toHaveAttribute("href", "/hi/astrology-audios");
+  expect(nav).toEqual(["ज्योतिष", "एस्ट्रो क्रिकेट", "पुस्तक", "कुंडली शोध", "प्रीमियम", "अपनी KP कुंडली बनाएँ", "संपर्क"]);
+  // Menu links stay inside /hi.
+  await expect(page.getByTestId("home-explore").getByRole("link", { name: "12 ग्रह और 12 भाव" })).toHaveAttribute("href", "/hi/astrology/planets-bhav");
+  await expect(page.getByRole("link", { name: "ज्योतिष ज्ञान देखें" })).toHaveAttribute("href", "/hi/astrology");
 
   // English → Hindi on a filtered listing keeps the filters.
   await gotoReady(page, "/astrology-audios?category=planets-grahas&sort=popular");
@@ -115,8 +118,8 @@ test("audio really plays, survives navigation, and honours speed and seek", asyn
 
   // Navigate with the header link: the same audio element keeps playing.
   const before = await audioTime(page);
-  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "About", exact: true }).click();
-  await expect(page).toHaveURL(/\/about$/);
+  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Contact", exact: true }).click();
+  await expect(page).toHaveURL(/\/contact$/);
   await expect(mini).toBeVisible();
   await expect.poll(() => audioTime(page)).toBeGreaterThan(before + 0.5);
 
@@ -212,9 +215,48 @@ test("mobile menu opens and navigates", async ({ page }) => {
   await gotoReady(page, "/");
   await page.getByRole("button", { name: "Open menu" }).click();
   await expect(page.getByTestId("mobile-learn")).toBeVisible();
-  await page.locator("#mobile-menu").getByRole("link", { name: "Cricket Astrology", exact: true }).click();
-  await expect(page).toHaveURL(/\/cricket-astrology$/);
+  await page.locator("#mobile-menu").getByRole("link", { name: "Astro Cricket", exact: true }).click();
+  await expect(page).toHaveURL(/\/astro-cricket$/);
   await expect(page.locator("#mobile-menu")).toHaveCount(0);
+  // Sub-menus open as an accordion.
+  await page.getByRole("button", { name: "Open menu" }).click();
+  await page.getByTestId("mobile-toggle-research").click();
+  await page.locator("#mobile-menu").getByRole("link", { name: "IPL", exact: true }).click();
+  await expect(page).toHaveURL(/\/horoscope-research\/matches\?competition=ipl$/);
+  await expect(page.getByTestId("topic-tabs").getByRole("link", { name: /IPL/ })).toHaveAttribute("aria-current", "page");
+});
+
+test("site menu: dropdowns lead to each section's pages, with their content", async ({ page }) => {
+  await gotoReady(page, "/");
+  const main = page.getByRole("navigation", { name: "Main" }).filter({ visible: true });
+  await main.getByRole("listitem").filter({ hasText: "Astrology" }).first().hover();
+  const panel = page.getByTestId("menu-panel-astrology");
+  await expect(panel.getByRole("link")).toHaveText(["Overview", "12 Planets & 12 Bhav", "Video", "Audio", "Read", "KP Astrology", "Research Kundli with Match Data"]);
+  await panel.getByRole("link", { name: "Read", exact: true }).click();
+  await expect(page).toHaveURL(/\/astrology\/planets-bhav\?format=article$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("12 Planets & 12 Bhav");
+  await expect(page.getByTestId("topic-tabs").getByRole("link", { name: /Read/ })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByTestId("topic-posts").getByTestId("episode-card").first()).toBeVisible();
+
+  // The arrow button opens a menu on touch screens too.
+  await page.getByTestId("menu-toggle-book").click();
+  await expect(page.getByTestId("menu-panel-book").getByRole("link")).toHaveText(["Overview", "Audio (Hindi)", "Audio (English)", "PDF (Hindi)", "PDF (English)"]);
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("menu-panel-book")).toHaveCount(0);
+
+  // Each section has a page with a hero and cards for its sub-pages.
+  await gotoReady(page, "/astrology");
+  await expect(page.getByTestId("hub-planets-bhav")).toContainText("12 Planets & 12 Bhav");
+  await gotoReady(page, "/astro-cricket");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Astro Cricket");
+  await expect(page.getByTestId("hub-old-videos")).toBeVisible();
+  await gotoReady(page, "/book");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("A Spiritual Punter, Bookie & Astrologer");
+  for (const id of ["audio-hindi", "audio-english", "pdf-hindi", "pdf-english"]) await expect(page.getByTestId(`book-${id}`)).toBeVisible();
+  await gotoReady(page, "/horoscope-research/matches?competition=bbl");
+  await expect(page.getByTestId("topic-posts").getByTestId("episode-card").first()).toBeVisible();
+  await gotoReady(page, "/horoscope-research/players");
+  await expect(page.getByTestId("empty-state")).toBeVisible();
 });
 
 test("KP chart: birth details give a South Indian chart whose items open in the centre box, and can be edited", async ({ page }) => {

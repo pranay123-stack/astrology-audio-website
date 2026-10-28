@@ -1,6 +1,6 @@
 "use client";
 
-export type UploadKind = "audio" | "video" | "cover" | "gallery" | "team" | "profile";
+export type UploadKind = "audio" | "video" | "cover" | "gallery" | "team" | "profile" | "pdf";
 
 interface UploadTarget {
   path: string;
@@ -61,6 +61,7 @@ const EXT_TYPES: Record<string, string> = {
   mp4: "video/mp4",
   mov: "video/quicktime",
   webm: "video/webm",
+  pdf: "application/pdf",
 };
 
 /** Some browsers report an empty type for .m4a/.aac (and some .mov) files. */

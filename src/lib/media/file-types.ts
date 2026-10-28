@@ -42,11 +42,17 @@ export const EXT_TO_MIME: Record<string, string> = {
   mp4: "video/mp4",
   webm: "video/webm",
   mov: "video/quicktime",
+  pdf: "application/pdf",
+};
+
+export const PDF_TYPES: Record<string, string> = {
+  "application/pdf": "pdf",
 };
 
 export const AUDIO_ACCEPT = ".mp3,.m4a,.aac,.ogg,.wav,audio/mpeg,audio/mp4,audio/aac,audio/ogg,audio/wav";
 export const IMAGE_ACCEPT = ".jpg,.jpeg,.png,.webp,.avif,image/jpeg,image/png,image/webp,image/avif";
 export const VIDEO_ACCEPT = ".mp4,.webm,.mov,video/mp4,video/webm,video/quicktime";
+export const PDF_ACCEPT = ".pdf,application/pdf";
 
 function startsWith(bytes: Uint8Array, sig: number[], offset = 0): boolean {
   if (bytes.length < offset + sig.length) return false;
@@ -71,6 +77,7 @@ export function sniffFileType(bytes: Uint8Array): string | null {
   if (startsWith(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) return "png";
   if (ascii(bytes, 0, 4) === "RIFF" && ascii(bytes, 8, 12) === "WEBP") return "webp";
   if (startsWith(bytes, [0x1a, 0x45, 0xdf, 0xa3])) return "webm"; // EBML header (WebM / Matroska)
+  if (ascii(bytes, 0, 5) === "%PDF-") return "pdf";
   return null;
 }
 
@@ -88,5 +95,6 @@ export function contentMatchesExtension(bytes: Uint8Array, ext: string): boolean
   if (IMAGE_FAMILY.has(ext)) return sniffed === ext;
   if (ISO_VIDEO.has(ext)) return sniffed === "m4a";
   if (ext === "webm") return sniffed === "webm";
+  if (ext === "pdf") return sniffed === "pdf";
   return false;
 }

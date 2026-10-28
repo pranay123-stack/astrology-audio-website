@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { CheckCircle2, Loader2, Upload, X } from "lucide-react";
-import { AUDIO_ACCEPT, IMAGE_ACCEPT, VIDEO_ACCEPT } from "@/lib/media/file-types";
+import { CheckCircle2, FileText, Loader2, Upload, X } from "lucide-react";
+import { AUDIO_ACCEPT, IMAGE_ACCEPT, PDF_ACCEPT, VIDEO_ACCEPT } from "@/lib/media/file-types";
 import { guessType, readAudioDuration, uploadFile, type UploadKind } from "./upload";
 
 export const MAX_MB: Record<UploadKind, number> = {
@@ -13,6 +13,7 @@ export const MAX_MB: Record<UploadKind, number> = {
   gallery: 5,
   team: 5,
   profile: 5,
+  pdf: Number(process.env.NEXT_PUBLIC_MAX_PDF_UPLOAD_MB || 50),
 };
 
 /**
@@ -50,7 +51,8 @@ export function FileField({
   const [fileName, setFileName] = useState<string | null>(null);
   const isAudio = kind === "audio";
   const isVideo = kind === "video";
-  const isImage = !isAudio && !isVideo;
+  const isPdf = kind === "pdf";
+  const isImage = !isAudio && !isVideo && !isPdf;
 
   useEffect(() => () => {
     if (localPreview) URL.revokeObjectURL(localPreview);
@@ -60,9 +62,15 @@ export function FileField({
     if (!file) return;
     setUploadError(null);
     const type = file.type || guessType(file.name);
-    if (!type.startsWith(isAudio ? "audio/" : isVideo ? "video/" : "image/")) {
+    if (isPdf ? type !== "application/pdf" : !type.startsWith(isAudio ? "audio/" : isVideo ? "video/" : "image/")) {
       setUploadError(
-        isAudio ? "Choose an audio file (MP3, M4A, AAC, OGG or WAV)." : isVideo ? "Choose a video (MP4, WebM or MOV)." : "Choose an image (JPG, PNG, WebP or AVIF).",
+        isPdf
+          ? "Choose a PDF file."
+          : isAudio
+            ? "Choose an audio file (MP3, M4A, AAC, OGG or WAV)."
+            : isVideo
+              ? "Choose a video (MP4, WebM or MOV)."
+              : "Choose an image (JPG, PNG, WebP or AVIF).",
       );
       return;
     }
@@ -114,12 +122,17 @@ export function FileField({
         {shown && isVideo && (
           <video controls preload="metadata" playsInline src={shown} className="mb-3 max-h-80 rounded-xl bg-black" data-testid="admin-video-preview" />
         )}
+        {shown && isPdf && (
+          <a href={shown} target="_blank" rel="noopener noreferrer" className="mb-3 inline-flex items-center gap-2 text-sm text-gold-soft hover:underline" data-testid="admin-pdf-preview">
+            <FileText className="h-4 w-4" aria-hidden /> Open the PDF
+          </a>
+        )}
         <div className="flex flex-wrap items-center gap-3">
           <input
             ref={inputRef}
             id={id}
             type="file"
-            accept={isAudio ? AUDIO_ACCEPT : isVideo ? VIDEO_ACCEPT : IMAGE_ACCEPT}
+            accept={isPdf ? PDF_ACCEPT : isAudio ? AUDIO_ACCEPT : isVideo ? VIDEO_ACCEPT : IMAGE_ACCEPT}
             className="sr-only"
             aria-labelledby={`${id}-label`}
             onChange={(e) => onPick(e.target.files?.[0])}

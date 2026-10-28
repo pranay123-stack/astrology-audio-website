@@ -5,7 +5,7 @@ import { getDict, localePath, localizeProfile } from "@/lib/i18n";
 import { getEpisodes, getProfile } from "@/lib/queries";
 import type { Locale } from "@/lib/types";
 import { LogoMark } from "./Logo";
-import { learnPath, navLinks } from "./nav";
+import { learnPath, siteMenu } from "./nav";
 
 export async function SiteFooter({ lang }: { lang: Locale }) {
   const t = getDict(lang);
@@ -44,13 +44,19 @@ export async function SiteFooter({ lang }: { lang: Locale }) {
         <nav aria-label={t.footer.explore}>
           <h2 className="eyebrow mb-4 font-sans">{t.footer.explore}</h2>
           <ul className="space-y-2 text-sm">
-            {navLinks(premium.total > 0).map((l) => (
+            <li>
+              <Link href={href("/")} className="text-ink/80 hover:text-gold-soft">{t.nav.home}</Link>
+            </li>
+            {siteMenu({ showPremium: premium.total > 0 }).map((l) => (
               <li key={l.href}>
                 <Link href={href(l.href)} className="text-ink/80 hover:text-gold-soft">
-                  {t.nav[l.key]}
+                  {t.menu[l.key]}
                 </Link>
               </li>
             ))}
+            <li>
+              <Link href={href("/about")} className="text-ink/80 hover:text-gold-soft">{t.nav.about}</Link>
+            </li>
             <li>
               <Link href={href(learnPath(t.learn.subject))} className="font-semibold text-gold-soft hover:underline">
                 {t.nav.learn}

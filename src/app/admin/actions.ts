@@ -42,8 +42,8 @@ async function cleanup(path: string | null | undefined) {
 }
 
 /** Removes every media file of a deleted episode that nothing else uses. */
-async function cleanupAll(e: Pick<Episode, "audio_storage_path" | "cover_image_path" | "video_storage_path" | "gallery_paths">) {
-  for (const p of [e.audio_storage_path, e.cover_image_path, e.video_storage_path, ...e.gallery_paths]) await cleanup(p);
+async function cleanupAll(e: Pick<Episode, "audio_storage_path" | "cover_image_path" | "video_storage_path" | "gallery_paths" | "pdf_storage_path">) {
+  for (const p of [e.audio_storage_path, e.cover_image_path, e.video_storage_path, e.pdf_storage_path, ...e.gallery_paths]) await cleanup(p);
 }
 
 // ---------------------------------------------------------------------------
@@ -89,9 +89,10 @@ export async function saveEpisode(input: EpisodeInput): Promise<ActionResult<{ i
       return { ok: false, error: "Add the match details for cricket episodes.", fields: { "match.competition_id": "Choose a competition" } };
     }
     const hasSomething =
-      !!d.audio_storage_path || !!d.audio_link || !!d.article.trim() || !!d.article_alt.trim() || !!d.video_storage_path || !!d.video_link || d.gallery_paths.length > 0;
+      !!d.audio_storage_path || !!d.audio_link || !!d.article.trim() || !!d.article_alt.trim() || !!d.video_storage_path || !!d.video_link || d.gallery_paths.length > 0 ||
+      !!d.pdf_storage_path || !!d.pdf_link;
     if (d.is_published && !hasSomething) {
-      const msg = "Add audio, an article, a video or photos to publish";
+      const msg = "Add audio, an article, a video, photos or a PDF to publish";
       return { ok: false, error: `${msg}.`, fields: { audio_storage_path: msg, article: msg } };
     }
 
@@ -100,6 +101,7 @@ export async function saveEpisode(input: EpisodeInput): Promise<ActionResult<{ i
       ["audio_storage_path", d.audio_storage_path, "audio/"],
       ["cover_image_path", d.cover_image_path, "covers/"],
       ["video_storage_path", d.video_storage_path, "video/"],
+      ["pdf_storage_path", d.pdf_storage_path, "documents/"],
       ...d.gallery_paths.map((g) => ["gallery_paths", g, "gallery/"] as const),
     ] as const;
     for (const [field, path, folder] of folders) {
@@ -110,7 +112,7 @@ export async function saveEpisode(input: EpisodeInput): Promise<ActionResult<{ i
     }
 
     // New files must exist in storage and their bytes must match the declared type.
-    const before = new Set([existing?.audio_storage_path, existing?.cover_image_path, existing?.video_storage_path, ...(existing?.gallery_paths ?? [])]);
+    const before = new Set([existing?.audio_storage_path, existing?.cover_image_path, existing?.video_storage_path, existing?.pdf_storage_path, ...(existing?.gallery_paths ?? [])]);
     for (const [field, path] of folders) {
       if (path && !before.has(path) && !(await verifyStoredFile(path))) {
         return { ok: false, error: "An uploaded file could not be verified. Please upload it again.", fields: { [field]: "Upload failed verification" } };
@@ -150,6 +152,9 @@ export async function saveEpisode(input: EpisodeInput): Promise<ActionResult<{ i
       video_link: d.video_link,
       audio_link: d.audio_link,
       gallery_paths: d.gallery_paths,
+      pdf_storage_path: d.pdf_storage_path,
+      pdf_link: d.pdf_link,
+      is_archived: d.is_archived,
       duration_seconds: d.audio_storage_path || d.audio_link ? d.duration_seconds : 0,
       is_published: d.is_published,
       is_premium: d.is_premium,
@@ -162,6 +167,7 @@ export async function saveEpisode(input: EpisodeInput): Promise<ActionResult<{ i
       if (existing.audio_storage_path !== write.audio_storage_path) await cleanup(existing.audio_storage_path);
       if (existing.cover_image_path !== write.cover_image_path) await cleanup(existing.cover_image_path);
       if (existing.video_storage_path !== write.video_storage_path) await cleanup(existing.video_storage_path);
+      if (existing.pdf_storage_path !== write.pdf_storage_path) await cleanup(existing.pdf_storage_path);
       for (const g of existing.gallery_paths) if (!write.gallery_paths.includes(g)) await cleanup(g);
     }
     updateTag(CONTENT_TAG);

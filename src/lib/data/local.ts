@@ -230,7 +230,8 @@ export class LocalRepository implements Repository {
     const db = await this.db.read();
     return (
       db.episodes.some(
-        (e) => e.audio_storage_path === p || e.cover_image_path === p || e.video_storage_path === p || e.gallery_paths.includes(p),
+        (e) =>
+          e.audio_storage_path === p || e.cover_image_path === p || e.video_storage_path === p || e.pdf_storage_path === p || e.gallery_paths.includes(p),
       ) ||
       db.teams.some((t) => t.logo_path === p) ||
       db.profile.profile_image_path === p

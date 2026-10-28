@@ -281,6 +281,49 @@ describe("video and photos", () => {
   });
 });
 
+describe("book PDFs and old videos", () => {
+  it("the documents bucket is public to read, takes only PDFs, and visitors cannot upload", async () => {
+    const pdfPath = `documents/${randomUUID()}.pdf`;
+    const pdf = Buffer.from("%PDF-1.4\n%\xe2\xe3\n1 0 obj << >> endobj\n%%EOF\n");
+    expect((await service.storage.from("documents").upload(pdfPath, pdf, { contentType: "application/pdf" })).error).toBeNull();
+    try {
+      const res = await fetch(`${url}/storage/v1/object/public/documents/${pdfPath}`);
+      expect(res.ok).toBe(true);
+      expect(res.headers.get("content-type")).toContain("application/pdf");
+    } finally {
+      await service.storage.from("documents").remove([pdfPath]);
+    }
+    expect((await anon.storage.from("documents").upload(`documents/${randomUUID()}.pdf`, new Blob(["%PDF-1.4"], { type: "application/pdf" }))).error).not.toBeNull();
+    const wrong = await service.storage.from("documents").upload(`documents/${randomUUID()}.html`, Buffer.from("<html>"), { contentType: "text/html" });
+    expect(wrong.error).not.toBeNull();
+  });
+
+  it("admin_save_episode stores a PDF and the old-video mark; a PDF alone is enough to publish", async () => {
+    const { data: cats } = await admin.from("categories").select("id, slug").in("slug", ["book-hindi", "cricket-podcast", "kp-research", "player-horoscopes", "book-english"]);
+    expect(cats!.map((c) => c.slug).sort()).toEqual(["book-english", "book-hindi", "cricket-podcast", "kp-research", "player-horoscopes"]);
+    const book = cats!.find((c) => c.slug === "book-hindi")!.id;
+    const episode = {
+      title: "PDF test", slug: `pdf-${randomUUID().slice(0, 8)}`, excerpt: "pdf test post", description: "", category_id: book,
+      audio_storage_path: null, audio_mime_type: null, cover_image_path: null, duration_seconds: 0, is_published: true, is_premium: false,
+      published_at: new Date().toISOString(), article: "", article_lang: "hi", gallery_paths: [],
+      pdf_storage_path: `documents/${randomUUID()}.pdf`, is_archived: true,
+    };
+    const { data: id, error } = await admin.rpc("admin_save_episode", { p_id: null, p_episode: episode, p_match: null });
+    expect(error).toBeNull();
+    cleanup.push(id);
+    expect((await anon.from("episode_listings").select("pdf_storage_path, pdf_link, is_archived, category_slug").eq("id", id).single()).data).toEqual({
+      pdf_storage_path: episode.pdf_storage_path, pdf_link: "", is_archived: true, category_slug: "book-hindi",
+    });
+    const driveOnly = { ...episode, pdf_storage_path: null, pdf_link: "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view", is_archived: false };
+    expect((await admin.rpc("admin_save_episode", { p_id: id, p_episode: driveOnly, p_match: null })).error).toBeNull();
+    expect((await anon.from("episode_listings").select("pdf_link, is_archived").eq("id", id).single()).data).toEqual({ pdf_link: driveOnly.pdf_link, is_archived: false });
+    const nothing = await admin.rpc("admin_save_episode", { p_id: id, p_episode: { ...driveOnly, pdf_link: "" }, p_match: null });
+    expect(nothing.error).not.toBeNull();
+    const { data: comps } = await anon.from("competitions").select("slug").in("slug", ["bbl", "ipl", "t20i"]);
+    expect(comps!.map((c) => c.slug).sort()).toEqual(["bbl", "ipl", "t20i"]);
+  });
+});
+
 describe("renamed posts", () => {
   it("remembers the old slug for redirects; visitors can read it but never write it", async () => {
     const slug = `rename-${randomUUID().slice(0, 8)}`;

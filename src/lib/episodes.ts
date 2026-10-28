@@ -47,6 +47,8 @@ export function lengthLabel(
     | "video_link"
     | "video_format"
     | "gallery_paths"
+    | "pdf_storage_path"
+    | "pdf_link"
   >,
   lang: Locale = "en",
 ): string {
@@ -57,6 +59,7 @@ export function lengthLabel(
   if (hasVideo(e)) parts.push(e.video_format === "reel" ? t.reel : t.video);
   if (e.has_article) parts.push(e.article ? t.read(readingMinutes(e.article)) : t.article);
   if (e.gallery_paths.length) parts.push(t.photos(e.gallery_paths.length));
+  if (e.pdf_storage_path || e.pdf_link) parts.push("PDF");
   return parts.join(" · ");
 }
 

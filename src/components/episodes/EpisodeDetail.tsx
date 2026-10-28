@@ -20,6 +20,7 @@ import { DriveAudio } from "./DriveAudio";
 import { EpisodeCard } from "./EpisodeCard";
 import { LearnCricketCta } from "./LearnCricketCta";
 import { MatchCard } from "./MatchCard";
+import { PdfBlock } from "./PdfBlock";
 import { PhotoGallery } from "./PhotoGallery";
 import { ShareButtons } from "./ShareButtons";
 import { VideoBlock } from "./VideoBlock";
@@ -202,6 +203,7 @@ export async function EpisodeDetail({ slug, section, lang }: { slug: string; sec
             </section>
           )}
 
+          {(episode.pdf_storage_path || episode.pdf_link) && <PdfBlock episode={episode} lang={lang} />}
           {episode.gallery_paths.length > 0 && <PhotoGallery paths={episode.gallery_paths} title={episode.title} titleLang={episode.text_lang} />}
 
           {paragraphs.length > 0 && (

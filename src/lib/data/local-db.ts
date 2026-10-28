@@ -61,6 +61,9 @@ export class LocalDb {
       e.video_link ??= "";
       e.audio_link ??= "";
       e.gallery_paths ??= [];
+      e.pdf_storage_path ??= null;
+      e.pdf_link ??= "";
+      e.is_archived ??= false;
     }
     for (const c of db.categories) {
       c.name_hi ??= "";

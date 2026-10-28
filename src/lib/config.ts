@@ -61,6 +61,8 @@ export const uploadLimits = {
   imageMaxBytes: int(process.env.MAX_IMAGE_UPLOAD_MB, 5) * 1024 * 1024,
   // 50 MB is the Supabase Free plan's per-file cap; the video bucket enforces the same.
   videoMaxBytes: int(process.env.MAX_VIDEO_UPLOAD_MB, 50) * 1024 * 1024,
+  // Same cap as video: the documents bucket's limit on the Supabase Free plan.
+  pdfMaxBytes: int(process.env.MAX_PDF_UPLOAD_MB, 50) * 1024 * 1024,
 };
 
 export const localPaths = {

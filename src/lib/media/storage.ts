@@ -7,10 +7,10 @@ import { Readable } from "node:stream";
 import { getDataBackend, localPaths, uploadLimits } from "../config";
 import { signToken } from "../auth/tokens";
 import { createServiceClient } from "../data/supabase-clients";
-import { AUDIO_TYPES, contentMatchesExtension, IMAGE_TYPES, VIDEO_TYPES } from "./file-types";
+import { AUDIO_TYPES, contentMatchesExtension, IMAGE_TYPES, PDF_TYPES, VIDEO_TYPES } from "./file-types";
 import { parseRange } from "./range";
 
-export type UploadKind = "audio" | "video" | "cover" | "gallery" | "team" | "profile";
+export type UploadKind = "audio" | "video" | "cover" | "gallery" | "team" | "profile" | "pdf";
 
 const FOLDERS: Record<UploadKind, string> = {
   audio: "audio",
@@ -19,12 +19,14 @@ const FOLDERS: Record<UploadKind, string> = {
   gallery: "gallery",
   team: "teams",
   profile: "profile",
+  pdf: "documents",
 };
 
 const KIND_RULES = {
   audio: { types: AUDIO_TYPES, max: () => uploadLimits.audioMaxBytes, error: "Unsupported audio format. Use MP3, M4A, AAC, OGG or WAV." },
   video: { types: VIDEO_TYPES, max: () => uploadLimits.videoMaxBytes, error: "Unsupported video format. Use MP4, WebM or MOV." },
   image: { types: IMAGE_TYPES, max: () => uploadLimits.imageMaxBytes, error: "Unsupported image format. Use JPG, PNG, WebP or AVIF." },
+  pdf: { types: PDF_TYPES, max: () => uploadLimits.pdfMaxBytes, error: "Upload a PDF file." },
 };
 
 export interface UploadTarget {
@@ -38,7 +40,7 @@ export class UploadRejected extends Error {}
 
 /** Validates a requested upload and allocates a fresh, unguessable storage path. */
 export function planUpload(kind: UploadKind, contentType: string, size: number): { path: string; maxBytes: number } {
-  const rule = KIND_RULES[kind === "audio" || kind === "video" ? kind : "image"];
+  const rule = KIND_RULES[kind === "audio" || kind === "video" || kind === "pdf" ? kind : "image"];
   const ext = rule.types[contentType.toLowerCase()];
   if (!ext) throw new UploadRejected(rule.error);
   const maxBytes = rule.max();
@@ -48,7 +50,8 @@ export function planUpload(kind: UploadKind, contentType: string, size: number):
   return { path: `${FOLDERS[kind]}/${randomUUID()}.${ext}`, maxBytes };
 }
 
-const bucketOf = (p: string) => (p.startsWith("audio/") ? "audio" : p.startsWith("video/") ? "video" : "images");
+const bucketOf = (p: string) =>
+  p.startsWith("audio/") ? "audio" : p.startsWith("video/") ? "video" : p.startsWith("documents/") ? "documents" : "images";
 
 export function localStorageRoot(): string {
   return path.resolve(localPaths.dataDir, "storage");

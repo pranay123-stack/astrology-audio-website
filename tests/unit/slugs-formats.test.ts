@@ -44,6 +44,8 @@ describe("post types (format filter)", () => {
     video_storage_path: null,
     video_link: "",
     video_format: "video" as const,
+    pdf_storage_path: null,
+    pdf_link: "",
   };
   it("classifies posts by what they contain; a post can be several types", () => {
     const both = { ...base, has_article: true, video_link: "https://youtu.be/dQw4w9WgXcQ" };
@@ -54,10 +56,14 @@ describe("post types (format filter)", () => {
     expect(hasFormat({ ...base, audio_link: "https://drive.google.com/file/d/x/view" }, "audio")).toBe(true);
     // The format alone (without any video) is not a video.
     expect(hasFormat({ ...base, video_format: "reel" }, "reel")).toBe(false);
+    expect(hasFormat({ ...base, pdf_storage_path: "documents/x.pdf" }, "pdf")).toBe(true);
+    expect(hasFormat({ ...base, pdf_link: "https://drive.google.com/file/d/x/view" }, "pdf")).toBe(true);
+    expect(hasFormat(base, "pdf")).toBe(false);
   });
 
   it("reads ?format= from the address, ignoring anything unknown", () => {
     expect(parseListParams({ format: "reel" }).format).toBe("reel");
+    expect(parseListParams({ format: "pdf" }).format).toBe("pdf");
     expect(parseListParams({ format: "podcast" }).format).toBe("");
     expect(parseListParams({}).format).toBe("");
   });
@@ -82,5 +88,34 @@ describe("Hindi first", () => {
     expect(prefersHindi("en-IN,en;q=0.9,hi;q=0.8")).toBe(false);
     expect(prefersHindi("")).toBe(false);
     expect(prefersHindi(null)).toBe(false);
+  });
+});
+
+describe("PDF uploads", () => {
+  it("accepts only real PDF files", async () => {
+    const { contentMatchesExtension, sniffFileType } = await import("@/lib/media/file-types");
+    const pdf = new TextEncoder().encode("%PDF-1.7\n%âãÏÓ\n1 0 obj");
+    expect(sniffFileType(pdf)).toBe("pdf");
+    expect(contentMatchesExtension(pdf, "pdf")).toBe(true);
+    expect(contentMatchesExtension(new TextEncoder().encode("<html><body>not a pdf</body>"), "pdf")).toBe(false);
+  });
+});
+
+describe("site menu", () => {
+  it("follows the astrologer's layout and links YouTube only when it is set", async () => {
+    const { siteMenu } = await import("@/components/layout/nav");
+    const menu = siteMenu({ showPremium: false });
+    expect(menu.map((m) => m.key)).toEqual(["astrology", "astroCricket", "book", "research", "kpChart", "contact"]);
+    const cricket = menu.find((m) => m.key === "astroCricket")!;
+    expect(cricket.children!.map((c) => c.key)).toEqual(["podcast", "oldVideos"]);
+    const withYoutube = siteMenu({ showPremium: true, youtube: "https://www.youtube.com/@ASTROCRICKET" });
+    expect(withYoutube.find((m) => m.key === "astroCricket")!.children!.at(-1)).toMatchObject({ key: "youtube", external: true });
+    expect(withYoutube.map((m) => m.key)).toContain("premium");
+    const research = menu.find((m) => m.key === "research")!;
+    expect(research.children![0].children!.map((c) => c.href)).toEqual([
+      "/horoscope-research/matches?competition=bbl",
+      "/horoscope-research/matches?competition=ipl",
+      "/horoscope-research/matches?competition=t20i",
+    ]);
   });
 });

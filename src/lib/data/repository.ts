@@ -38,6 +38,9 @@ export interface EpisodeWrite {
   video_link: string;
   audio_link: string;
   gallery_paths: string[];
+  pdf_storage_path: string | null;
+  pdf_link: string;
+  is_archived: boolean;
   duration_seconds: number;
   is_published: boolean;
   is_premium: boolean;
@@ -105,17 +108,21 @@ export class RepositoryError extends Error {
 
 /** A published episode needs something to consume: audio, an article (in either language), a video or photos. */
 export function hasContent(
-  e: Pick<Episode, "audio_storage_path" | "audio_link" | "has_article" | "has_article_alt" | "video_storage_path" | "video_link" | "gallery_paths">,
+  e: Pick<
+    Episode,
+    "audio_storage_path" | "audio_link" | "has_article" | "has_article_alt" | "video_storage_path" | "video_link" | "gallery_paths" | "pdf_storage_path" | "pdf_link"
+  >,
 ): boolean {
   return (
     !!e.audio_storage_path ||
-    !!e.audio_link || e.has_article || e.has_article_alt || !!e.video_storage_path || !!e.video_link || e.gallery_paths.length > 0
+    !!e.audio_link || e.has_article || e.has_article_alt || !!e.video_storage_path || !!e.video_link || e.gallery_paths.length > 0 ||
+    !!e.pdf_storage_path || !!e.pdf_link
   );
 }
 
 /** Whether a post contains `format`; mirrors the SQL filter in the Supabase adapter. */
 export function hasFormat(
-  e: Pick<Episode, "has_article" | "has_article_alt" | "audio_storage_path" | "audio_link" | "video_storage_path" | "video_link" | "video_format">,
+  e: Pick<Episode, "has_article" | "has_article_alt" | "audio_storage_path" | "audio_link" | "video_storage_path" | "video_link" | "video_format" | "pdf_storage_path" | "pdf_link">,
   format: PostFormat,
 ): boolean {
   const video = !!e.video_storage_path || !!e.video_link;
@@ -128,6 +135,8 @@ export function hasFormat(
       return video && e.video_format === "video";
     case "reel":
       return video && e.video_format === "reel";
+    case "pdf":
+      return !!e.pdf_storage_path || !!e.pdf_link;
   }
 }
 
@@ -154,7 +163,10 @@ export function filterAndSort(rows: EpisodeListing[], q: EpisodeQuery, now = Dat
     if (q.section && r.category.section !== q.section) return false;
     if (q.withMatch && !r.match) return false;
     if (q.format && !hasFormat(r, q.format)) return false;
+    if (q.formats?.length && !q.formats.some((f) => hasFormat(r, f))) return false;
     if (q.categorySlug && r.category.slug !== q.categorySlug) return false;
+    if (q.categorySlugs?.length && !q.categorySlugs.includes(r.category.slug)) return false;
+    if (q.archived !== undefined && r.is_archived !== q.archived) return false;
     if (q.competitionSlug && r.match?.competition.slug !== q.competitionSlug) return false;
     if (q.access === "free" && r.is_premium) return false;
     if (q.access === "premium" && !r.is_premium) return false;

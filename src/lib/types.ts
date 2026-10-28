@@ -17,7 +17,7 @@ export type MatchStatus = (typeof MATCH_STATUSES)[number];
 export const VIDEO_FORMATS = ["video", "reel"] as const;
 export type VideoFormat = (typeof VIDEO_FORMATS)[number];
 /** What a post can be filtered by on the listing pages. A post with several media matches several. */
-export const POST_FORMATS = ["article", "audio", "video", "reel"] as const;
+export const POST_FORMATS = ["article", "audio", "video", "reel", "pdf"] as const;
 export type PostFormat = (typeof POST_FORMATS)[number];
 /** Most photos a post's gallery can hold. */
 export const GALLERY_MAX = 12;
@@ -83,6 +83,12 @@ export interface Episode {
   audio_link: string;
   /** Photo gallery (public images bucket), in display order. */
   gallery_paths: string[];
+  /** PDF in the public documents bucket (free to read and download). */
+  pdf_storage_path: string | null;
+  /** Google Drive link to a PDF, for files over the upload limit ("" = none). */
+  pdf_link: string;
+  /** Marked "old video" by the admin: listed under Astro Cricket › Old Videos instead of the current videos. */
+  is_archived: boolean;
   duration_seconds: number;
   is_published: boolean;
   is_premium: boolean;
@@ -189,6 +195,10 @@ export type SortOrder = "latest" | "popular" | "match_date_asc" | "match_date_de
 export interface EpisodeQuery {
   section?: Section;
   categorySlug?: string;
+  /** Any of these categories (ignored when empty). */
+  categorySlugs?: string[];
+  /** true: only posts marked "old video"; false: only the others. */
+  archived?: boolean;
   competitionSlug?: string;
   search?: string;
   access?: "free" | "premium";
@@ -203,6 +213,8 @@ export interface EpisodeQuery {
   excludeId?: string;
   /** Only posts containing this kind of media. */
   format?: PostFormat;
+  /** Only posts containing any of these kinds of media (ignored when empty). */
+  formats?: PostFormat[];
   /** Only posts with match details (match readings), excluding cricket guide articles. */
   withMatch?: boolean;
   /** Admin listings include drafts and scheduled episodes. */
