@@ -79,7 +79,7 @@ export function KpChartView({ chart, header }: { chart: KpChartResult; header?: 
         {header}
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
         <ChartGrid chart={chart} lord={lord} isU={isU} fmtDate={fmtDate} />
 
         {/* ABCD */}
@@ -318,14 +318,14 @@ function ChartGrid({
               data-testid={`kp-box-${signIndex}`}
               data-cusps={items.flatMap((it) => (it.kind === "cusp" ? [it.c.house] : [])).join(" ")}
             >
-              <div className="flex items-baseline justify-between gap-1 text-[8px] uppercase tracking-wide text-muted sm:text-[10px]">
+              <div className="flex items-baseline justify-between gap-1 text-[8px] uppercase tracking-wide text-muted sm:text-[11px] xl:text-xs">
                 <span className="truncate">
                   <span aria-hidden>{SIGN_GLYPHS[signIndex]} </span>
                   {signs[signIndex]}
                 </span>
                 <span className="normal-case">{lord(SIGN_LORDS[signIndex])}</span>
               </div>
-              <ul className="mt-auto flex flex-col gap-px">
+              <ul className="flex flex-1 flex-col justify-evenly gap-px">
                 {items.map((it) => {
                   const key = it.kind === "planet" ? it.p.key : `c${it.c.house}`;
                   const pt = it.kind === "planet" ? it.p : it.c;
@@ -336,7 +336,7 @@ function ChartGrid({
                         onClick={() => setSelected(isSel(it) ? null : it.kind === "planet" ? { kind: "planet", key: it.p.key } : { kind: "cusp", house: it.c.house })}
                         aria-pressed={isSel(it)}
                         aria-label={`${label(it)} ${formatDms(pt.degInSign)}`}
-                        className={`flex w-full items-baseline gap-1 rounded px-0.5 text-left text-[10px] leading-tight transition sm:text-xs ${
+                        className={`flex w-full items-baseline gap-1 rounded px-0.5 text-left text-[10px] leading-tight transition sm:text-sm xl:gap-2 xl:px-1 xl:py-0.5 xl:text-base ${
                           isSel(it) ? "bg-gold/25 ring-1 ring-gold" : "hover:bg-white/10"
                         }`}
                         data-testid={`kp-item-${key}`}
@@ -352,7 +352,7 @@ function ChartGrid({
                         <span className={`tabular-nums ${it.kind === "planet" ? (it.p.retrograde ? "text-red-300" : "text-gold-soft") : "text-ink/90"}`}>
                           {dms2(pt.degInSign)}
                         </span>
-                        <span className="ml-auto hidden shrink-0 text-[9px] text-muted md:inline">
+                        <span className="ml-auto hidden shrink-0 text-[9px] text-muted md:inline xl:text-[11px]">
                           {lord(pt.starLord)}·{lord(pt.subLord)}
                         </span>
                       </button>
@@ -364,18 +364,18 @@ function ChartGrid({
           );
         })}
 
-        <div className="col-span-2 col-start-2 row-span-2 row-start-2 flex min-w-0 flex-col border border-gold/25 p-2 sm:p-4" aria-live="polite" data-testid="kp-details">
+        <div className="col-span-2 col-start-2 row-span-2 row-start-2 flex min-w-0 flex-col border border-gold/25 p-2 sm:p-4 xl:p-6" aria-live="polite" data-testid="kp-details">
           {point && selected ? (
-            <div className="flex h-full flex-col text-[11px] sm:text-sm">
+            <div className="flex h-full flex-col text-[11px] sm:text-sm xl:text-base">
               <div className="flex items-start justify-between gap-2">
-                <p className="font-display text-sm font-semibold text-gold-soft sm:text-xl">
+                <p className="font-display text-sm font-semibold text-gold-soft sm:text-xl xl:text-2xl">
                   {selected.kind === "planet" ? selected.key : ROMAN[selected.house - 1]} – {signs[point.signIndex]} {dms2(point.degInSign)}
                 </p>
                 <button type="button" onClick={() => setSelected(null)} className="btn-ghost shrink-0 px-2 py-1 text-[10px] sm:text-xs" data-testid="kp-details-back">
                   <ArrowLeft className="h-3 w-3" aria-hidden /> {k.back}
                 </button>
               </div>
-              <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 sm:mt-3 sm:gap-y-1.5">
+              <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 sm:mt-3 sm:gap-y-1.5 xl:mt-5 xl:gap-y-2.5">
                 <dt className="text-muted">{k.sign}</dt><dd className="text-right font-semibold">{signs[point.signIndex]}</dd>
                 <dt className="text-muted">{k.star}</dt><dd className="text-right font-semibold">{point.nakshatra} – {point.pada}</dd>
                 <dt className="text-muted">{k.signLord}</dt><dd className="text-right font-semibold">{lord(point.signLord)}</dd>
@@ -386,7 +386,7 @@ function ChartGrid({
             </div>
           ) : (
             <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
-              <p className="font-display text-base font-semibold sm:text-xl">{chart.input.name || k.chart}</p>
+              <p className="font-display text-base font-semibold sm:text-xl xl:text-2xl">{chart.input.name || k.chart}</p>
               <p className="text-[10px] text-muted sm:text-xs">{fmtDate(chart.utcMs, true)}</p>
               <p className="line-clamp-2 text-[10px] text-muted sm:text-xs">{chart.input.place}</p>
               <p className="text-[10px] text-gold sm:text-xs">KP New</p>

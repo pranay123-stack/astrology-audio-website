@@ -21,7 +21,8 @@ export async function KpChartLayout({ id }: { id?: string }) {
           <p className="mt-4 max-w-2xl text-lg text-ink/80">{t.intro}</p>
         </div>
       </section>
-      <section className="container-page py-10">
+      {/* Wider than other pages: the chart needs room for its degrees and lords, as in KP software. */}
+      <section className="mx-auto w-full max-w-[1720px] px-4 py-10 sm:px-6 lg:px-8">
         <KpChartApp initialId={id} />
         <p className="mx-auto mt-10 max-w-2xl text-center text-xs text-muted">{t.credit}</p>
       </section>
