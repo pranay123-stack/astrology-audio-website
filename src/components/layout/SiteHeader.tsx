@@ -17,7 +17,7 @@ export async function SiteHeader({ lang }: { lang: Locale }) {
         {t.nav.skip}
       </a>
       {/* The full menu fills the row, so "Learn Cricket Astrology" lives in the hero and the phone menu. */}
-      <div className="relative mx-auto flex h-16 w-full max-w-[1560px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+      <div className="relative mx-auto flex h-16 w-full max-w-[1840px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
         <Logo lang={lang} />
         <Suspense fallback={<DesktopNav static menu={menu} />}>
           <DesktopNav menu={menu} />

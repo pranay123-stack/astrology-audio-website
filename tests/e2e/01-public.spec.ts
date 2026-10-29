@@ -19,7 +19,7 @@ test("home page shows the main sections and the sample-content notice", async ({
   expect(order.every((y, i) => y > 0 && (i === 0 || y > order[i - 1]))).toBe(true);
   // The astrologer's menu; Premium shows only because the sample content has premium posts.
   const nav = await page.getByRole("navigation", { name: "Main" }).filter({ visible: true }).getByRole("link").allInnerTexts();
-  expect(nav).toEqual(["Home", "Astrology", "Astro Cricket", "Book", "Horoscope Research", "Premium", "Make Your KP Chart", "Contact", "Rules", "Testimonials", "Future Research Topics"]);
+  expect(nav).toEqual(["Home", "Astrology", "Astro Cricket", "Book", "Horoscope Research", "Premium", "Make Your KP Chart", "Contact", "Rules", "Testimonials", "Future Research Topics", "Krishna Consciousness"]);
   // The hero's main button is the course; the KP chart has its own invitation.
   await expect(page.getByTestId("hero-learn")).toHaveAttribute("href", "/contact?subject=Learning%20cricket%20astrology#questionnaire");
   await expect(page.getByTestId("kp-promo").getByRole("link")).toHaveAttribute("href", "/kp-chart");
@@ -43,7 +43,7 @@ test("Hindi site: translated interface at /hi, and the switch keeps the page and
   await expect(page.locator("html")).toHaveAttribute("lang", "hi");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("क्रिकेट भविष्यवाणी और जीवन ज्योतिष");
   const nav = await page.getByRole("navigation", { name: "मुख्य" }).filter({ visible: true }).getByRole("link").allInnerTexts();
-  expect(nav).toEqual(["होम", "ज्योतिष", "एस्ट्रो क्रिकेट", "पुस्तक", "कुंडली शोध", "प्रीमियम", "अपनी KP कुंडली बनाएँ", "संपर्क", "नियम", "प्रशंसापत्र", "भविष्य के शोध विषय"]);
+  expect(nav).toEqual(["होम", "ज्योतिष", "एस्ट्रो क्रिकेट", "पुस्तक", "कुंडली शोध", "प्रीमियम", "अपनी KP कुंडली बनाएँ", "संपर्क", "नियम", "प्रशंसापत्र", "भविष्य के शोध विषय", "कृष्ण चेतना"]);
   // Menu links stay inside /hi.
   await expect(page.getByTestId("home-book").getByRole("link", { name: "सुनें और पढ़ें" })).toHaveAttribute("href", "/hi/book");
   await expect(page.getByTestId("hero-kp")).toHaveAttribute("href", "/hi/kp-chart");
@@ -288,6 +288,13 @@ test("site menu: dropdowns lead to each section's pages, with their content", as
   await page.getByTestId("menu-panel-futureResearch").getByRole("link", { name: "Bitcoin & Forex Market" }).click();
   await expect(page).toHaveURL(/\/future-research#bitcoin-forex$/);
   for (const id of ["football", "share-market", "bitcoin-forex", "lottery"]) await expect(page.getByTestId(`future-${id}`).getByTestId("future-soon")).toBeVisible();
+
+  // Krishna Consciousness: the astrologer's essay, with 12% luck and 88% karma.
+  await page.getByRole("navigation", { name: "Main" }).filter({ visible: true }).getByRole("link", { name: "Krishna Consciousness" }).click();
+  await expect(page).toHaveURL(/\/krishna-consciousness$/);
+  await expect(page.getByTestId("luck-karma")).toContainText("12%");
+  await expect(page.getByTestId("luck-karma")).toContainText("88%");
+  await expect(page.getByTestId("krishna-essay")).toContainText("Yahi Krishna Consciousness hai.");
 });
 
 test("KP chart: birth details give a South Indian chart whose items open in the centre box, and can be edited", async ({ page }) => {

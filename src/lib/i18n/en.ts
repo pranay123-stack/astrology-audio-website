@@ -391,6 +391,7 @@ export const en = {
     shareMarket: "Share Market",
     bitcoinForex: "Bitcoin & Forex Market",
     lotteryNumber: "Lottery Number",
+    krishna: "Krishna Consciousness",
   },
 
   topics: {
@@ -461,6 +462,12 @@ export const en = {
       rules: (n: number) => `${n} rules`,
       planet: "Planet",
       chakra: "Chakra",
+    },
+    krishna: {
+      eyebrow: "Bhagya & karma",
+      title: "Krishna Consciousness",
+      intro: "Fate or effort? Why 12% of life is fixed luck and 88% is karma, explained by the astrologer with the Geeta and a pair of glasses.",
+      luckVsKarma: "12% luck, 88% karma",
     },
     future: {
       eyebrow: "Future research",

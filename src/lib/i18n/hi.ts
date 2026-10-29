@@ -389,6 +389,7 @@ export const hi: Dict = {
     shareMarket: "शेयर बाज़ार",
     bitcoinForex: "बिटकॉइन और फ़ॉरेक्स बाज़ार",
     lotteryNumber: "लॉटरी नंबर",
+    krishna: "कृष्ण चेतना",
   },
 
   topics: {
@@ -459,6 +460,12 @@ export const hi: Dict = {
       rules: (n) => `${n} नियम`,
       planet: "ग्रह",
       chakra: "चक्र",
+    },
+    krishna: {
+      eyebrow: "भाग्य और कर्म",
+      title: "कृष्ण चेतना",
+      intro: "भाग्य या कर्म? जीवन का 12% तय भाग्य है और 88% कर्म: ज्योतिषी गीता और एक चश्मे के उदाहरण से समझाते हैं।",
+      luckVsKarma: "12% भाग्य, 88% कर्म",
     },
     future: {
       eyebrow: "भविष्य के शोध",
