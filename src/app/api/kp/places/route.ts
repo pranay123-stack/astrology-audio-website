@@ -1,13 +1,22 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { gunzipSync } from "node:zlib";
 import tzLookup from "@photostructure/tz-lookup";
 import { headers } from "next/headers";
 import { siteConfig } from "@/lib/config";
+import { parsePlaceLine, searchPlaces, type PlaceRow } from "@/lib/kp/place-search";
 import { rateLimit } from "@/lib/rate-limit";
 
 /**
- * Birth-place search for the KP chart. Proxies OpenStreetMap Nominatim from the server, as its
- * usage policy asks: identified User-Agent, at most ~1 request/second overall, results cached,
- * and no search-as-you-type (the form searches only when the visitor presses Search).
- * Each result gets its IANA timezone from the coordinates.
+ * Birth-place search for the KP chart, two ways:
+ *
+ * * `?suggest=1`: suggestions as the visitor types, from the GeoNames list bundled with the site
+ *   (data/places.tsv.gz), forgiving of spelling. Nothing leaves the server.
+ * * otherwise: OpenStreetMap Nominatim, for villages the list does not have. Proxied from the
+ *   server as its usage policy asks: identified User-Agent, at most ~1 request/second overall,
+ *   results cached, and never search-as-you-type (only when the visitor presses Search).
+ *
+ * Each result carries its IANA timezone.
  */
 
 interface Place {
@@ -21,17 +30,41 @@ const cache = new Map<string, { at: number; places: Place[] }>();
 const CACHE_MS = 24 * 60 * 60 * 1000;
 let lastUpstream = 0;
 
+let rows: PlaceRow[] | null = null;
+/** The bundled list, read once (about 70,000 places, ~0.5 s). */
+function placeRows(): PlaceRow[] {
+  rows ??= gunzipSync(readFileSync(join(process.cwd(), "data/places.tsv.gz")))
+    .toString("utf8")
+    .split("\n")
+    .map(parsePlaceLine)
+    .filter((r) => r !== null);
+  return rows;
+}
+
 export async function GET(request: Request) {
   const q = new URL(request.url).searchParams.get("q")?.trim().slice(0, 120) ?? "";
   const lang = new URL(request.url).searchParams.get("lang") === "hi" ? "hi,en" : "en";
+  const h = await headers();
+  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "unknown";
+
+  if (new URL(request.url).searchParams.get("suggest") === "1") {
+    if (!q) return Response.json({ places: [] });
+    if (!rateLimit(`suggest:${ip}`, 600, 10 * 60 * 1000).ok) return Response.json({ places: [] }, { status: 429 });
+    try {
+      const places: Place[] = searchPlaces(placeRows(), q, 8).map((r) => ({ label: r.label, lat: r.lat, lon: r.lon, zone: r.zone }));
+      return Response.json({ places }, { headers: { "cache-control": "public, max-age=86400" } });
+    } catch (err) {
+      console.error("place suggestions failed", err);
+      return Response.json({ places: [] }, { status: 500 });
+    }
+  }
+
   if (q.length < 2) return Response.json({ places: [] });
 
   const key = `${lang}:${q.toLowerCase()}`;
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < CACHE_MS) return Response.json({ places: hit.places });
 
-  const h = await headers();
-  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "unknown";
   if (!rateLimit(`places:${ip}`, 20, 10 * 60 * 1000).ok) {
     return Response.json({ error: "Too many searches. Please wait a few minutes." }, { status: 429 });
   }

@@ -419,6 +419,27 @@ test("KP chart: saved without sign-in, opened and listed by anyone, edited in pl
   await expect(page.getByTestId("kp-link-state").filter({ visible: true })).toContainText("This chart does not exist or was deleted.", { timeout: 15_000 });
 });
 
+test("KP chart: the place field suggests towns as you type, misspelt too, and a click fills it in", async ({ page }) => {
+  await gotoReady(page, "/kp-chart");
+  await page.locator("#kp-place").pressSequentially("kalkatta", { delay: 30 });
+  const list = page.getByTestId("kp-places");
+  // The first suggestion request also loads the place list on the server.
+  await expect(list.getByRole("option").first()).toContainText("Kolkata, West Bengal, India", { timeout: 15_000 });
+  await list.getByRole("option").first().click();
+  await expect(page.getByTestId("kp-chosen")).toContainText("Kolkata, West Bengal, India");
+  await expect(page.locator("#kp-lat")).toHaveValue("22.5626");
+  await expect(page.locator("#kp-zone")).toHaveValue("Asia/Kolkata");
+  await expect(list).toHaveCount(0);
+
+  // Two letters are enough; arrow keys and Enter pick a suggestion.
+  await page.locator("#kp-place").fill("");
+  await page.locator("#kp-place").pressSequentially("mu", { delay: 30 });
+  await expect(list.getByRole("option").first()).toContainText("Mumbai");
+  await page.locator("#kp-place").press("ArrowDown");
+  await page.locator("#kp-place").press("Enter");
+  await expect(page.getByTestId("kp-chosen")).toContainText("Mumbai, Maharashtra, India");
+});
+
 test("KP chart: the new-chart page shows the form", async ({ page }) => {
   await gotoReady(page, "/kp-chart/new");
   await expect(page.getByTestId("kp-form")).toBeVisible();

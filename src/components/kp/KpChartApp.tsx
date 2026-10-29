@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ChevronDown, LayoutGrid, Loader2, MapPin, Pencil, Pin, PinOff, RotateCcw, Save, Search, Share2, Sparkles, Trash2 } from "lucide-react";
@@ -64,6 +64,10 @@ export function KpChartApp({ initialId }: { initialId?: string }) {
   const [time, setTime] = useState("");
   const [query, setQuery] = useState("");
   const [places, setPlaces] = useState<Place[] | null>(null);
+  /** Where the list came from: the bundled suggestions while typing, or OpenStreetMap (Search). */
+  const [placesFrom, setPlacesFrom] = useState<"suggest" | "search">("suggest");
+  const [active, setActive] = useState(-1);
+  const typed = useRef(0);
   const [searching, setSearching] = useState(false);
   const [place, setPlace] = useState<Place | null>(null);
   const [lat, setLat] = useState("");
@@ -105,14 +109,41 @@ export function KpChartApp({ initialId }: { initialId?: string }) {
     setQuery(p.label.split(",")[0]);
   };
 
+  /** Suggestions as the visitor types (from the second keystroke's pause), spelling forgiven. */
+  const typePlace = (v: string) => {
+    setQuery(v);
+    // A different place is being typed, so the chosen one no longer applies.
+    setPlace(null);
+    setLat("");
+    setLon("");
+    setActive(-1);
+    const n = ++typed.current;
+    if (!v.trim()) return setPlaces(null);
+    setTimeout(async () => {
+      if (n !== typed.current) return;
+      try {
+        const res = await fetch(`/api/kp/places?suggest=1&q=${encodeURIComponent(v.trim())}&lang=${lang}`);
+        const body = (await res.json()) as { places?: Place[] };
+        if (n !== typed.current) return;
+        setPlacesFrom("suggest");
+        setPlaces(body.places ?? []);
+      } catch {
+        /* no suggestions: Search still works */
+      }
+    }, 150);
+  };
+
   const searchPlaces = async () => {
     if (query.trim().length < 2) return;
+    typed.current++;
+    setActive(-1);
     setSearching(true);
     setError(null);
     try {
       const res = await fetch(`/api/kp/places?q=${encodeURIComponent(query.trim())}&lang=${lang}`);
       const body = (await res.json()) as { places?: Place[]; error?: string };
       if (!res.ok) setError(body.error ?? k.errors.failed);
+      setPlacesFrom("search");
       setPlaces(body.places ?? []);
     } catch {
       setError(k.errors.failed);
@@ -373,11 +404,28 @@ export function KpChartApp({ initialId }: { initialId?: string }) {
             className="input"
             placeholder={k.placePlaceholder}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            autoComplete="off"
+            role="combobox"
+            aria-expanded={!!places?.length}
+            aria-controls="kp-places"
+            aria-autocomplete="list"
+            aria-activedescendant={active >= 0 ? `kp-place-${active}` : undefined}
+            onChange={(e) => typePlace(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
+              const n = places?.length ?? 0;
+              if (e.key === "ArrowDown" && n) {
                 e.preventDefault();
-                void searchPlaces();
+                setActive((i) => (i + 1) % n);
+              } else if (e.key === "ArrowUp" && n) {
+                e.preventDefault();
+                setActive((i) => (i <= 0 ? n - 1 : i - 1));
+              } else if (e.key === "Escape") {
+                setPlaces(null);
+              } else if (e.key === "Enter") {
+                e.preventDefault();
+                // Enter takes the highlighted suggestion (or the first); with none, searches.
+                if (places && n) choose(places[Math.max(active, 0)]);
+                else void searchPlaces();
               }
             }}
           />
@@ -387,16 +435,28 @@ export function KpChartApp({ initialId }: { initialId?: string }) {
           </button>
         </div>
         {places && (
-          <ul className="mt-2 divide-y divide-line overflow-hidden rounded-xl border border-line" data-testid="kp-places">
-            {places.length === 0 && <li className="px-4 py-3 text-sm text-muted">{k.noPlaces}</li>}
-            {places.map((p) => (
-              <li key={`${p.lat},${p.lon}`}>
-                <button type="button" className="flex w-full items-start gap-2 px-4 py-3 text-left text-sm hover:bg-white/5" onClick={() => choose(p)}>
+          <ul id="kp-places" role="listbox" className="mt-2 divide-y divide-line overflow-hidden rounded-xl border border-line" data-testid="kp-places">
+            {places.length === 0 && <li className="px-4 py-3 text-sm text-muted">{placesFrom === "suggest" ? k.noSuggestions : k.noPlaces}</li>}
+            {places.map((p, i) => (
+              <li key={`${p.lat},${p.lon}`} id={`kp-place-${i}`} role="option" aria-selected={i === active}>
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  className={`flex w-full items-start gap-2 px-4 py-3 text-left text-sm hover:bg-white/5 ${i === active ? "bg-white/10" : ""}`}
+                  onClick={() => choose(p)}
+                >
                   <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gold-soft" aria-hidden />
                   <span>{p.label}</span>
                 </button>
               </li>
             ))}
+            {placesFrom === "suggest" && (
+              <li>
+                <button type="button" className="w-full px-4 py-2.5 text-left text-xs text-gold-soft hover:bg-white/5" onClick={() => void searchPlaces()} data-testid="kp-search-more">
+                  {k.searchMore}
+                </button>
+              </li>
+            )}
           </ul>
         )}
         {place && (
