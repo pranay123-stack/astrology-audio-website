@@ -24,9 +24,10 @@ export function LogoMark({ className = "h-9 w-9" }: { className?: string }) {
 
 export function Logo({ lang }: { lang: Locale }) {
   return (
-    <Link href={localePath(lang, "/")} className="group flex items-center gap-2.5" aria-label={getDict(lang).nav.homeAria(siteConfig.name)}>
+    <Link href={localePath(lang, "/")} className="group flex shrink-0 items-center gap-2.5" aria-label={getDict(lang).nav.homeAria(siteConfig.name)}>
       <LogoMark />
-      <span className="font-display text-xl leading-none font-semibold tracking-wide whitespace-nowrap text-ink group-hover:text-gold-soft sm:text-2xl">
+      {/* On laptop widths the full menu needs the room, so only the mark shows there. */}
+      <span className="font-display text-xl leading-none font-semibold tracking-wide whitespace-nowrap text-ink group-hover:text-gold-soft sm:text-2xl xl:hidden 2xl:inline">
         {siteConfig.name}
       </span>
     </Link>

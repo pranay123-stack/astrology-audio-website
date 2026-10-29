@@ -382,6 +382,11 @@ export const hi: Dict = {
     testimonials: "प्रशंसापत्र",
     testimonialAudio: "क्रिकेट डेटा के साथ ऑडियो",
     messageProof: "संदेश प्रमाण",
+    futureResearch: "भविष्य के शोध विषय",
+    footballAstro: "फ़ुटबॉल ज्योतिष",
+    shareMarket: "शेयर बाज़ार",
+    bitcoinForex: "बिटकॉइन और फ़ॉरेक्स बाज़ार",
+    lotteryNumber: "लॉटरी नंबर",
   },
 
   topics: {
@@ -452,6 +457,16 @@ export const hi: Dict = {
       rules: (n) => `${n} नियम`,
       planet: "ग्रह",
       chakra: "चक्र",
+    },
+    future: {
+      eyebrow: "भविष्य के शोध",
+      title: "भविष्य के शोध विषय",
+      intro: "क्रिकेट के आगे KP शोध की अगली दिशा: फ़ुटबॉल, शेयर बाज़ार, बिटकॉइन और फ़ॉरेक्स, और लॉटरी नंबर।",
+      soonNote: "शोध जारी है। पोस्ट प्रकाशित होते ही यहाँ दिखेंगी।",
+      footballAstro: "क्रिकेट वाली KP पद्धति से फ़ुटबॉल मैचों को पढ़ना।",
+      shareMarket: "ग्रहों का समय और शेयर बाज़ार की चाल।",
+      bitcoinForex: "बिटकॉइन, क्रिप्टो और मुद्रा (फ़ॉरेक्स) बाज़ार पर KP शोध।",
+      lotteryNumber: "अंक और ग्रह: लॉटरी ड्रॉ पर शोध।",
     },
     testimonials: {
       eyebrow: "प्रशंसापत्र",

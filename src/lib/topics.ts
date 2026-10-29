@@ -16,6 +16,10 @@ export const TOPICS = {
   players: { categorySlug: "player-horoscopes" },
   testimonialAudio: { categorySlug: "testimonial-audio", sort: "match_date_desc" },
   testimonialMessages: { categorySlug: "testimonial-messages", sort: "latest" },
+  footballAstro: { categorySlug: "football-astro", sort: "latest" },
+  shareMarket: { categorySlug: "share-market", sort: "latest" },
+  bitcoinForex: { categorySlug: "bitcoin-forex", sort: "latest" },
+  lotteryNumber: { categorySlug: "lottery-number", sort: "latest" },
   bookHindi: { categorySlug: "book-hindi", sort: "latest" },
   bookEnglish: { categorySlug: "book-english", sort: "latest" },
 } satisfies Record<string, EpisodeQuery>;
@@ -25,6 +29,14 @@ export const PLANET_FORMATS = ["video", "audio", "article"] as const satisfies r
 
 /** Competitions listed under Horoscope Research › Cricket Matches, in menu order. */
 export const MATCH_COMPETITIONS = ["bbl", "ipl", "t20i"] as const;
+
+/** Future Research Topics: menu anchor and query of each topic. */
+export const FUTURE_TOPICS = [
+  { id: "football", key: "footballAstro", query: TOPICS.footballAstro },
+  { id: "share-market", key: "shareMarket", query: TOPICS.shareMarket },
+  { id: "bitcoin-forex", key: "bitcoinForex", query: TOPICS.bitcoinForex },
+  { id: "lottery", key: "lotteryNumber", query: TOPICS.lotteryNumber },
+] as const;
 
 /** Book sections: menu anchor, query and format. */
 export const BOOK_PARTS = [

@@ -21,6 +21,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/kp-chart",
     "/rules",
     "/testimonials",
+    "/future-research",
     "/cricket-astrology",
     "/astrology-audios",
     "/premium",

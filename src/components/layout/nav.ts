@@ -12,9 +12,9 @@ export interface MenuNode {
 
 /**
  * The site menu, as the astrologer laid it out: Astrology, Astro Cricket, Book, Horoscope
- * Research, Make Your KP Chart, Contact, Rules, Testimonials. Premium appears only while a
- * premium post is published, so visitors never land on an empty page; YouTube only when the
- * channel link is set.
+ * Research, Make Your KP Chart, Contact, Rules, Testimonials, Future Research Topics. Premium
+ * appears only while a premium post is published, so visitors never land on an empty page;
+ * YouTube only when the channel link is set.
  */
 export function siteMenu({ showPremium, youtube }: { showPremium: boolean; youtube?: string }): MenuNode[] {
   const menu: MenuNode[] = [
@@ -88,6 +88,16 @@ export function siteMenu({ showPremium, youtube }: { showPremium: boolean; youtu
       children: [
         { key: "testimonialAudio", href: "/testimonials#audio" },
         { key: "messageProof", href: "/testimonials#messages" },
+      ],
+    },
+    {
+      key: "futureResearch",
+      href: "/future-research",
+      children: [
+        { key: "footballAstro", href: "/future-research#football" },
+        { key: "shareMarket", href: "/future-research#share-market" },
+        { key: "bitcoinForex", href: "/future-research#bitcoin-forex" },
+        { key: "lotteryNumber", href: "/future-research#lottery" },
       ],
     },
   ];

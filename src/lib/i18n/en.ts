@@ -384,6 +384,11 @@ export const en = {
     testimonials: "Testimonials",
     testimonialAudio: "Audio with cricket data",
     messageProof: "Message proof",
+    futureResearch: "Future Research Topics",
+    footballAstro: "Football Astro",
+    shareMarket: "Share Market",
+    bitcoinForex: "Bitcoin & Forex Market",
+    lotteryNumber: "Lottery Number",
   },
 
   topics: {
@@ -454,6 +459,16 @@ export const en = {
       rules: (n: number) => `${n} rules`,
       planet: "Planet",
       chakra: "Chakra",
+    },
+    future: {
+      eyebrow: "Future research",
+      title: "Future Research Topics",
+      intro: "Where the astrologer is taking KP research next, beyond cricket: football, the share market, bitcoin and forex, and lottery numbers.",
+      soonNote: "Research in progress. Posts will appear here as soon as they are published.",
+      footballAstro: "Reading football matches with the same KP method used for cricket.",
+      shareMarket: "Planetary timing and the movements of the share market.",
+      bitcoinForex: "KP research on bitcoin, crypto and currency (forex) markets.",
+      lotteryNumber: "Numbers and the planets: research on lottery draws.",
     },
     testimonials: {
       eyebrow: "Testimonials",

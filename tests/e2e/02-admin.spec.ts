@@ -398,18 +398,20 @@ test("admin posts a reel with photos, an MP4 and a YouTube link; premium video s
   await expect(page.getByTestId("episode-card").filter({ visible: true }).filter({ hasText: "E2E YouTube Only" }).locator("img")).toHaveAttribute("src", /i\.ytimg\.com/);
 });
 
-test("questionnaire (Google Form) on the contact page, Drive audiobook post, and the quotes on the home page", async ({ page }) => {
+test("questionnaire (Google Form) on the contact page, Drive audiobook post, and the quote on the home page", async ({ page }) => {
   test.setTimeout(120_000);
   await page.setExtraHTTPHeaders({ "x-forwarded-for": "10.0.0.26" });
   const FORM = "https://docs.google.com/forms/d/e/1FAIpQLSdAbCdEfGhIjKlMnOpQrStUvWxYz0123456789abcdEFG/viewform?usp=sf_link";
   const DRIVE = "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view?usp=sharing";
 
-  // Quotes sit at the top of the home page in both languages.
+  // The astrologer's quote sits at the top of the home page in both languages.
   await gotoReady(page, "/");
-  await expect(page.getByTestId("quotes-band")).toContainText("Everything is fixed by God");
+  await expect(page.getByTestId("quotes-band")).toContainText("Kundali kabhi galat nahi bolti, either human ki ho ya match ki.");
   await expect(page.getByTestId("quotes-band")).toContainText("Amit Sharma");
+  await expect(page.getByTestId("quotes-band")).not.toContainText("Everything is fixed by God");
   await gotoReady(page, "/hi");
-  await expect(page.getByTestId("quotes-band")).toContainText("KP ज्योतिष पद्धति के जनक");
+  await expect(page.getByTestId("quotes-band")).toContainText("Kundali kabhi galat nahi bolti");
+  await expect(page.getByTestId("quotes-band")).toContainText("पुस्तक");
 
   // No form link yet: no questionnaire section.
   await gotoReady(page, "/contact");

@@ -160,7 +160,7 @@ function DesktopNavInner({ pathname, menu }: { pathname: string; menu: MenuNode[
         {menu.map((l) => {
           const active = isCurrent(pathname, l);
           const isOpen = open === l.key;
-          const top = `rounded-full px-2.5 py-2 text-sm font-medium whitespace-nowrap transition 2xl:px-3 ${active ? "bg-white/10 text-gold-soft" : "text-ink/80 hover:bg-white/5 hover:text-ink"}`;
+          const top = `rounded-full px-2 py-2 text-[13px] font-medium whitespace-nowrap transition 2xl:px-2.5 2xl:text-sm ${active ? "bg-white/10 text-gold-soft" : "text-ink/80 hover:bg-white/5 hover:text-ink"}`;
           if (!l.children) {
             return (
               <li key={l.key}>
