@@ -82,7 +82,20 @@ async function refreshSession(request: NextRequest): Promise<NextResponse> {
 
 const SESSION_PATHS = /^\/(admin(\/|$)|api\/admin\/|api\/media\/audio\/)/;
 
+/**
+ * www.kpastrocric.com and kpastrocric.com are separate sites to the browser (their own sign-ins
+ * and saved chart keys), so www sends everyone to the plain address.
+ */
+function wwwRedirect(request: NextRequest): NextResponse | null {
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "";
+  if (!host.toLowerCase().startsWith("www.")) return null;
+  const { pathname, search } = request.nextUrl;
+  return NextResponse.redirect(`https://${host.slice(4)}${pathname}${search}`, 308);
+}
+
 export async function proxy(request: NextRequest) {
+  const toBare = wwwRedirect(request);
+  if (toBare) return toBare;
   if (SESSION_PATHS.test(request.nextUrl.pathname)) return refreshSession(request);
   return routeLocale(request) ?? NextResponse.next();
 }

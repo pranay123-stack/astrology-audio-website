@@ -1,14 +1,33 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Check, Copy, Link2, Loader2, LogIn, Save } from "lucide-react";
+import Link from "next/link";
+import { Check, Copy, LayoutGrid, Loader2, LogIn, Save } from "lucide-react";
 import type { BirthInput } from "@/lib/kp/build";
 import { useVisitor } from "@/lib/auth/visitor";
 import { useI18n } from "@/lib/i18n/client";
 import { localePath } from "@/lib/i18n";
 
-/** sessionStorage key: birth details of a chart to reopen after the Google sign-in round trip. */
-export const PENDING_CHART_KEY = "kp-pending-chart";
+/** localStorage key: this browser's edit keys, by chart id (charts made while signed out). */
+const KEYS_KEY = "kp-chart-keys";
+
+function readKeys(): Record<string, string> {
+  try {
+    return JSON.parse(window.localStorage.getItem(KEYS_KEY) ?? "{}") as Record<string, string>;
+  } catch {
+    return {};
+  }
+}
+function keyFor(id: string): string | null {
+  return readKeys()[id] ?? null;
+}
+function rememberKey(id: string, key: string) {
+  try {
+    window.localStorage.setItem(KEYS_KEY, JSON.stringify({ ...readKeys(), [id]: key }));
+  } catch {
+    /* storage blocked: the chart is saved, but this browser cannot edit it later */
+  }
+}
 
 export interface SavedChart {
   id: string;
@@ -23,12 +42,20 @@ export interface SavedChart {
   updated_at: string;
 }
 
-/** A chart opened by its link: the owner's own, or one someone shared. */
+/** A chart opened by its link. `is_owner`: this visitor may edit it (and sees its notes). */
 export interface LinkedChart extends Omit<SavedChart, "view_count" | "last_viewed_at"> {
   is_owner: boolean;
 }
 
-/** Visitor's session (see useVisitor) and saved charts (Supabase, RLS: own rows only). */
+/** One row of the public list of every chart (no notes). */
+export type PublicChart = Pick<SavedChart, "id" | "name" | "birth" | "created_at" | "updated_at">;
+
+/**
+ * Charts are public: anyone saves a chart without signing in and anyone opens any chart. Changes
+ * go through the kp_chart_* functions, which allow them for the signed-in account that made the
+ * chart, the browser that made it (its key, kept in localStorage) or an administrator. Signed-in
+ * visitors also get their own charts (RLS: own rows only) for the dashboard, with pins and views.
+ */
 export function useKpAccount() {
   const { client: sb, ready, user, signIn, signOut } = useVisitor();
   const [charts, setCharts] = useState<SavedChart[]>([]);
@@ -49,24 +76,29 @@ export function useKpAccount() {
 
   const save = async (name: string, birth: BirthInput): Promise<string | null> => {
     if (!sb) return null;
-    const { data, error } = await sb.from("kp_charts").insert({ name, birth }).select("id").single();
-    if (error) return null;
-    await refresh();
-    return data.id as string;
+    const key = `${crypto.randomUUID()}${crypto.randomUUID()}`.replaceAll("-", "");
+    const { data, error } = await sb.rpc("kp_chart_create", { p_name: name, p_birth: birth, p_key: key });
+    if (error || typeof data !== "string") return null;
+    rememberKey(data, key);
+    if (user) await refresh();
+    return data;
   };
   const saveNotes = async (id: string, notes: string) => {
     if (!sb) return false;
-    const { error } = await sb.from("kp_charts").update({ notes }).eq("id", id);
-    if (!error) setCharts((cs) => cs.map((c) => (c.id === id ? { ...c, notes } : c)));
-    return !error;
+    const { data, error } = await sb.rpc("kp_chart_set_notes", { p_id: id, p_key: keyFor(id), p_notes: notes });
+    const ok = !error && data === true;
+    if (ok) setCharts((cs) => cs.map((c) => (c.id === id ? { ...c, notes } : c)));
+    return ok;
   };
   /** Changes the birth details of a saved chart in place (same id and link, notes kept). */
   const update = async (id: string, name: string, birth: BirthInput) => {
     if (!sb) return false;
-    const { error } = await sb.from("kp_charts").update({ name, birth }).eq("id", id);
-    if (!error) setCharts((cs) => cs.map((c) => (c.id === id ? { ...c, name, birth, updated_at: new Date().toISOString() } : c)));
-    return !error;
+    const { data, error } = await sb.rpc("kp_chart_edit", { p_id: id, p_key: keyFor(id), p_name: name, p_birth: birth });
+    const ok = !error && data === true;
+    if (ok) setCharts((cs) => cs.map((c) => (c.id === id ? { ...c, name, birth, updated_at: new Date().toISOString() } : c)));
+    return ok;
   };
+  /** Pins are for signed-in visitors' own charts (the dashboard). */
   const setPinned = async (id: string, pinned: boolean) => {
     if (!sb) return false;
     const { error } = await sb.from("kp_charts").update({ pinned }).eq("id", id);
@@ -83,36 +115,40 @@ export function useKpAccount() {
     },
     [sb],
   );
-  const setShared = async (id: string, isShared: boolean) => {
-    if (!sb) return false;
-    const { error } = await sb.from("kp_charts").update({ is_shared: isShared }).eq("id", id);
-    if (!error) setCharts((cs) => cs.map((c) => (c.id === id ? { ...c, is_shared: isShared } : c)));
-    return !error;
-  };
-  /** Opens a chart by id: the visitor's own (signed in) or a shared one. Null when neither. */
+  /** Opens any chart by id. Null when it does not exist. */
   const get = useCallback(
     async (id: string): Promise<LinkedChart | null> => {
       if (!sb) return null;
-      const { data, error } = await sb.rpc("kp_chart_get", { p_id: id });
+      const { data, error } = await sb.rpc("kp_chart_get", { p_id: id, p_key: keyFor(id) });
       if (error || !Array.isArray(data) || !data.length) return null;
       return data[0] as LinkedChart;
     },
     [sb],
   );
+  /** Every chart, newest first, matching `q` (name or place). */
+  const list = useCallback(
+    async (q: string): Promise<PublicChart[] | null> => {
+      if (!sb) return null;
+      const { data, error } = await sb.rpc("kp_chart_list", { p_q: q.trim(), p_limit: 500 });
+      return error ? null : ((data as PublicChart[]) ?? []);
+    },
+    [sb],
+  );
   const remove = async (id: string) => {
-    if (!sb) return;
-    await sb.from("kp_charts").delete().eq("id", id);
-    await refresh();
+    if (!sb) return false;
+    const { data, error } = await sb.rpc("kp_chart_delete", { p_id: id, p_key: keyFor(id) });
+    if (user) await refresh();
+    return !error && data === true;
   };
 
-  return { enabled: !!sb, ready, user, charts, loaded, refresh, signIn, signOut, save, update, setShared, setPinned, markViewed, get, saveNotes, remove };
+  return { enabled: !!sb, ready, user, charts, loaded, refresh, signIn, signOut, save, update, setPinned, markViewed, get, list, saveNotes, remove };
 }
 
 export type KpAccount = ReturnType<typeof useKpAccount>;
 
-/** Invitation to sign in, beside the new-chart form (saved charts live on the dashboard). */
+/** Beside the new-chart form for signed-out visitors: sign in for a dashboard, or browse every chart. */
 export function KpSignInCard({ account }: { account: KpAccount }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const a = t.kp.account;
   if (!account.enabled || account.user) return null;
   return (
@@ -122,85 +158,28 @@ export function KpSignInCard({ account }: { account: KpAccount }) {
       <button type="button" className="btn-ghost w-full" onClick={() => void account.signIn()}>
         <LogIn className="h-4 w-4" aria-hidden /> {a.signIn}
       </button>
+      <Link href={localePath(lang, "/kp-chart/all")} className="btn-ghost w-full" data-testid="kp-browse">
+        <LayoutGrid className="h-4 w-4" aria-hidden /> {t.kp.dash.browse}
+      </Link>
     </div>
   );
 }
 
-/** Save button and notes editor for the chart on screen. */
-export function KpSaveAndNotes({
-  account,
-  savedId,
-  onSaved,
-  name,
-  birth,
-}: {
-  account: KpAccount;
-  savedId: string | null;
-  onSaved: (id: string) => void;
-  name: string;
-  birth: BirthInput;
-}) {
+/** Notes editor for a chart the visitor may edit (only they see the notes). */
+export function KpNotes({ account, savedId, initial }: { account: KpAccount; savedId: string; initial: string }) {
   const { t } = useI18n();
   const a = t.kp.account;
-  const saved = account.charts.find((c) => c.id === savedId);
-  const [notes, setNotes] = useState(saved?.notes ?? "");
+  const [notes, setNotes] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
-  if (!account.enabled) return null;
-
-  if (!account.user) {
-    // Signing in reloads the page, so remember the birth details to show this chart again afterwards.
-    return (
-      <div className="card flex items-center justify-between gap-3 p-4">
-        <p className="text-sm text-muted">{a.signInHint}</p>
-        <button
-          type="button"
-          className="btn-gold shrink-0"
-          data-testid="kp-save-signin"
-          onClick={() => {
-            try {
-              sessionStorage.setItem(PENDING_CHART_KEY, JSON.stringify(birth));
-            } catch {
-              /* storage blocked: the chart is simply not reopened after sign-in */
-            }
-            void account.signIn();
-          }}
-        >
-          <LogIn className="h-4 w-4" aria-hidden /> {a.signInToSave}
-        </button>
-      </div>
-    );
-  }
-
-  if (!savedId) {
-    return (
-      <div className="card flex items-center justify-between gap-3 p-4">
-        {status && <p className="text-sm text-red-300">{status}</p>}
-        <button
-          type="button"
-          className="btn-gold ml-auto"
-          disabled={busy}
-          data-testid="kp-save"
-          onClick={async () => {
-            setBusy(true);
-            const id = await account.save(name, birth);
-            setBusy(false);
-            if (id) onSaved(id);
-            else setStatus(a.error);
-          }}
-        >
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Save className="h-4 w-4" aria-hidden />} {a.save}
-        </button>
-      </div>
-    );
-  }
 
   return (
     <section className="card space-y-3 p-5" aria-labelledby="kp-notes">
       <div className="flex items-center justify-between gap-3">
         <h2 id="kp-notes" className="text-2xl font-semibold">{a.notes}</h2>
-        <span className="text-xs text-emerald-300">{a.saved}</span>
+        <span className="text-xs text-emerald-300" data-testid="kp-saved">{a.saved}</span>
       </div>
+      <p className="text-xs text-muted">{a.notesPrivate}</p>
       <textarea className="input min-h-40" value={notes} maxLength={20000} placeholder={a.notesPlaceholder} onChange={(e) => setNotes(e.target.value)} />
       <div className="flex items-center gap-3">
         <button
@@ -222,27 +201,17 @@ export function KpSaveAndNotes({
   );
 }
 
-/** Owner's sharing switch for a saved chart, with the link to copy or send on WhatsApp. */
-export function KpSharePanel({ account, id, name, shared, onShared }: { account: KpAccount; id: string; name: string; shared: boolean; onShared: (v: boolean) => void }) {
+/** A chart's link, to copy or send on WhatsApp (every chart is public). */
+export function KpSharePanel({ id, name }: { id: string; name: string }) {
   const { t, lang } = useI18n();
   const a = t.kp.account;
-  const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [error, setError] = useState(false);
   const url = typeof window === "undefined" ? "" : `${window.location.origin}${localePath(lang, `/kp-chart/${id}`)}`;
-
-  const toggle = async (v: boolean) => {
-    setBusy(true);
-    const ok = await account.setShared(id, v);
-    setBusy(false);
-    setError(!ok);
-    if (ok) onShared(v);
-  };
 
   return (
     <div className="w-full space-y-3 rounded-xl border border-line p-4" data-testid="kp-share-panel">
       <p className="text-sm font-semibold">{a.shareTitle}</p>
-      <p className="text-sm text-ink/80">{shared ? a.shareOn : a.shareOff}</p>
+      <p className="text-sm text-ink/80">{a.shareOn}</p>
       <div className="flex flex-wrap items-center gap-2">
         <input readOnly className="input min-w-0 flex-1 text-xs" value={url} aria-label={a.shareTitle} onFocus={(e) => e.target.select()} data-testid="kp-share-url" />
         <button
@@ -260,16 +229,10 @@ export function KpSharePanel({ account, id, name, shared, onShared }: { account:
         >
           {copied ? <Check className="h-4 w-4" aria-hidden /> : <Copy className="h-4 w-4" aria-hidden />} {copied ? a.copied : a.copy}
         </button>
-        {shared && (
-          <a className="btn-ghost shrink-0" href={`https://wa.me/?text=${encodeURIComponent(`${name || t.kp.chart}\n${url}`)}`} target="_blank" rel="noopener noreferrer">
-            {a.whatsapp}
-          </a>
-        )}
+        <a className="btn-ghost shrink-0" href={`https://wa.me/?text=${encodeURIComponent(`${name || t.kp.chart}\n${url}`)}`} target="_blank" rel="noopener noreferrer">
+          {a.whatsapp}
+        </a>
       </div>
-      <button type="button" className={shared ? "btn-ghost" : "btn-gold"} disabled={busy} onClick={() => void toggle(!shared)} data-testid="kp-share-toggle">
-        {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Link2 className="h-4 w-4" aria-hidden />} {shared ? a.turnOff : a.turnOn}
-      </button>
-      {error && <p className="text-sm text-red-300" role="alert">{a.error}</p>}
     </div>
   );
 }

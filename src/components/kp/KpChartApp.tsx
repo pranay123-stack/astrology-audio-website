@@ -3,13 +3,13 @@
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ChevronDown, Loader2, MapPin, Pencil, Pin, PinOff, RotateCcw, Save, Search, Share2, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeft, ChevronDown, LayoutGrid, Loader2, MapPin, Pencil, Pin, PinOff, RotateCcw, Save, Search, Share2, Sparkles, Trash2 } from "lucide-react";
 import { createKpChart } from "@/app/[lang]/kp-chart/actions";
 import type { BirthInput, KpChartResult } from "@/lib/kp/build";
 import { useI18n } from "@/lib/i18n/client";
 import { localePath } from "@/lib/i18n";
 import { formatOffset } from "@/lib/kp/time";
-import { KpSaveAndNotes, KpSharePanel, KpSignInCard, PENDING_CHART_KEY, useKpAccount } from "./KpAccount";
+import { KpNotes, KpSharePanel, KpSignInCard, useKpAccount } from "./KpAccount";
 import { KpChartView } from "./KpChartView";
 
 interface Place {
@@ -33,9 +33,9 @@ function parseOffset(v: string): number | undefined | null {
 }
 
 /**
- * Birth-details form and the resulting interactive KP chart. A saved chart lives at
- * /kp-chart/<id> (`initialId` when opened by that link): its owner can edit it in place and
- * share the link; anyone else sees it only while sharing is on.
+ * Birth-details form and the resulting interactive KP chart. Every chart made here is saved at
+ * once (no sign-in needed) and lives at /kp-chart/<id> (`initialId` when opened by that link).
+ * Charts are public: anyone opens and shares any chart; only its owner edits it and sees its notes.
  */
 export function KpChartApp({ initialId }: { initialId?: string }) {
   const { lang, t } = useI18n();
@@ -46,7 +46,7 @@ export function KpChartApp({ initialId }: { initialId?: string }) {
   const account = useKpAccount();
   const [savedId, setSavedId] = useState<string | null>(null);
   const [owner, setOwner] = useState(true);
-  const [shared, setShared] = useState(false);
+  const [notes, setNotes] = useState("");
   const [pinned, setPinned] = useState(false);
   const [createdAt, setCreatedAt] = useState<string | undefined>(undefined);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -141,7 +141,7 @@ export function KpChartApp({ initialId }: { initialId?: string }) {
     };
     if (editingId) {
       const id = editingId;
-      show(input, { id, owner: true, shared, pinned, createdAt }, async () => {
+      show(input, { id, owner: true, notes, pinned, createdAt }, async () => {
         const ok = await account.update(id, name, input);
         setStatus(ok ? a.updated : a.error);
       });
@@ -150,22 +150,29 @@ export function KpChartApp({ initialId }: { initialId?: string }) {
 
   const show = (
     input: BirthInput,
-    saved: { id: string; owner: boolean; shared: boolean; pinned?: boolean; createdAt?: string } | null,
+    saved: { id: string; owner: boolean; notes?: string; pinned?: boolean; createdAt?: string } | null,
     after?: () => Promise<void>,
   ) =>
     startTransition(async () => {
       const res = await createKpChart(input);
       if (res.ok) {
+        // A new chart is saved straight away, so it has its own link to share.
+        let failed = false;
+        if (!saved && account.enabled) {
+          const id = await account.save(input.name ?? "", input);
+          if (id) saved = { id, owner: true, createdAt: new Date().toISOString() };
+          else failed = true;
+        }
         setLastInput(input);
         setSavedId(saved?.id ?? null);
         setOwner(saved?.owner ?? true);
-        setShared(saved?.shared ?? false);
+        setNotes(saved?.notes ?? "");
         setPinned(saved?.pinned ?? false);
         setCreatedAt(saved?.createdAt);
         setMenuOpen(false);
         setShareOpen(false);
         setEditingId(null);
-        setStatus(null);
+        setStatus(failed ? a.notSaved : null);
         setChart(res.chart);
         setShowForm(false);
         setUrl(saved?.id ?? null);
@@ -190,28 +197,13 @@ export function KpChartApp({ initialId }: { initialId?: string }) {
       if (!c) return setLinkState("missing");
       setLinkState("idle");
       if (c.is_owner) void account.markViewed(c.id);
-      show(c.birth, { id: c.id, owner: c.is_owner, shared: c.is_shared, pinned: c.pinned, createdAt: c.created_at });
+      show(c.birth, { id: c.id, owner: c.is_owner, notes: c.notes, pinned: c.pinned, createdAt: c.created_at });
     });
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reload only when the link or the signed-in user changes
   }, [initialId, account.enabled, account.ready, userId]);
-
-  // Back from "Sign in to save": show the chart the visitor was looking at again.
-  useEffect(() => {
-    if (initialId) return;
-    let pending: BirthInput | null = null;
-    try {
-      const raw = sessionStorage.getItem(PENDING_CHART_KEY);
-      sessionStorage.removeItem(PENDING_CHART_KEY);
-      pending = raw ? (JSON.parse(raw) as BirthInput) : null;
-    } catch {
-      pending = null;
-    }
-    if (pending) show(pending, null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on arrival
-  }, []);
 
   const newChart = () => {
     fillForm(null);
@@ -240,11 +232,10 @@ export function KpChartApp({ initialId }: { initialId?: string }) {
         ) : (
           <>
             <p className="font-semibold">{a.notFound}</p>
-            {account.enabled && !account.user && <p className="text-sm text-muted">{a.notFoundSignIn}</p>}
             <div className="flex flex-wrap justify-center gap-3">
-              {account.enabled && !account.user && (
-                <button type="button" className="btn-gold" onClick={() => void account.signIn()}>{a.signIn}</button>
-              )}
+              <Link href={localePath(lang, "/kp-chart/all")} className="btn-ghost">
+                <LayoutGrid className="h-4 w-4" aria-hidden /> {k.dash.browse}
+              </Link>
               <button type="button" className="btn-ghost" onClick={() => { setLinkState("idle"); newChart(); }}>
                 <RotateCcw className="h-4 w-4" aria-hidden /> {k.newChart}
               </button>
@@ -257,16 +248,14 @@ export function KpChartApp({ initialId }: { initialId?: string }) {
 
   if (chart && !showForm) {
     const mine = !!savedId && owner;
+    const onDashboard = mine && account.charts.some((c) => c.id === savedId);
     const item = "flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm hover:bg-white/5";
     const actions = (
       <div className="flex flex-wrap items-center gap-2">
-        {account.user && (
-          <Link href={localePath(lang, "/kp-chart")} className="btn-ghost" data-testid="kp-back-to-charts">
-            <ArrowLeft className="h-4 w-4" aria-hidden /> {k.dash.back}
-          </Link>
-        )}
-        {savedId && !owner && <span className="text-xs text-muted">{a.sharedChart}</span>}
-        {savedId && !owner && account.user && lastInput && (
+        <Link href={localePath(lang, account.user ? "/kp-chart" : "/kp-chart/all")} className="btn-ghost" data-testid="kp-back-to-charts">
+          <ArrowLeft className="h-4 w-4" aria-hidden /> {account.user ? k.dash.back : k.dash.browse}
+        </Link>
+        {savedId && !owner && lastInput && (
           <button
             type="button"
             className="btn-gold"
@@ -275,7 +264,7 @@ export function KpChartApp({ initialId }: { initialId?: string }) {
               if (!id) return setStatus(a.error);
               setSavedId(id);
               setOwner(true);
-              setShared(false);
+              setNotes("");
               setCreatedAt(new Date().toISOString());
               setUrl(id);
             }}
@@ -294,7 +283,7 @@ export function KpChartApp({ initialId }: { initialId?: string }) {
                   <Pencil className="h-4 w-4" aria-hidden /> {a.edit}
                 </button>
               )}
-              {mine && (
+              {onDashboard && (
                 <button
                   role="menuitem"
                   type="button"
@@ -308,7 +297,7 @@ export function KpChartApp({ initialId }: { initialId?: string }) {
                   {pinned ? <PinOff className="h-4 w-4" aria-hidden /> : <Pin className="h-4 w-4" aria-hidden />} {pinned ? k.dash.unpin : k.dash.pin}
                 </button>
               )}
-              {mine && (
+              {savedId && (
                 <button role="menuitem" type="button" className={item} onClick={() => { setMenuOpen(false); setShareOpen(true); }} data-testid="kp-share">
                   <Share2 className="h-4 w-4" aria-hidden /> {a.share}
                 </button>
@@ -325,7 +314,7 @@ export function KpChartApp({ initialId }: { initialId?: string }) {
                   onClick={async () => {
                     setMenuOpen(false);
                     if (!window.confirm(a.confirmDelete)) return;
-                    await account.remove(savedId);
+                    if (!(await account.remove(savedId))) return setStatus(a.error);
                     router.push(localePath(lang, "/kp-chart"));
                   }}
                 >
@@ -340,26 +329,9 @@ export function KpChartApp({ initialId }: { initialId?: string }) {
     );
     return (
       <div className="space-y-6">
-        {lastInput && !savedId && (
-          <KpSaveAndNotes
-            key="new"
-            account={account}
-            savedId={null}
-            onSaved={(id) => {
-              setSavedId(id);
-              setOwner(true);
-              setCreatedAt(new Date().toISOString());
-              setUrl(id);
-            }}
-            name={lastInput.name ?? ""}
-            birth={lastInput}
-          />
-        )}
-        {mine && shareOpen && <KpSharePanel account={account} id={savedId} name={lastInput?.name ?? ""} shared={shared} onShared={setShared} />}
+        {savedId && shareOpen && <KpSharePanel id={savedId} name={lastInput?.name ?? ""} />}
         <KpChartView chart={chart} header={actions} createdAt={createdAt} />
-        {lastInput && mine && (
-          <KpSaveAndNotes key={savedId} account={account} savedId={savedId} onSaved={setSavedId} name={lastInput.name ?? ""} birth={lastInput} />
-        )}
+        {mine && <KpNotes key={savedId} account={account} savedId={savedId} initial={notes} />}
       </div>
     );
   }

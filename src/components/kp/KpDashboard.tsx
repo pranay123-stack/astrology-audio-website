@@ -6,7 +6,7 @@ import { CalendarDays, Eye, ExternalLink, History, LayoutGrid, List, Loader2, Ma
 import { useI18n } from "@/lib/i18n/client";
 import { intlLocale, localePath } from "@/lib/i18n";
 import { KpChartApp } from "./KpChartApp";
-import { PENDING_CHART_KEY, useKpAccount, type KpAccount, type SavedChart } from "./KpAccount";
+import { useKpAccount, type KpAccount, type PublicChart, type SavedChart } from "./KpAccount";
 
 type Filter = "createdToday" | "viewedToday" | "recentCreated" | "recentViewed" | "pinned";
 const DAY = 86_400_000;
@@ -62,22 +62,15 @@ function useLayout(): ["grid" | "list", (v: "grid" | "list") => void] {
 
 /**
  * /kp-chart: signed-in visitors get their charts dashboard (counts, pinned and recent charts);
- * everyone else gets the new-chart form. /kp-chart/all lists and searches every saved chart.
+ * everyone else gets the new-chart form. /kp-chart/all lists and searches every chart, for
+ * everyone (charts are public).
  */
 export function KpDashboard({ view }: { view: "home" | "all" }) {
   const account = useKpAccount();
   const { t } = useI18n();
-  // Back from "Sign in to save": the form page reopens the chart the visitor was saving.
-  const [pending, setPending] = useState(false);
-  useEffect(() => {
-    try {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- sessionStorage is only readable after mount
-      if (window.sessionStorage.getItem(PENDING_CHART_KEY)) setPending(true);
-    } catch {
-      /* storage blocked: nothing to reopen */
-    }
-  }, []);
-  if (pending || !account.enabled || (account.ready && !account.user)) return <KpChartApp />;
+  if (!account.enabled) return <KpChartApp />;
+  if (view === "all") return <Browse account={account} />;
+  if (account.ready && !account.user) return <KpChartApp />;
   if (!account.ready || !account.loaded) {
     return (
       <p className="flex items-center justify-center gap-2 py-16 text-sm text-muted" data-testid="kp-dashboard-loading">
@@ -85,7 +78,7 @@ export function KpDashboard({ view }: { view: "home" | "all" }) {
       </p>
     );
   }
-  return view === "home" ? <Home account={account} /> : <Browse account={account} />;
+  return <Home account={account} />;
 }
 
 function Toolbar({ layout, setLayout, browse }: { layout: "grid" | "list"; setLayout: (v: "grid" | "list") => void; browse: boolean }) {
@@ -186,30 +179,53 @@ function Browse({ account }: { account: KpAccount }) {
   const d = t.kp.dash;
   const [layout, setLayout] = useLayout();
   const [q, setQ] = useState("");
+  const [rows, setRows] = useState<PublicChart[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  const { list } = account;
+  // Searched in the database (name or place), shortly after the visitor stops typing.
+  useEffect(() => {
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      void list(q).then((r) => {
+        if (cancelled) return;
+        setFailed(r === null);
+        setRows(r ?? []);
+      });
+    }, q ? 300 : 0);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [list, q]);
+  // The visitor's own charts carry their views and pins.
   const shown = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    const all = [...account.charts].sort((a, b) => ms(b.created_at) - ms(a.created_at));
-    return needle ? all.filter((c) => `${c.name} ${c.birth.place}`.toLowerCase().includes(needle)) : all;
-  }, [account.charts, q]);
+    const own = new Map(account.charts.map((c) => [c.id, c]));
+    return (rows ?? []).map((r) => own.get(r.id) ?? r);
+  }, [rows, account.charts]);
 
   return (
     <div className="space-y-6" data-testid="kp-browse-all">
-      <Link href={localePath(lang, "/kp-chart")} className="text-sm text-gold-soft hover:underline">← {d.back}</Link>
+      {account.user && <Link href={localePath(lang, "/kp-chart")} className="text-sm text-gold-soft hover:underline">← {d.back}</Link>}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h2 className="text-3xl font-semibold">
           {d.all} <span className="text-muted">({shown.length})</span>
         </h2>
         <Toolbar layout={layout} setLayout={setLayout} browse={false} />
       </div>
+      <p className="text-sm text-muted">{d.allHint}</p>
       <label className="relative block max-w-md">
         <span className="sr-only">{d.search}</span>
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden />
         <input className="input pl-9" placeholder={d.search} value={q} onChange={(e) => setQ(e.target.value)} data-testid="kp-browse-search" />
       </label>
-      {account.charts.length === 0 ? (
-        <p className="card p-6 text-center text-sm text-muted">{d.none}</p>
+      {rows === null ? (
+        <p className="flex items-center justify-center gap-2 py-10 text-sm text-muted">
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> {d.loading}
+        </p>
+      ) : failed ? (
+        <p className="card p-6 text-center text-sm text-red-300">{t.kp.account.error}</p>
       ) : shown.length === 0 ? (
-        <p className="card p-6 text-center text-sm text-muted">{d.noResults}</p>
+        <p className="card p-6 text-center text-sm text-muted">{q.trim() ? d.noResults : d.noneAtAll}</p>
       ) : (
         <ChartList charts={shown} layout={layout} account={account} />
       )}
@@ -217,7 +233,7 @@ function Browse({ account }: { account: KpAccount }) {
   );
 }
 
-function ChartList({ charts, layout, account }: { charts: SavedChart[]; layout: "grid" | "list"; account: KpAccount }) {
+function ChartList({ charts, layout, account }: { charts: (SavedChart | PublicChart)[]; layout: "grid" | "list"; account: KpAccount }) {
   return (
     <ul className={layout === "grid" ? "grid gap-5 lg:grid-cols-2" : "space-y-3"} data-testid="kp-chart-list">
       {charts.map((c) => (
@@ -229,7 +245,10 @@ function ChartList({ charts, layout, account }: { charts: SavedChart[]; layout: 
   );
 }
 
-function ChartCard({ chart: c, account, compact }: { chart: SavedChart; account: KpAccount; compact: boolean }) {
+/** A chart's card; views and the pin only for the signed-in visitor's own charts. */
+function ChartCard({ chart, account, compact }: { chart: SavedChart | PublicChart; account: KpAccount; compact: boolean }) {
+  const own = "view_count" in chart ? chart : null;
+  const c = chart;
   const { t, lang } = useI18n();
   const d = t.kp.dash;
   const locale = intlLocale(lang);
@@ -245,7 +264,7 @@ function ChartCard({ chart: c, account, compact }: { chart: SavedChart; account:
         <h3 className="text-xl font-semibold">
           <Link href={href} className="hover:text-gold-soft">{c.name || c.birth.place.split(",")[0]}</Link>
         </h3>
-        {c.pinned && <Pin className="h-4 w-4 shrink-0 text-fuchsia-200" aria-label={d.pinned} />}
+        {own?.pinned && <Pin className="h-4 w-4 shrink-0 text-fuchsia-200" aria-label={d.pinned} />}
       </div>
       {!compact && (
         <span className="flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-wide">
@@ -262,10 +281,12 @@ function ChartCard({ chart: c, account, compact }: { chart: SavedChart; account:
         <p className="inline-flex items-center gap-2 text-sm text-ink/85"><MapPin className="h-4 w-4 text-gold-soft" aria-hidden /> {c.birth.place}</p>
       )}
       <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3 text-xs text-muted">
-        <span className="inline-flex items-center gap-1.5">
-          <Eye className="h-3.5 w-3.5" aria-hidden />
-          {c.last_viewed_at ? `${d.views(c.view_count)} · ${d.lastViewed} ${relative(c.last_viewed_at, locale)}` : d.notViewed}
-        </span>
+        {own && (
+          <span className="inline-flex items-center gap-1.5">
+            <Eye className="h-3.5 w-3.5" aria-hidden />
+            {own.last_viewed_at ? `${d.views(own.view_count)} · ${d.lastViewed} ${relative(own.last_viewed_at, locale)}` : d.notViewed}
+          </span>
+        )}
         <span className="inline-flex items-center gap-3">
           <span className="inline-flex items-center gap-1"><Plus className="h-3 w-3" aria-hidden /> {short(c.created_at)}</span>
           {edited && <span className="inline-flex items-center gap-1"><Pencil className="h-3 w-3" aria-hidden /> {short(c.updated_at)}</span>}
@@ -274,17 +295,19 @@ function ChartCard({ chart: c, account, compact }: { chart: SavedChart; account:
           <Link href={href} className="btn-gold px-3 py-1.5" aria-label={d.open} title={d.open} data-testid="kp-card-open">
             <ExternalLink className="h-4 w-4" aria-hidden />
           </Link>
-          <button
-            type="button"
-            className="btn-ghost px-3 py-1.5"
-            onClick={() => void account.setPinned(c.id, !c.pinned)}
-            aria-pressed={c.pinned}
-            aria-label={c.pinned ? d.unpin : d.pin}
-            title={c.pinned ? d.unpin : d.pin}
-            data-testid="kp-card-pin"
-          >
-            {c.pinned ? <PinOff className="h-4 w-4" aria-hidden /> : <Pin className="h-4 w-4" aria-hidden />}
-          </button>
+          {own && (
+            <button
+              type="button"
+              className="btn-ghost px-3 py-1.5"
+              onClick={() => void account.setPinned(own.id, !own.pinned)}
+              aria-pressed={own.pinned}
+              aria-label={own.pinned ? d.unpin : d.pin}
+              title={own.pinned ? d.unpin : d.pin}
+              data-testid="kp-card-pin"
+            >
+              {own.pinned ? <PinOff className="h-4 w-4" aria-hidden /> : <Pin className="h-4 w-4" aria-hidden />}
+            </button>
+          )}
         </span>
       </div>
     </article>

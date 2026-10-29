@@ -357,15 +357,77 @@ test("KP chart: birth details give a South Indian chart whose items open in the 
   await expect(page.locator("#kp-name")).toHaveValue("");
 });
 
+// Needs saved charts (Supabase with accounts on), so it runs only against such a build:
+// KP_LIVE_URL=http://localhost:3470, a production build pointed at the real database. It deletes
+// the chart it makes.
+test("KP chart: saved without sign-in, opened and listed by anyone, edited in place and deleted by its maker", async ({ page, browser }) => {
+  const base = process.env.KP_LIVE_URL;
+  test.skip(!base, "needs KP_LIVE_URL (a build with saved charts)");
+  await page.goto(`${base}/kp-chart`);
+  await page.fill("#kp-name", "Public test");
+  await page.fill("#kp-date", "2000-01-01");
+  await page.fill("#kp-time", "17:30:00");
+  await page.locator("summary").click();
+  await page.fill("#kp-lat", "28.6139");
+  await page.fill("#kp-lon", "77.2090");
+  await page.getByTestId("kp-submit").click();
+  await expect(page.getByTestId("kp-chart")).toBeVisible({ timeout: 30_000 });
+
+  // Saved at once: the chart has its own link, and its maker gets the notes.
+  await expect(page).toHaveURL(/\/kp-chart\/[0-9a-f-]{36}$/);
+  const link = page.url();
+  try {
+    await expect(page.getByTestId("kp-saved")).toBeVisible();
+    await page.getByTestId("kp-actions").click();
+    await page.getByTestId("kp-share").click();
+    await expect(page.getByTestId("kp-share-url")).toHaveValue(link);
+
+    // Anyone else (another browser, not signed in) opens it: the chart, but no notes or editing.
+    const other = await browser.newContext();
+    const visitor = await other.newPage();
+    await visitor.goto(link);
+    await expect(visitor.getByTestId("kp-chart")).toContainText("Public test", { timeout: 30_000 });
+    await expect(visitor.getByTestId("kp-saved")).toHaveCount(0);
+    await visitor.getByTestId("kp-actions").click();
+    await expect(visitor.getByTestId("kp-share")).toBeVisible();
+    await expect(visitor.getByTestId("kp-edit")).toHaveCount(0);
+    await expect(visitor.getByTestId("kp-delete")).toHaveCount(0);
+    // ... and every chart is listed for everyone.
+    await visitor.goto(`${base}/kp-chart/all`);
+    await visitor.getByTestId("kp-browse-search").fill("Public test");
+    await expect(visitor.getByTestId("kp-chart-list").locator(`a[href="${new URL(link).pathname}"]`).first()).toBeVisible({ timeout: 15_000 });
+    await other.close();
+
+    // Its maker edits it in place: same link, new time.
+    await page.getByTestId("kp-actions").click();
+    await page.getByTestId("kp-edit").click();
+    await page.fill("#kp-time", "05:30:00");
+    await page.getByTestId("kp-submit").click();
+    await expect(page.getByTestId("kp-chart")).toContainText(/05:30:00 am/i, { timeout: 30_000 });
+    await expect(page.getByText("Chart updated")).toBeVisible();
+    expect(page.url()).toBe(link);
+  } finally {
+    // Its maker deletes it, so the test leaves nothing behind in the database.
+    await page.goto(link);
+    await expect(page.getByTestId("kp-chart")).toBeVisible({ timeout: 30_000 });
+    page.once("dialog", (d) => void d.accept());
+    await page.getByTestId("kp-actions").click();
+    await page.getByTestId("kp-delete").click();
+    await expect(page).toHaveURL(/\/kp-chart$/);
+  }
+  await page.goto(link);
+  await expect(page.getByTestId("kp-link-state").filter({ visible: true })).toContainText("This chart does not exist or was deleted.", { timeout: 15_000 });
+});
+
 test("KP chart: the new-chart page shows the form", async ({ page }) => {
   await gotoReady(page, "/kp-chart/new");
   await expect(page.getByTestId("kp-form")).toBeVisible();
   await expect(page.getByTestId("kp-submit")).toBeVisible();
 });
 
-test("KP chart: a saved chart's link that is private or missing says so", async ({ page }) => {
+test("KP chart: a missing chart's link says so", async ({ page }) => {
   await gotoReady(page, "/kp-chart/00000000-0000-4000-8000-000000000000");
-  await expect(page.getByTestId("kp-link-state")).toContainText("This chart is private or no longer exists.", { timeout: 15_000 });
+  await expect(page.getByTestId("kp-link-state")).toContainText("This chart does not exist or was deleted.", { timeout: 15_000 });
   await page.getByTestId("kp-link-state").getByRole("button", { name: "New chart" }).click();
   await expect(page.getByTestId("kp-form")).toBeVisible();
   await expect(page).toHaveURL(/\/kp-chart$/);

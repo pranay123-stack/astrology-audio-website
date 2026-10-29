@@ -385,40 +385,65 @@ describe("saved KP charts", () => {
     await service.from("kp_charts").delete().in("id", [mine.data!.id, other.data!.id]);
   });
 
-  it("visitors without an account can neither read nor save charts", async () => {
+  it("the table itself stays closed to visitors without an account", async () => {
     expect((await anon.from("kp_charts").insert({ name: "anon", birth })).error).not.toBeNull();
     const read = await anon.from("kp_charts").select("id");
     expect(read.data ?? []).toEqual([]);
   });
 
-  it("opens a chart by its link only for its owner, or for anyone once shared (never the notes)", async () => {
-    const mine = await member.from("kp_charts").insert({ name: "rls link", birth, notes: "private notes" }).select("id").single();
-    expect(mine.error).toBeNull();
-    const id = mine.data!.id;
-    const get = async (c: typeof anon) => ((await c.rpc("kp_chart_get", { p_id: id })).data ?? []) as { name: string; notes: string; is_owner: boolean }[];
+  it("anyone saves a chart without signing in, and anyone opens and lists it; only its maker sees the notes and changes it", async () => {
+    const key = "a".repeat(40);
+    const made = await anon.rpc("kp_chart_create", { p_name: "rls public", p_birth: birth, p_key: key });
+    expect(made.error).toBeNull();
+    const id = made.data as string;
+    type Row = { name: string; notes: string; is_owner: boolean; birth: typeof birth };
+    const get = async (c: typeof anon, k?: string) => ((await c.rpc("kp_chart_get", { p_id: id, p_key: k ?? null })).data ?? []) as Row[];
 
-    expect((await get(member)).map((r) => [r.name, r.notes, r.is_owner])).toEqual([["rls link", "private notes", true]]);
-    expect(await get(anon)).toEqual([]);
-    expect(await get(admin)).toEqual([]);
+    // A key that is too short is refused.
+    expect((await anon.rpc("kp_chart_create", { p_name: "x", p_birth: birth, p_key: "short" })).error).not.toBeNull();
 
-    // Sharing is the owner's switch; nobody else can flip it or edit the chart.
-    expect((await admin.from("kp_charts").update({ is_shared: true }).eq("id", id).select("id")).data).toEqual([]);
-    expect((await member.from("kp_charts").update({ is_shared: true }).eq("id", id)).error).toBeNull();
-    expect((await get(anon)).map((r) => [r.name, r.notes, r.is_owner])).toEqual([["rls link", "", false]]);
-    expect((await get(admin)).map((r) => [r.notes, r.is_owner])).toEqual([["", false]]);
-    expect((await admin.from("kp_charts").update({ name: "hijack" }).eq("id", id).select("id")).data).toEqual([]);
-    // A shared chart still cannot be listed through the table.
-    expect((await anon.from("kp_charts").select("id")).data ?? []).toEqual([]);
+    // The maker (by key) changes it; a wrong key, another browser or another account cannot.
+    expect((await anon.rpc("kp_chart_set_notes", { p_id: id, p_key: key, p_notes: "maker notes" })).data).toBe(true);
+    expect((await anon.rpc("kp_chart_set_notes", { p_id: id, p_key: "b".repeat(40), p_notes: "hijack" })).data).toBe(false);
+    expect((await anon.rpc("kp_chart_edit", { p_id: id, p_key: null, p_name: "hijack", p_birth: birth })).data).toBe(false);
+    expect((await member.rpc("kp_chart_edit", { p_id: id, p_key: null, p_name: "hijack", p_birth: birth })).data).toBe(false);
+    expect((await member.rpc("kp_chart_delete", { p_id: id, p_key: null })).data).toBe(false);
+
+    // Everyone opens it; the notes only with the key.
+    expect((await get(anon, key)).map((r) => [r.name, r.notes, r.is_owner])).toEqual([["rls public", "maker notes", true]]);
+    expect((await get(anon)).map((r) => [r.name, r.notes, r.is_owner])).toEqual([["rls public", "", false]]);
+    expect((await get(member)).map((r) => [r.notes, r.is_owner])).toEqual([["", false]]);
+    // The administrator may change any chart (and sees its notes).
+    expect((await get(admin)).map((r) => [r.notes, r.is_owner])).toEqual([["maker notes", true]]);
+
+    // Listed for everyone, without the notes, and searchable by name or place.
+    const listed = (await anon.rpc("kp_chart_list", { p_q: "rls public" })).data as Record<string, unknown>[];
+    expect(listed.map((r) => r.id)).toEqual([id]);
+    expect(Object.keys(listed[0])).not.toContain("notes");
+    expect(((await anon.rpc("kp_chart_list", { p_q: "Test" })).data as { id: string }[]).map((r) => r.id)).toContain(id);
 
     // Editing in place keeps the id (and so the link) and the notes.
-    const edited = { ...birth, time: "19:39:47" };
-    expect((await member.from("kp_charts").update({ name: "rls link 2", birth: edited }).eq("id", id)).error).toBeNull();
-    const after = (await member.rpc("kp_chart_get", { p_id: id })).data as { name: string; birth: typeof birth; notes: string }[];
-    expect([after[0].name, after[0].birth.time, after[0].notes]).toEqual(["rls link 2", "19:39:47", "private notes"]);
+    expect((await anon.rpc("kp_chart_edit", { p_id: id, p_key: key, p_name: "rls public 2", p_birth: { ...birth, time: "19:39:47" } })).data).toBe(true);
+    expect((await get(anon, key)).map((r) => [r.name, r.birth.time, r.notes])).toEqual([["rls public 2", "19:39:47", "maker notes"]]);
 
-    await member.from("kp_charts").update({ is_shared: false }).eq("id", id);
+    // The key is never readable, and the helper that checks it cannot be called directly.
+    expect((await anon.rpc("kp_chart_can_edit", { p_user: null, p_edit_key: null, p_key: key })).error).not.toBeNull();
+
+    expect((await anon.rpc("kp_chart_delete", { p_id: id, p_key: key })).data).toBe(true);
     expect(await get(anon)).toEqual([]);
-    await service.from("kp_charts").delete().eq("id", id);
+  });
+
+  it("a signed-in visitor's chart is theirs by account, on any device", async () => {
+    const made = await member.rpc("kp_chart_create", { p_name: "rls member", p_birth: birth, p_key: "c".repeat(40) });
+    expect(made.error).toBeNull();
+    const id = made.data as string;
+    // On their dashboard (own rows), editable without the key, and closed to other accounts.
+    expect(((await member.from("kp_charts").select("id, user_id").eq("id", id).single()).data?.user_id)).toBe(memberId);
+    expect((await member.rpc("kp_chart_set_notes", { p_id: id, p_key: null, p_notes: "member notes" })).data).toBe(true);
+    expect((await anon.rpc("kp_chart_set_notes", { p_id: id, p_key: null, p_notes: "hijack" })).data).toBe(false);
+    const seen = (await anon.rpc("kp_chart_get", { p_id: id })).data as { notes: string; is_owner: boolean }[];
+    expect(seen.map((r) => [r.notes, r.is_owner])).toEqual([["", false]]);
+    expect((await member.rpc("kp_chart_delete", { p_id: id, p_key: null })).data).toBe(true);
   });
 
   it("counts the owner's views and keeps pins, without changing the edited date", async () => {
