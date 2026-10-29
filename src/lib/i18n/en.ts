@@ -5,6 +5,7 @@ export const en = {
   switchLabel: "हिंदी में देखें (View in Hindi)",
 
   nav: {
+    menuLabel: "Menu",
     showMenu: (label: string) => `Show the ${label} menu`,
     home: "Home",
     general: "Jyotish Gyan",
@@ -202,7 +203,7 @@ export const en = {
     eyebrow: "KP astrology",
     title: "KP Birth Chart",
     intro: "Enter your birth details to see your KP chart: KP New ayanamsa, Placidus cusps, star · sub lords, significators and Vimshottari dasha. Tap any box of the chart for its full details.",
-    name: "Name (optional)",
+    name: "Team (optional)",
     date: "Date of birth",
     time: "Time of birth",
     timeHint: "As exact as possible; seconds are optional. KP sub lords can change within a few minutes.",
@@ -351,6 +352,7 @@ export const en = {
   },
 
   menu: {
+    home: "Home",
     astrology: "Astrology",
     planetsBhav: "12 Planets & 12 Bhav",
     video: "Video",

@@ -24,10 +24,10 @@ export async function SiteHeader({ lang }: { lang: Locale }) {
         </Suspense>
         <div className="flex items-center gap-2">
           <LanguageSwitch />
-          <div className="hidden xl:block">
+          <div className="hidden nav:block">
             <AccountButton />
           </div>
-          <Suspense fallback={<div className="h-9 w-9 xl:hidden" />}>
+          <Suspense fallback={<div className="h-9 w-9 nav:hidden" />}>
             <MobileNav menu={menu} />
           </Suspense>
         </div>

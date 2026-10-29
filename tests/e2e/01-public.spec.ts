@@ -19,7 +19,7 @@ test("home page shows the main sections and the sample-content notice", async ({
   expect(order.every((y, i) => y > 0 && (i === 0 || y > order[i - 1]))).toBe(true);
   // The astrologer's menu; Premium shows only because the sample content has premium posts.
   const nav = await page.getByRole("navigation", { name: "Main" }).filter({ visible: true }).getByRole("link").allInnerTexts();
-  expect(nav).toEqual(["Astrology", "Astro Cricket", "Book", "Horoscope Research", "Premium", "Make Your KP Chart", "Contact", "Rules", "Testimonials", "Future Research Topics"]);
+  expect(nav).toEqual(["Home", "Astrology", "Astro Cricket", "Book", "Horoscope Research", "Premium", "Make Your KP Chart", "Contact", "Rules", "Testimonials", "Future Research Topics"]);
   // The hero's main button is the course; the KP chart has its own invitation.
   await expect(page.getByTestId("hero-learn")).toHaveAttribute("href", "/contact?subject=Learning%20cricket%20astrology#questionnaire");
   await expect(page.getByTestId("kp-promo").getByRole("link")).toHaveAttribute("href", "/kp-chart");
@@ -43,7 +43,7 @@ test("Hindi site: translated interface at /hi, and the switch keeps the page and
   await expect(page.locator("html")).toHaveAttribute("lang", "hi");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("क्रिकेट भविष्यवाणी और जीवन ज्योतिष");
   const nav = await page.getByRole("navigation", { name: "मुख्य" }).filter({ visible: true }).getByRole("link").allInnerTexts();
-  expect(nav).toEqual(["ज्योतिष", "एस्ट्रो क्रिकेट", "पुस्तक", "कुंडली शोध", "प्रीमियम", "अपनी KP कुंडली बनाएँ", "संपर्क", "नियम", "प्रशंसापत्र", "भविष्य के शोध विषय"]);
+  expect(nav).toEqual(["होम", "ज्योतिष", "एस्ट्रो क्रिकेट", "पुस्तक", "कुंडली शोध", "प्रीमियम", "अपनी KP कुंडली बनाएँ", "संपर्क", "नियम", "प्रशंसापत्र", "भविष्य के शोध विषय"]);
   // Menu links stay inside /hi.
   await expect(page.getByTestId("home-book").getByRole("link", { name: "सुनें और पढ़ें" })).toHaveAttribute("href", "/hi/book");
   await expect(page.getByTestId("hero-kp")).toHaveAttribute("href", "/hi/kp-chart");
@@ -210,6 +210,18 @@ test("a missing audio file shows a helpful error", async ({ page }) => {
   await gotoReady(page, "/astrology-audios/sample-full-moon-meditation");
   await page.getByTestId("episode-play").filter({ visible: true }).click();
   await expect(page.getByTestId("player-error")).toContainText("unavailable");
+});
+
+test("laptop widths get the Menu button, with Home first", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 800 });
+  await gotoReady(page, "/kp-chart");
+  await expect(page.getByRole("navigation", { name: "Main" }).filter({ visible: true })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: /home/i }).filter({ hasText: "Astro Cricket" }).first()).toBeVisible();
+  await page.getByRole("button", { name: "Open menu" }).click();
+  const links = page.locator("#mobile-menu").getByRole("link");
+  await expect(links.nth(1)).toHaveText("Home");
+  await links.nth(1).click();
+  await expect(page).toHaveURL(/localhost:\d+\/$/);
 });
 
 test("mobile menu opens and navigates", async ({ page }) => {

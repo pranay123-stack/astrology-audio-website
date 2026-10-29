@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
 @theme {
+  /* Width from which the whole menu fits on one line in the header (narrower: the ☰ Menu button). */
+  --breakpoint-nav: 1600px;
   /* Red and yellow theme: deep crimson surfaces, saffron/yellow accents.
      Token names are historical (navy/plum/gold) so components stay untouched. */
   --color-night: #2a0505;

@@ -19,7 +19,8 @@ export default defineConfig({
   retries: 0,
   timeout: 60_000,
   use: { baseURL: `http://localhost:${PORT}`, trace: "retain-on-failure" },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  // A wide desktop window, where the whole menu fits in the header (narrower windows get the ☰ Menu button).
+  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"], viewport: { width: 1700, height: 900 } } }],
   webServer: {
     // Build against the freshly seeded test data so prerendered pages match the data under test.
     command: `npx tsx scripts/seed.ts --reset && npm run build && npx next start -p ${PORT}`,

@@ -155,12 +155,12 @@ function DesktopNavInner({ pathname, menu }: { pathname: string; menu: MenuNode[
   }, [open]);
 
   return (
-    <nav aria-label={t.nav.main} className="hidden xl:block">
+    <nav aria-label={t.nav.main} className="hidden nav:block">
       <ul className="flex items-center gap-0.5">
         {menu.map((l) => {
           const active = isCurrent(pathname, l);
           const isOpen = open === l.key;
-          const top = `rounded-full px-2 py-2 text-[13px] font-medium whitespace-nowrap transition 2xl:px-2.5 2xl:text-sm ${active ? "bg-white/10 text-gold-soft" : "text-ink/80 hover:bg-white/5 hover:text-ink"}`;
+          const top = `rounded-full px-2 py-2 text-sm font-medium whitespace-nowrap transition ${active ? "bg-white/10 text-gold-soft" : "text-ink/80 hover:bg-white/5 hover:text-ink"}`;
           if (!l.children) {
             return (
               <li key={l.key}>
@@ -227,16 +227,17 @@ export function MobileNav({ menu }: { menu: MenuNode[] }) {
   }, [open]);
 
   return (
-    <div className="xl:hidden">
+    <div className="nav:hidden">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="rounded-full border border-line p-2 text-ink hover:bg-white/5"
+        className="inline-flex items-center gap-2 rounded-full border border-line p-2 text-ink hover:bg-white/5 sm:px-4"
         aria-expanded={open}
         aria-controls="mobile-menu"
         aria-label={open ? t.nav.closeMenu : t.nav.openMenu}
       >
         {open ? <X className="h-5 w-5" aria-hidden /> : <Menu className="h-5 w-5" aria-hidden />}
+        <span className="hidden text-sm font-semibold sm:inline" aria-hidden>{t.nav.menuLabel}</span>
       </button>
       {open && (
         <nav

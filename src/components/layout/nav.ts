@@ -11,13 +11,14 @@ export interface MenuNode {
 }
 
 /**
- * The site menu, as the astrologer laid it out: Astrology, Astro Cricket, Book, Horoscope
+ * The site menu, as the astrologer laid it out: Home, Astrology, Astro Cricket, Book, Horoscope
  * Research, Make Your KP Chart, Contact, Rules, Testimonials, Future Research Topics. Premium
  * appears only while a premium post is published, so visitors never land on an empty page;
  * YouTube only when the channel link is set.
  */
 export function siteMenu({ showPremium, youtube }: { showPremium: boolean; youtube?: string }): MenuNode[] {
   const menu: MenuNode[] = [
+    { key: "home", href: "/" },
     {
       key: "astrology",
       href: "/astrology",
@@ -101,7 +102,7 @@ export function siteMenu({ showPremium, youtube }: { showPremium: boolean; youtu
       ],
     },
   ];
-  if (showPremium) menu.splice(4, 0, { key: "premium", href: "/premium" });
+  if (showPremium) menu.splice(5, 0, { key: "premium", href: "/premium" });
   return menu;
 }
 

@@ -44,9 +44,6 @@ export async function SiteFooter({ lang }: { lang: Locale }) {
         <nav aria-label={t.footer.explore}>
           <h2 className="eyebrow mb-4 font-sans">{t.footer.explore}</h2>
           <ul className="space-y-2 text-sm">
-            <li>
-              <Link href={href("/")} className="text-ink/80 hover:text-gold-soft">{t.nav.home}</Link>
-            </li>
             {siteMenu({ showPremium: premium.total > 0 }).map((l) => (
               <li key={l.href}>
                 <Link href={href(l.href)} className="text-ink/80 hover:text-gold-soft">
