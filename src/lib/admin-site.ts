@@ -1,5 +1,5 @@
 import { getDict } from "@/lib/i18n";
-import { BOOK_PARTS, FUTURE_TOPICS, MATCH_COMPETITIONS, TOPICS } from "@/lib/topics";
+import { BOOK_PARTS, FUTURE_TOPICS, MATCH_COMPETITIONS, TESTIMONIAL_LEAGUES, testimonialQueries, TOPICS } from "@/lib/topics";
 import type { Category, EpisodeQuery } from "@/lib/types";
 import type { SiteContentKey } from "@/lib/site-content";
 
@@ -214,25 +214,28 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     key: "testimonials",
     title: m.testimonials,
     page: "/testimonials",
-    intro: "Client audio and proof of messages.",
-    slots: [
-      {
-        id: "testimonial-audio",
-        title: m.testimonialAudio,
-        page: "/testimonials#audio",
-        hint: "A client's audio about a match. It needs the teams and the match date.",
-        query: TOPICS.testimonialAudio,
-        add: { category: "testimonial-audio", fields: ["audio"] },
-      },
-      {
-        id: "testimonial-messages",
-        title: m.messageProof,
-        page: "/testimonials#messages",
-        hint: "Screenshots of messages, up to 12 photos in one post.",
-        query: TOPICS.testimonialMessages,
-        add: { category: "testimonial-messages", fields: ["photos"] },
-      },
-    ],
+    intro: "Client audio and proof of messages, for each league.",
+    slots: TESTIMONIAL_LEAGUES.flatMap((league) => {
+      const q = testimonialQueries(league);
+      return [
+        {
+          id: `testimonial-${league.id}-audio`,
+          title: `${m[league.key]} › ${m.testimonialAudio}`,
+          page: `/testimonials#${league.id}-audio`,
+          hint: `A client's audio about a ${m[league.key]} match. It needs the teams and the match date.`,
+          query: q.audio,
+          add: { category: "testimonial-audio", fields: ["audio"], competition: league.id },
+        },
+        {
+          id: `testimonial-${league.id}-messages`,
+          title: `${m[league.key]} › ${m.messageProof}`,
+          page: `/testimonials#${league.id}-messages`,
+          hint: "Screenshots of messages, up to 12 photos in one post.",
+          query: q.messages,
+          add: { category: league.messagesCategory, fields: ["photos"] },
+        },
+      ];
+    }),
   },
   {
     key: "futureResearch",

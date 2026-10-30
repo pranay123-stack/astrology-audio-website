@@ -87,8 +87,22 @@ export function siteMenu({ showPremium, youtube }: { showPremium: boolean; youtu
       key: "testimonials",
       href: "/testimonials",
       children: [
-        { key: "testimonialAudio", href: "/testimonials#audio" },
-        { key: "messageProof", href: "/testimonials#messages" },
+        {
+          key: "bbl",
+          href: "/testimonials#bbl",
+          children: [
+            { key: "testimonialAudio", href: "/testimonials#bbl-audio" },
+            { key: "messageProof", href: "/testimonials#bbl-messages" },
+          ],
+        },
+        {
+          key: "ipl",
+          href: "/testimonials#ipl",
+          children: [
+            { key: "testimonialAudio", href: "/testimonials#ipl-audio" },
+            { key: "messageProof", href: "/testimonials#ipl-messages" },
+          ],
+        },
       ],
     },
     {

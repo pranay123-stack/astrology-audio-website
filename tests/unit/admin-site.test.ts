@@ -22,6 +22,18 @@ describe("admin follows the website menu", () => {
     expect(adminSlot("book-pdf-hindi")).toMatchObject({ add: { category: "book-hindi", fields: ["pdf"], lang: "hi" }, section: { key: "book" } });
   });
 
+  it("testimonials are grouped by league, each with audio (league preset) and message proof", () => {
+    const slots = ADMIN_SECTIONS.find((s) => s.key === "testimonials")!.slots;
+    expect(slots.map((s) => s.id)).toEqual(["testimonial-bbl-audio", "testimonial-bbl-messages", "testimonial-ipl-audio", "testimonial-ipl-messages"]);
+    expect(adminSlot("testimonial-ipl-audio")).toMatchObject({ add: { category: "testimonial-audio", competition: "ipl" }, query: { competitionSlug: "ipl" } });
+    expect(adminSlot("testimonial-ipl-messages")).toMatchObject({ add: { category: "testimonial-messages-ipl", fields: ["photos"] } });
+    const menu = siteMenu({ showPremium: false }).find((m) => m.key === "testimonials")!;
+    expect(menu.children!.map((c) => [c.key, c.children!.map((g) => g.href)])).toEqual([
+      ["bbl", ["/testimonials#bbl-audio", "/testimonials#bbl-messages"]],
+      ["ipl", ["/testimonials#ipl-audio", "/testimonials#ipl-messages"]],
+    ]);
+  });
+
   it("a category with posts on a menu page is grouped under that menu item", () => {
     expect(sectionOfCategory("book-english")?.key).toBe("book");
     expect(sectionOfCategory("spirituality-and-meditation")?.key).toBe("astrology");

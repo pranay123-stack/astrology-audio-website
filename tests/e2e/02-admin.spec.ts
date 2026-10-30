@@ -524,7 +524,7 @@ test("book PDF post and an old video land on their menu pages", async ({ page, r
   // Testimonials › Message proof: screenshots posted as photos show on the page and open full size.
   await gotoReady(page, "/admin/episodes/new");
   await page.getByLabel("Title").fill("E2E Messages After The Final");
-  await page.getByLabel("Category").selectOption({ label: "Message Proof" });
+  await page.getByLabel("Category").selectOption({ label: "Message Proof (IPL)" });
   await page.getByLabel("Short description").fill("Messages received after the final.");
   await page.getByTestId("gallery-input").setInputFiles([
     { name: "msg-1.png", mimeType: "image/png", buffer: readFileSync("tests/fixtures/reel-frame.png") },
@@ -534,10 +534,11 @@ test("book PDF post and an old video land on their menu pages", async ({ page, r
   await page.getByTestId("publish-checkbox").check();
   await page.getByTestId("save-episode").click();
   await expect(page).toHaveURL(/\/admin\/episodes\/[0-9a-f-]{36}/);
-  await gotoReady(page, "/testimonials#messages");
-  const proof = page.getByTestId("message-proof").filter({ hasText: "E2E Messages After The Final" });
+  await gotoReady(page, "/testimonials#ipl-messages");
+  const proof = page.getByTestId("testimonials-ipl-messages").getByTestId("message-proof").filter({ hasText: "E2E Messages After The Final" });
   await expect(proof.locator("img")).toHaveCount(2);
-  await expect(page.getByTestId("testimonials-audio").getByTestId("empty-state")).toBeVisible();
+  await expect(page.getByTestId("testimonials-bbl-messages").getByTestId("message-proof")).toHaveCount(0);
+  await expect(page.getByTestId("testimonials-ipl-audio").getByTestId("empty-state")).toBeVisible();
 });
 
 test("admin is laid out like the website menu: a Book PDF added from its menu item lands on that page", async ({ page }) => {
@@ -612,6 +613,33 @@ test("a Drive folder of chapters becomes one Book audio post with a chapter play
   await player.getByRole("button", { name: /Ending credit/ }).click();
   await expect(player).toContainText("Chapter 16 of 16: Ending credit");
   await expect(player.getByRole("button", { name: "Next chapter" })).toBeDisabled();
+});
+
+test("testimonials are grouped by league: a BBL audio testimonial added from its Add button lands under BBL only", async ({ page }) => {
+  await page.setExtraHTTPHeaders({ "x-forwarded-for": "10.0.0.44" });
+  await login(page);
+  await gotoReady(page, "/admin/site/testimonials");
+  for (const id of ["bbl-audio", "bbl-messages", "ipl-audio", "ipl-messages"]) await expect(page.getByTestId(`slot-testimonial-${id}`).filter({ visible: true })).toBeVisible();
+  await page.getByTestId("add-testimonial-bbl-audio").filter({ visible: true }).click();
+  await page.waitForLoadState("networkidle");
+  const form = page.getByTestId("episode-form").filter({ visible: true });
+  await expect(form.getByLabel("Category").locator("option:checked")).toHaveText("Testimonial Audio");
+  await expect(form.getByLabel("Competition").locator("option:checked")).toHaveText(/Big Bash/);
+  await form.getByLabel("Title", { exact: true }).fill("E2E BBL Client Audio");
+  await form.getByLabel("Short description").fill("A client on the Sixers reading.");
+  await form.getByTestId("audio-input").setInputFiles({ name: "tone.mp3", mimeType: "audio/mpeg", buffer: readFileSync("seed/media/demo-tone-b.mp3") });
+  await expect(form.getByTestId("audio-ready")).toBeVisible();
+  await form.getByLabel("Team A").selectOption({ label: "Sydney Sixers" });
+  await form.getByLabel("Team B").selectOption({ label: "Brisbane Heat" });
+  await form.getByLabel(/Match start/).fill("2026-01-05T19:15");
+  await form.getByTestId("save-episode").click();
+  await expect(page).toHaveURL(/\/admin\/episodes\/[0-9a-f-]{36}/);
+
+  await gotoReady(page, "/testimonials");
+  const nav = page.getByRole("navigation", { name: "Leagues" }).filter({ visible: true });
+  await expect(nav.getByRole("link")).toHaveText([/Big Bash/, /IPL/]);
+  await expect(page.getByTestId("testimonials-bbl-audio").getByTestId("episode-card").filter({ hasText: "E2E BBL Client Audio" }).filter({ visible: true })).toBeVisible();
+  await expect(page.getByTestId("testimonials-ipl-audio")).not.toContainText("E2E BBL Client Audio");
 });
 
 test("admin edits the Rules page, the Krishna essay and the home quote, and the website shows them", async ({ page }) => {

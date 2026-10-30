@@ -487,6 +487,7 @@ export const en = {
       audioIntro: "Listen to people talk about the readings, with the details of each match.",
       messages: "Message proof",
       messagesIntro: "Screenshots of messages received. Tap one to see it full size.",
+      leagues: "Leagues",
     },
   },
 

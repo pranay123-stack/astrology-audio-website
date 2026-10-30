@@ -18,7 +18,7 @@ import { imageUrl } from "@/lib/media/urls";
 import { alternatesFor } from "@/lib/seo";
 import { getEpisodes, getProfile } from "@/lib/queries";
 import { getLang } from "@/lib/i18n/server";
-import { TOPICS } from "@/lib/topics";
+import { TESTIMONIAL_CATEGORIES } from "@/lib/topics";
 import type { EpisodeListing, Locale } from "@/lib/types";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -39,7 +39,7 @@ export default async function HomePage() {
     getEpisodes({ section: "cricket", withMatch: true, timing: "upcoming", sort: "match_date_asc", limit: 3 }),
     getEpisodes({ section: "cricket", withMatch: true, sort: "latest", limit: 3 }),
     getEpisodes({ categorySlug: "cricket-astrology-guide", sort: "latest", limit: 3 }),
-    getEpisodes({ categorySlugs: [TOPICS.testimonialAudio.categorySlug, TOPICS.testimonialMessages.categorySlug], sort: "latest", limit: 3 }),
+    getEpisodes({ categorySlugs: TESTIMONIAL_CATEGORIES, sort: "latest", limit: 3 }),
     getEpisodes({ limit: 1 }),
     getProfile(),
   ]);
