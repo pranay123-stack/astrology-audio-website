@@ -5,6 +5,8 @@ const supabaseHost = supabaseUrl ? new URL(supabaseUrl) : null;
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
+  // Next starts one build worker per CPU it sees: 55 on Hostinger, where a worker then dies with SIGABRT.
+  experimental: { cpus: 2 },
   // Native Swiss Ephemeris addon for the KP chart: loaded by Node at runtime, never bundled.
   serverExternalPackages: ["sweph"],
   // sweph loads its prebuilt binary dynamically, which file tracing cannot see.
