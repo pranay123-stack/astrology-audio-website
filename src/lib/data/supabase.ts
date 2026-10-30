@@ -20,7 +20,7 @@ import { slugify, uniqueSlug } from "../slug";
 import { hasContent, RepositoryError, type DashboardStats, type EpisodeWrite, type Repository } from "./repository";
 
 const EPISODE_COLUMNS =
-  "id,title,slug,excerpt,description,has_article,article_lang,title_alt,excerpt_alt,description_alt,has_article_alt,category_id,audio_storage_path,audio_mime_type,cover_image_path,video_storage_path,video_mime_type,video_format,video_link,audio_link,gallery_paths,pdf_storage_path,pdf_link,is_archived,duration_seconds,is_published,is_premium,is_demo,play_count,published_at,created_at,updated_at";
+  "id,title,slug,excerpt,description,has_article,article_lang,title_alt,excerpt_alt,description_alt,has_article_alt,category_id,audio_storage_path,audio_mime_type,cover_image_path,video_storage_path,video_mime_type,video_format,video_link,audio_link,audio_chapters,gallery_paths,pdf_storage_path,pdf_link,is_archived,duration_seconds,is_published,is_premium,is_demo,play_count,published_at,created_at,updated_at";
 
 type ListingRow = Episode & {
   article: string | null;
@@ -80,6 +80,7 @@ function toListing(r: ListingRow): EpisodeListing {
     video_format: r.video_format ?? "video",
     video_link: r.video_link ?? "",
     audio_link: r.audio_link ?? "",
+    audio_chapters: r.audio_chapters ?? [],
     gallery_paths: r.gallery_paths ?? [],
     pdf_storage_path: r.pdf_storage_path ?? null,
     pdf_link: r.pdf_link ?? "",

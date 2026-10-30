@@ -457,7 +457,7 @@ test("questionnaire (Google Form) on the contact page, Drive audiobook post, and
   await page.getByLabel("Title").fill("E2E Audiobook From Drive");
   await page.getByLabel("Category").selectOption({ label: "Vedic Astrology" });
   await page.getByLabel("Short description").fill("An audiobook chapter that plays from Google Drive.");
-  await page.getByLabel(/Google Drive link \(for long audio/).fill(DRIVE);
+  await page.getByLabel(/Google Drive link: one audio file/).fill(DRIVE);
   await expect(page.getByTestId("drive-link-ok")).toBeVisible();
   await page.getByLabel("Minutes").fill("95");
   await page.getByTestId("publish-checkbox").check();
@@ -575,6 +575,43 @@ test("admin is laid out like the website menu: a Book PDF added from its menu it
   await gotoReady(page, "/book");
   await expect(page.locator("#pdf-hindi").filter({ visible: true })).toContainText("E2E Book Hindi PDF");
 
+});
+
+test("a Drive folder of chapters becomes one Book audio post with a chapter player", async ({ page }) => {
+  // Reads the astrologer's real shared audiobook folder from Google Drive.
+  await page.setExtraHTTPHeaders({ "x-forwarded-for": "10.0.0.43" });
+  await login(page);
+  await gotoReady(page, "/admin/episodes/new?for=book-audio-english");
+  await page.waitForLoadState("networkidle");
+  const form = page.getByTestId("episode-form").filter({ visible: true });
+  await form.getByLabel("Title", { exact: true }).fill("E2E Audiobook Chapters");
+  await form.getByLabel("Short description").fill("The whole book, chapter by chapter.");
+  await form.getByLabel(/Google Drive link: one audio file/).fill("https://drive.google.com/drive/folders/1pSZD-RDJ7Dj0A4t5q7fCRQyOhY5uthz4");
+  await form.getByTestId("load-chapters").click();
+  const chapters = form.getByTestId("chapters");
+  await expect(chapters).toContainText("Chapters from Google Drive (17)", { timeout: 20_000 });
+  await expect(chapters.getByLabel("Chapter 1 name")).toHaveValue("Opning credit");
+  await expect(chapters.getByLabel("Chapter 17 name")).toHaveValue("Retail sample");
+  await chapters.getByRole("button", { name: "Remove Retail sample" }).click();
+  await chapters.getByLabel("Chapter 1 name").fill("Opening credit");
+  await expect(chapters).toContainText("Chapters from Google Drive (16)");
+  await form.getByTestId("save-episode").click();
+  await expect(page).toHaveURL(/\/admin\/episodes\/[0-9a-f-]{36}/);
+  await expect(page.getByTestId("chapters").filter({ visible: true })).toContainText("(16)");
+
+  await gotoReady(page, "/en/book");
+  const card = page.locator("#audio-english").filter({ visible: true }).getByTestId("episode-card").filter({ hasText: "E2E Audiobook Chapters" });
+  await expect(card).toContainText("16 chapters");
+  await card.getByRole("link", { name: "E2E Audiobook Chapters" }).first().click();
+  const player = page.getByTestId("chapter-player").filter({ visible: true });
+  await expect(player).toContainText("Chapter 1 of 16: Opening credit");
+  await expect(player.getByTestId("drive-embed")).toHaveAttribute("src", "https://drive.google.com/file/d/1kM_kx6uFbywrhPXGrnlG7VEoCFhih2_H/preview");
+  await player.getByRole("button", { name: "Next chapter" }).click();
+  await expect(player).toContainText("Chapter 2 of 16: Chapter 01");
+  await expect(player.getByTestId("drive-embed")).toHaveAttribute("src", "https://drive.google.com/file/d/1QFNwNCRuOBrR79nzCuS1eTuVfoNrD6Zk/preview");
+  await player.getByRole("button", { name: /Ending credit/ }).click();
+  await expect(player).toContainText("Chapter 16 of 16: Ending credit");
+  await expect(player.getByRole("button", { name: "Next chapter" })).toBeDisabled();
 });
 
 test("admin edits the Rules page, the Krishna essay and the home quote, and the website shows them", async ({ page }) => {

@@ -63,6 +63,7 @@ export class LocalDb {
       e.video_format ??= "video";
       e.video_link ??= "";
       e.audio_link ??= "";
+      e.audio_chapters ??= [];
       e.gallery_paths ??= [];
       e.pdf_storage_path ??= null;
       e.pdf_link ??= "";

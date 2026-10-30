@@ -40,6 +40,7 @@ export function lengthLabel(
     EpisodeListing,
     | "audio_storage_path"
     | "audio_link"
+    | "audio_chapters"
     | "article"
     | "has_article"
     | "duration_seconds"
@@ -55,7 +56,10 @@ export function lengthLabel(
   const t = getDict(lang).length;
   const parts: string[] = [];
   if (hasAudio(e)) parts.push(formatDurationLabel(e.duration_seconds, lang));
-  else if (e.audio_link) parts.push(e.duration_seconds ? formatDurationLabel(e.duration_seconds, lang) : t.audio);
+  else if (e.audio_link) {
+    if (e.audio_chapters.length) parts.push(getDict(lang).episode.chapters(e.audio_chapters.length));
+    if (e.duration_seconds || !e.audio_chapters.length) parts.push(e.duration_seconds ? formatDurationLabel(e.duration_seconds, lang) : t.audio);
+  }
   if (hasVideo(e)) parts.push(e.video_format === "reel" ? t.reel : t.video);
   if (e.has_article) parts.push(e.article ? t.read(readingMinutes(e.article)) : t.article);
   if (e.gallery_paths.length) parts.push(t.photos(e.gallery_paths.length));

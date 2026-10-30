@@ -4,10 +4,11 @@ import { updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { loginAdmin, logoutAdmin, requireAdmin } from "@/lib/auth/admin";
 import { getAdminRepository, RepositoryError, type EpisodeWrite } from "@/lib/data";
+import { chaptersFromFolder, driveFolderPageUrl, parseDriveFolderLink, parseDriveFolderPage } from "@/lib/media/drive-folder";
 import { EXT_TO_MIME } from "@/lib/media/file-types";
 import { removeStoredFile, verifyStoredFile } from "@/lib/media/storage";
 import { CONTENT_TAG } from "@/lib/queries";
-import type { Episode } from "@/lib/types";
+import type { AudioChapter, Episode } from "@/lib/types";
 import { siteContentSchemas, type SiteContent, type SiteContentKey } from "@/lib/site-content";
 import { slugify, uniqueSlug } from "@/lib/slug";
 import {
@@ -66,6 +67,25 @@ export async function logoutAction(): Promise<void> {
 // ---------------------------------------------------------------------------
 // Episodes
 // ---------------------------------------------------------------------------
+
+/** The audio files in a shared Google Drive folder, as an audiobook's chapters. */
+export async function readDriveFolder(link: string): Promise<ActionResult<AudioChapter[]>> {
+  await requireAdmin();
+  const folderId = parseDriveFolderLink(link);
+  if (!folderId) return { ok: false, error: "Paste a Google Drive folder link (drive.google.com/drive/folders/…)." };
+  const notShared = "Couldn't open this folder. In Google Drive, share it as \"Anyone with the link\" and try again.";
+  try {
+    const res = await fetch(driveFolderPageUrl(folderId), { cache: "no-store", redirect: "manual", signal: AbortSignal.timeout(15_000) });
+    // A private folder redirects to Google's sign-in page.
+    if (!res.ok) return { ok: false, error: notShared };
+    const chapters = chaptersFromFolder(parseDriveFolderPage(await res.text()));
+    if (chapters.length === 0) return { ok: false, error: "No audio files found in this folder." };
+    return { ok: true, data: chapters.slice(0, 100) };
+  } catch (err) {
+    console.error("drive folder read failed", err);
+    return { ok: false, error: notShared };
+  }
+}
 
 export async function saveEpisode(input: EpisodeInput): Promise<ActionResult<{ id: string }>> {
   await requireAdmin();
@@ -151,7 +171,8 @@ export async function saveEpisode(input: EpisodeInput): Promise<ActionResult<{ i
       video_mime_type: d.video_storage_path ? (EXT_TO_MIME[videoExt] ?? null) : null,
       video_format: d.video_format,
       video_link: d.video_link,
-      audio_link: d.audio_link,
+      audio_link: d.audio_chapters[0]?.link ?? d.audio_link,
+      audio_chapters: d.audio_chapters,
       gallery_paths: d.gallery_paths,
       pdf_storage_path: d.pdf_storage_path,
       pdf_link: d.pdf_link,

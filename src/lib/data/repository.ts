@@ -1,4 +1,5 @@
 import type {
+  AudioChapter,
   ArticleLang,
   Category,
   Competition,
@@ -38,6 +39,7 @@ export interface EpisodeWrite {
   video_format: VideoFormat;
   video_link: string;
   audio_link: string;
+  audio_chapters: AudioChapter[];
   gallery_paths: string[];
   pdf_storage_path: string | null;
   pdf_link: string;

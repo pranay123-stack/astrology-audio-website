@@ -70,6 +70,16 @@ export const episodeInputSchema = z.object({
     .max(300)
     .refine((v) => v === "" || parseDriveLink(v) !== null, "Paste a Google Drive file link (drive.google.com/file/d/…)")
     .default(""),
+  /** Audiobook chapters, in playing order; [] = none. */
+  audio_chapters: z
+    .array(
+      z.object({
+        title: z.string().trim().min(1, "Give every chapter a name").max(120),
+        link: z.string().trim().max(300).refine((v) => parseDriveLink(v) !== null, "Not a Google Drive file link"),
+      }),
+    )
+    .max(100, "Up to 100 chapters")
+    .default([]),
   gallery_paths: z.array(storagePathSchema).max(GALLERY_MAX, `Up to ${GALLERY_MAX} photos`).default([]),
   /** Uploaded PDF (free to read and download). */
   pdf_storage_path: storagePathSchema.nullable().default(null),
@@ -91,6 +101,10 @@ export const episodeInputSchema = z.object({
     .refine((v) => v === "" || !Number.isNaN(Date.parse(v)), "Invalid publication date")
     .default(""),
   match: matchInputSchema.nullable(),
+}).refine((e) => e.audio_chapters.length === 0 || !e.audio_storage_path, {
+  // An uploaded file would play instead of the chapters.
+  message: "Remove the uploaded audio file: this post plays its chapters",
+  path: ["audio_storage_path"],
 });
 export type EpisodeInput = z.input<typeof episodeInputSchema>;
 export type EpisodeData = z.output<typeof episodeInputSchema>;

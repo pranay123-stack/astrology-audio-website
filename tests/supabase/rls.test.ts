@@ -339,6 +339,33 @@ describe("book PDFs and old videos", () => {
     const { data: comps } = await anon.from("competitions").select("slug").in("slug", ["bbl", "ipl", "t20i"]);
     expect(comps!.map((c) => c.slug).sort()).toEqual(["bbl", "ipl", "t20i"]);
   });
+  it("admin_save_episode stores audiobook chapters in order; visitors read them; a non-array is refused", async () => {
+    const { data: cat } = await admin.from("categories").select("id").eq("slug", "book-english").single();
+    const chapters = [
+      { title: "Opening credit", link: "https://drive.google.com/file/d/1kM_kx6uFbywrhPXGrnlG7VEoCFhih2_H/view" },
+      { title: "Chapter 01", link: "https://drive.google.com/file/d/1QFNwNCRuOBrR79nzCuS1eTuVfoNrD6Zk/view" },
+    ];
+    const episode = {
+      title: "Chapters test", slug: `chapters-${randomUUID().slice(0, 8)}`, excerpt: "chapters test post", description: "", category_id: cat!.id,
+      audio_storage_path: null, audio_mime_type: null, cover_image_path: null, duration_seconds: 0, is_published: true, is_premium: false,
+      published_at: new Date().toISOString(), article: "", article_lang: "en", gallery_paths: [],
+      audio_link: chapters[0].link, audio_chapters: chapters,
+    };
+    const { data: id, error } = await admin.rpc("admin_save_episode", { p_id: null, p_episode: episode, p_match: null });
+    expect(error).toBeNull();
+    cleanup.push(id);
+    expect((await anon.from("episode_listings").select("audio_link, audio_chapters").eq("id", id).single()).data).toEqual({
+      audio_link: chapters[0].link, audio_chapters: chapters,
+    });
+    const reordered = [chapters[1], chapters[0]];
+    expect((await admin.rpc("admin_save_episode", { p_id: id, p_episode: { ...episode, audio_link: reordered[0].link, audio_chapters: reordered }, p_match: null })).error).toBeNull();
+    expect((await anon.from("episodes").select("audio_chapters").eq("id", id).single()).data?.audio_chapters).toEqual(reordered);
+    const notList = await admin.rpc("admin_save_episode", { p_id: id, p_episode: { ...episode, audio_chapters: { title: "x" } }, p_match: null });
+    expect(notList.error).not.toBeNull();
+    const { error: anonWrite } = await anon.from("episodes").update({ audio_chapters: [] }).eq("id", id);
+    expect((await anon.from("episodes").select("audio_chapters").eq("id", id).single()).data?.audio_chapters).toEqual(reordered);
+    void anonWrite;
+  });
 });
 
 describe("renamed posts", () => {

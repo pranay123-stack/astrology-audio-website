@@ -2,8 +2,9 @@ import { ExternalLink, Headphones } from "lucide-react";
 import { getDict } from "@/lib/i18n";
 import { parseDriveLink } from "@/lib/media/drive-link";
 import type { EpisodeListing, Locale } from "@/lib/types";
+import { ChapterPlayer } from "./ChapterPlayer";
 
-/** Audio kept in Google Drive (e.g. an audiobook), played with Drive's embedded player. */
+/** Audio kept in Google Drive (one file, or an audiobook's chapters), played with Drive's embedded player. */
 export function DriveAudio({ episode, lang }: { episode: EpisodeListing; lang: Locale }) {
   const drive = parseDriveLink(episode.audio_link);
   if (!drive) return null;
@@ -13,6 +14,9 @@ export function DriveAudio({ episode, lang }: { episode: EpisodeListing; lang: L
       <h2 id="drive-audio-heading" className="flex items-center gap-2 font-display text-2xl text-gold-soft">
         <Headphones className="h-5 w-5" aria-hidden /> {t.listenTitle}
       </h2>
+      {episode.audio_chapters.length > 0 ? (
+        <ChapterPlayer chapters={episode.audio_chapters} title={episode.title} lang={lang} />
+      ) : (<>
       <div className="overflow-hidden rounded-xl border border-line bg-black">
         <iframe
           src={drive.embedUrl}
@@ -29,6 +33,7 @@ export function DriveAudio({ episode, lang }: { episode: EpisodeListing; lang: L
           <ExternalLink className="h-3.5 w-3.5" aria-hidden /> {t.openDrive}
         </a>
       </p>
+      </>)}
     </section>
   );
 }

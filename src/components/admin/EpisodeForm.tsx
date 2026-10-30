@@ -4,15 +4,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, useTransition } from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { Loader2, Save } from "lucide-react";
-import { saveEpisode } from "@/app/admin/actions";
+import { ArrowDown, ArrowUp, ListMusic, Loader2, Save, X } from "lucide-react";
+import { readDriveFolder, saveEpisode } from "@/app/admin/actions";
 import { categoriesByMenu, type AdminSlot, type PostField } from "@/lib/admin-site";
 import { formatDuration, fromZonedInputValue, toZonedInputValue } from "@/lib/dates";
 import { audioUrl, documentUrl, imageUrl, videoUrl } from "@/lib/media/urls";
+import { parseDriveFolderLink } from "@/lib/media/drive-folder";
 import { parseDriveLink } from "@/lib/media/drive-link";
 import { parseVideoLink } from "@/lib/media/video-link";
 import { slugify } from "@/lib/slug";
-import { MATCH_STATUSES, type ArticleLang, type VideoFormat, type Category, type Competition, type EpisodeListing, type Team } from "@/lib/types";
+import { MATCH_STATUSES, type ArticleLang, type AudioChapter, type VideoFormat, type Category, type Competition, type EpisodeListing, type Team } from "@/lib/types";
 import { episodeInputSchema, fieldErrors, type EpisodeInput } from "@/lib/validation";
 import { ArticleBody } from "@/components/episodes/ArticleBody";
 import { FileField } from "./FileField";
@@ -95,6 +96,8 @@ export function EpisodeForm({
   const [videoPath, setVideoPath] = useState<string | null>(episode?.video_storage_path ?? null);
   const [galleryPaths, setGalleryPaths] = useState<string[]>(episode?.gallery_paths ?? []);
   const [pdfPath, setPdfPath] = useState<string | null>(episode?.pdf_storage_path ?? null);
+  const [chapters, setChapters] = useState<AudioChapter[]>(episode?.audio_chapters ?? []);
+  const [folderState, setFolderState] = useState<{ loading: boolean; error: string | null }>({ loading: false, error: null });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<{ kind: "error" | "success"; text: string } | null>(null);
   
@@ -148,6 +151,7 @@ export function EpisodeForm({
   const linkInfo = videoLink.trim() ? parseVideoLink(videoLink) : null;
   const audioLink = useWatch({ control, name: "audio_link" });
   const driveInfo = audioLink.trim() ? parseDriveLink(audioLink) : null;
+  const folderId = audioLink.trim() ? parseDriveFolderLink(audioLink) : null;
   const pdfLink = useWatch({ control, name: "pdf_link" });
   const pdfDriveInfo = pdfLink.trim() ? parseDriveLink(pdfLink) : null;
   // Match readings need teams and a date; other categories (incl. the cricket guide) do not.
@@ -180,7 +184,8 @@ export function EpisodeForm({
       video_storage_path: videoPath,
       video_format: v.video_format,
       video_link: v.video_link.trim(),
-      audio_link: v.audio_link.trim(),
+      audio_link: chapters[0]?.link ?? v.audio_link.trim(),
+      audio_chapters: chapters,
       gallery_paths: galleryPaths,
       pdf_storage_path: pdfPath,
       pdf_link: v.pdf_link.trim(),
@@ -210,6 +215,7 @@ export function EpisodeForm({
     const hasSomething =
       !!payload.audio_storage_path ||
       !!v.audio_link.trim() ||
+      chapters.length > 0 ||
       !!(payload.article ?? "").trim() ||
       !!(payload.article_alt ?? "").trim() ||
       !!videoPath ||
@@ -238,6 +244,23 @@ export function EpisodeForm({
   });
 
   const err = (key: string) => (errors[key] ? <p className="mt-1 text-sm text-red-300">{errors[key]}</p> : null);
+  const chapterError = Object.entries(errors).find(([k]) => k.startsWith("audio_chapters"))?.[1];
+
+  async function loadChapters() {
+    setFolderState({ loading: true, error: null });
+    const result = await readDriveFolder(audioLink);
+    if (!result.ok) return setFolderState({ loading: false, error: result.error });
+    setChapters(result.data);
+    setValue("audio_link", "");
+    setFolderState({ loading: false, error: null });
+  }
+  const editChapter = (i: number, title: string) => setChapters((c) => c.map((ch, j) => (j === i ? { ...ch, title } : ch)));
+  const moveChapter = (i: number, by: -1 | 1) =>
+    setChapters((c) => {
+      const next = [...c];
+      [next[i], next[i + by]] = [next[i + by], next[i]];
+      return next;
+    });
 
   return (
     <form onSubmit={onSubmit} className="space-y-8" noValidate data-testid="episode-form">
@@ -449,8 +472,38 @@ export function EpisodeForm({
           }}
           error={errors.audio_storage_path}
         />
+        {chapters.length > 0 ? (
+          <div data-testid="chapters">
+            <span className="label flex items-center gap-2">
+              <ListMusic className="h-4 w-4" aria-hidden /> Chapters from Google Drive ({chapters.length})
+            </span>
+            <p className="mb-2 text-xs text-muted">Listeners play them in this order. Rename, move or remove any of them.</p>
+            <ol className="space-y-2">
+              {chapters.map((ch, i) => (
+                <li key={ch.link} className="flex items-center gap-2">
+                  <span className="w-6 shrink-0 text-right text-sm text-muted">{i + 1}.</span>
+                  <input aria-label={`Chapter ${i + 1} name`} className="input min-w-0 flex-1" value={ch.title} maxLength={120} onChange={(e) => editChapter(i, e.target.value)} />
+                  <button type="button" className="btn-ghost px-2" aria-label={`Move ${ch.title} up`} disabled={i === 0} onClick={() => moveChapter(i, -1)}>
+                    <ArrowUp className="h-4 w-4" aria-hidden />
+                  </button>
+                  <button type="button" className="btn-ghost px-2" aria-label={`Move ${ch.title} down`} disabled={i === chapters.length - 1} onClick={() => moveChapter(i, 1)}>
+                    <ArrowDown className="h-4 w-4" aria-hidden />
+                  </button>
+                  <button type="button" className="btn-ghost px-2" aria-label={`Remove ${ch.title}`} onClick={() => setChapters((c) => c.filter((_, j) => j !== i))}>
+                    <X className="h-4 w-4" aria-hidden />
+                  </button>
+                </li>
+              ))}
+            </ol>
+            {audioPath && <p className="mt-2 text-sm text-red-300">Remove the uploaded audio file above: this post plays its chapters.</p>}
+            {chapterError && <p className="mt-1 text-sm text-red-300">{chapterError}</p>}
+            <button type="button" className="btn-ghost mt-3 text-sm" onClick={() => setChapters([])}>
+              Remove all chapters
+            </button>
+          </div>
+        ) : (
         <div>
-          <label htmlFor="audio_link" className="label">…or Google Drive link (for long audio such as an audiobook)</label>
+          <label htmlFor="audio_link" className="label">…or Google Drive link: one audio file, or a folder of chapters (audiobook)</label>
           <input
             id="audio_link"
             className="input"
@@ -458,14 +511,23 @@ export function EpisodeForm({
             placeholder="https://drive.google.com/file/d/…/view"
             {...register("audio_link")}
           />
-          {audioLink.trim() && !driveInfo && <p className="mt-1 text-sm text-red-300">This doesn&apos;t look like a Google Drive file link.</p>}
+          {audioLink.trim() && !driveInfo && !folderId && <p className="mt-1 text-sm text-red-300">This doesn&apos;t look like a Google Drive file or folder link.</p>}
           {driveInfo && <p className="mt-1 text-xs text-emerald-300" data-testid="drive-link-ok">Google Drive file recognised.</p>}
+          {folderId && (
+            <div className="mt-2 space-y-1">
+              <button type="button" className="btn-gold text-sm" onClick={loadChapters} disabled={folderState.loading} data-testid="load-chapters">
+                {folderState.loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <ListMusic className="h-4 w-4" aria-hidden />} Load chapters from this folder
+              </button>
+              {folderState.error && <p className="text-sm text-red-300">{folderState.error}</p>}
+            </div>
+          )}
           <p className="mt-1 text-xs text-muted">
-            In Google Drive: right-click the file → Share → General access: <b>Anyone with the link</b> → Copy link, and paste it here. No size limit.
+            In Google Drive: right-click the file (or the folder of chapters) → Share → General access: <b>Anyone with the link</b> → Copy link, and paste it here. No size limit.
             Anyone with the link can listen and download, so don&apos;t use it for premium audio. Type the duration below if you want it shown.
           </p>
           {err("audio_link")}
         </div>
+        )}
         <div>
           <span className="label">Duration</span>
           <div className="flex items-center gap-2">

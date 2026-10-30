@@ -54,6 +54,13 @@ export interface Team {
   primary_color: string;
 }
 
+/** One chapter of an audiobook kept in Google Drive. */
+export interface AudioChapter {
+  title: string;
+  /** Google Drive file link (drive.google.com/file/d/<id>/view). */
+  link: string;
+}
+
 export interface Episode {
   id: string;
   title: string;
@@ -81,6 +88,8 @@ export interface Episode {
   video_link: string;
   /** Google Drive link to an audio file (e.g. an audiobook) played with Drive's player ("" = none). Visible to everyone. */
   audio_link: string;
+  /** Audiobook chapters played one at a time from Google Drive ([] = none); audio_link is the first one's link. */
+  audio_chapters: AudioChapter[];
   /** Photo gallery (public images bucket), in display order. */
   gallery_paths: string[];
   /** PDF in the public documents bucket (free to read and download). */
