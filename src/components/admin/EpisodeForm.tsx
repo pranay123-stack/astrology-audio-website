@@ -97,8 +97,7 @@ export function EpisodeForm({
   const [pdfPath, setPdfPath] = useState<string | null>(episode?.pdf_storage_path ?? null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<{ kind: "error" | "success"; text: string } | null>(null);
-  const [slugTouched, setSlugTouched] = useState(!!episode);
-
+  
   const duration = episode?.duration_seconds ?? 0;
   const { register, control, setValue, handleSubmit } = useForm<FormValues>({
     defaultValues: {
@@ -156,7 +155,8 @@ export function EpisodeForm({
   const competitionTeams = useMemo(() => teams.filter((t) => t.competition_id === competitionId), [teams, competitionId]);
   const titleField = register("title", {
     onChange: (e) => {
-      if (!slugTouched) setValue("slug", slugify(e.target.value));
+      // The web address comes from the title and stays the same once a post exists.
+      if (!episode) setValue("slug", slugify(e.target.value));
     },
   });
 
@@ -265,12 +265,8 @@ export function EpisodeForm({
         <div>
           <label htmlFor="title" className="label">Title</label>
           <input id="title" className="input" {...titleField} />
+          <input type="hidden" {...register("slug")} />
           {err("title")}
-        </div>
-        <div>
-          <label htmlFor="slug" className="label">URL slug</label>
-          <input id="slug" className="input font-mono" {...register("slug", { onChange: () => setSlugTouched(true) })} />
-          <p className="mt-1 text-xs text-muted">Leave empty to generate it from the title. Changing it changes the episode&apos;s web address.</p>
           {err("slug")}
         </div>
         <div>
@@ -280,7 +276,7 @@ export function EpisodeForm({
             <option value="en">English</option>
           </select>
           <p className="mt-1 text-xs text-muted">
-            The language the title, description, notes and article below are written in. You can add a version in the other language
+            The language the title, description and article below are written in. You can add a version in the other language
             further down; visitors see the version that matches the site language they chose.
           </p>
         </div>
@@ -301,12 +297,6 @@ export function EpisodeForm({
           <textarea id="excerpt" rows={2} maxLength={280} className="input" {...register("excerpt")} />
           <p className="mt-1 text-xs text-muted">Shown on cards and in search results. Up to 280 characters.</p>
           {err("excerpt")}
-        </div>
-        <div>
-          <label htmlFor="description" className="label">Episode notes <span className="text-muted">(optional)</span></label>
-          <textarea id="description" rows={6} className="input" {...register("description")} />
-          <p className="mt-1 text-xs text-muted">Blank lines start new paragraphs.</p>
-          {err("description")}
         </div>
       </section>
 
@@ -417,11 +407,6 @@ export function EpisodeForm({
           <label htmlFor="excerpt_alt" className="label">{langName(altLang)} short summary</label>
           <textarea id="excerpt_alt" lang={altLang} rows={2} maxLength={280} className="input" {...register("excerpt_alt")} />
           {err("excerpt_alt")}
-        </div>
-        <div>
-          <label htmlFor="description_alt" className="label">{langName(altLang)} notes</label>
-          <textarea id="description_alt" lang={altLang} rows={4} className="input" {...register("description_alt")} />
-          {err("description_alt")}
         </div>
         <div>
           <label htmlFor="article_alt" className="label">{langName(altLang)} article</label>

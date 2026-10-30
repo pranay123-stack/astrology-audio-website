@@ -47,7 +47,8 @@ test("admin creates, publishes, previews and unpublishes an episode", async ({ p
   await gotoReady(page, "/admin/episodes/new");
 
   await page.getByLabel("Title").fill("E2E Saturn Transit Reading");
-  await expect(page.getByLabel("URL slug")).toHaveValue("e2e-saturn-transit-reading");
+  await expect(page.getByLabel("URL slug")).toHaveCount(0);
+  await expect(page.getByLabel(/Episode notes/)).toHaveCount(0);
   await page.getByLabel("Category").selectOption({ label: "Planetary Transits" });
   await page.getByLabel("Short description").fill("An end-to-end test episode about Saturn.");
 
@@ -434,10 +435,9 @@ test("questionnaire (Google Form) on the contact page, Drive audiobook post, and
   await gotoReady(page, "/hi/contact");
   await expect(page.getByTestId("questionnaire")).toContainText("क्रिकेट ज्योतिष सीखना");
 
-  // A Hindi title gets a readable address, and a renamed post's old address redirects.
+  // A Hindi title gets a readable address, which stays the same when the title changes.
   await gotoReady(page, "/admin/episodes/new");
   await page.getByLabel("Title").fill("सूर्य ग्रह परीक्षण");
-  await expect(page.getByLabel("URL slug")).toHaveValue("surya-grah-parikshan");
   await page.getByLabel("Category").selectOption({ label: "Vedic Astrology" });
   await page.getByLabel("Short description").fill("हिंदी शीर्षक से पढ़ने योग्य वेब पता बनता है।");
   await page.getByLabel(/YouTube \/ Instagram link/).fill("https://youtu.be/dQw4w9WgXcQ");
@@ -445,16 +445,12 @@ test("questionnaire (Google Form) on the contact page, Drive audiobook post, and
   await page.getByTestId("save-episode").click();
   await expect(page).toHaveURL(/\/admin\/episodes\/[0-9a-f-]{36}/);
   // After saving, the "new" page stays mounted but hidden, so pick the visible form.
-  await page.getByLabel("URL slug").filter({ visible: true }).fill("surya-grah-test");
+  await page.getByLabel("Title").filter({ visible: true }).fill("सूर्य ग्रह नया शीर्षक");
   await page.getByTestId("save-episode").filter({ visible: true }).click();
   await expect(page.getByTestId("form-message").filter({ visible: true })).toContainText("saved");
-  // Post pages are prerendered shells, so the status is already 200 when the redirect is known;
-  // the page carries the redirect itself (refresh tag + client router), which browsers and Google follow.
-  const old = await page.request.get("/astrology-audios/surya-grah-parikshan", { maxRedirects: 0 });
-  expect(await old.text()).toContain("/astrology-audios/surya-grah-test");
-  // People's browsers are redirected too.
   await gotoReady(page, "/astrology-audios/surya-grah-parikshan");
-  await expect(page).toHaveURL(/\/astrology-audios\/surya-grah-test$/);
+  await expect(page).toHaveURL(/\/astrology-audios\/surya-grah-parikshan$/);
+  await expect(page.getByRole("heading", { level: 1 }).filter({ visible: true })).toContainText("सूर्य ग्रह नया शीर्षक");
 
   // An audiobook kept in Google Drive.
   await gotoReady(page, "/admin/episodes/new");
