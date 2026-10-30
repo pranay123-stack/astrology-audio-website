@@ -8,6 +8,7 @@ import { EXT_TO_MIME } from "@/lib/media/file-types";
 import { removeStoredFile, verifyStoredFile } from "@/lib/media/storage";
 import { CONTENT_TAG } from "@/lib/queries";
 import type { Episode } from "@/lib/types";
+import { siteContentSchemas, type SiteContent, type SiteContentKey } from "@/lib/site-content";
 import { slugify, uniqueSlug } from "@/lib/slug";
 import {
   competitionInputSchema,
@@ -235,6 +236,24 @@ export async function saveProfile(input: ProfileInput): Promise<ActionResult> {
     }
     await repo.updateProfile(parsed.data);
     if (current.profile_image_path !== img) await cleanup(current.profile_image_path);
+    updateTag(CONTENT_TAG);
+    return { ok: true };
+  } catch (err) {
+    return failure(err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Page text
+// ---------------------------------------------------------------------------
+
+export async function saveSiteContent<K extends SiteContentKey>(key: K, input: SiteContent[K]): Promise<ActionResult> {
+  await requireAdmin();
+  const parsed = siteContentSchemas[key].safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Some text is empty or too long. Please check it and save again." };
+  try {
+    const repo = await getAdminRepository();
+    await repo.saveSiteContent(key, parsed.data as SiteContent[K]);
     updateTag(CONTENT_TAG);
     return { ok: true };
   } catch (err) {

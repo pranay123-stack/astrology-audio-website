@@ -261,7 +261,7 @@ test("removing sample content clears the demo banner", async ({ page }) => {
 test("admin pages fit a phone screen", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await login(page);
-  for (const path of ["/admin", "/admin/episodes", "/admin/episodes/new", "/admin/profile", "/admin/leagues", "/admin/messages"]) {
+  for (const path of ["/admin", "/admin/episodes", "/admin/episodes/new", "/admin/profile", "/admin/leagues", "/admin/messages", "/admin/site/book", "/admin/site/rules", "/admin/episodes/new?for=matches-ipl"]) {
     await gotoReady(page, path);
     // Nothing may extend past the right edge, except the scrollable nav and the episodes table.
     const clipped = await page.evaluate(() =>
@@ -542,4 +542,77 @@ test("book PDF post and an old video land on their menu pages", async ({ page, r
   const proof = page.getByTestId("message-proof").filter({ hasText: "E2E Messages After The Final" });
   await expect(proof.locator("img")).toHaveCount(2);
   await expect(page.getByTestId("testimonials-audio").getByTestId("empty-state")).toBeVisible();
+});
+
+test("admin is laid out like the website menu: a Book PDF added from its menu item lands on that page", async ({ page }) => {
+  await page.setExtraHTTPHeaders({ "x-forwarded-for": "10.0.0.41" });
+  await login(page);
+  await gotoReady(page, "/admin");
+  const nav = page.getByTestId("admin-nav").filter({ visible: true });
+  for (const item of ["Astrology", "Astro Cricket", "Book", "Rules", "Testimonials", "Krishna Consciousness"]) {
+    await expect(nav.getByRole("link", { name: item, exact: true })).toBeVisible();
+  }
+
+  await gotoReady(page, "/admin/site/book");
+  await page.getByTestId("add-book-pdf-hindi").filter({ visible: true }).click();
+  await expect(page).toHaveURL(/for=book-pdf-hindi/);
+  await page.waitForLoadState("networkidle");
+  const form = page.getByTestId("episode-form").filter({ visible: true });
+  await expect(form.getByTestId("slot-banner")).toContainText("Book");
+  await expect(form.getByLabel("Category")).toHaveValue(/.+/);
+  await expect(form.getByLabel("Category").locator("option:checked")).toHaveText("Book (Hindi)");
+  // Only what a book PDF needs.
+  await expect(form.getByTestId("pdf-fields")).toBeVisible();
+  await expect(form.getByTestId("video-fields")).toHaveCount(0);
+  await expect(form.getByTestId("article-fields")).toHaveCount(0);
+  await expect(form.getByLabel("Audio file (optional)")).toHaveCount(0);
+  await expect(form.getByTestId("publish-checkbox")).toBeChecked();
+
+  await form.getByLabel("Title", { exact: true }).fill("E2E Book Hindi PDF");
+  await form.getByLabel("Short description").fill("A test copy of the book.");
+  await form.getByLabel(/Google Drive link to the PDF/).fill("https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view");
+  await form.getByTestId("save-episode").click();
+  await expect(page).toHaveURL(/\/admin\/episodes\/[0-9a-f-]{36}/);
+
+  await gotoReady(page, "/admin/site/book");
+  await expect(page.getByTestId("slot-book-pdf-hindi").filter({ visible: true })).toContainText("E2E Book Hindi PDF");
+  await gotoReady(page, "/book");
+  await expect(page.locator("#pdf-hindi").filter({ visible: true })).toContainText("E2E Book Hindi PDF");
+
+});
+
+test("admin edits the Rules page, the Krishna essay and the home quote, and the website shows them", async ({ page }) => {
+  await page.setExtraHTTPHeaders({ "x-forwarded-for": "10.0.0.42" });
+  await login(page);
+  await gotoReady(page, "/admin/site/rules");
+  const group = page.getByTestId("rules-group-spiritual").filter({ visible: true });
+  await group.locator("summary").click();
+  const first = group.getByTestId("rule-draft").first().getByLabel("Rule", { exact: true });
+  const original = await first.inputValue();
+  await first.fill("E2E: a changed rule");
+  await page.getByTestId("save-rules").filter({ visible: true }).click();
+  await expect(page.getByTestId("content-message").filter({ visible: true })).toContainText("Saved");
+  await gotoReady(page, "/rules");
+  await expect(page.getByTestId("rules-spiritual").filter({ visible: true })).toContainText("E2E: a changed rule");
+  await expect(page.getByTestId("rules-spiritual").filter({ visible: true })).not.toContainText(original);
+
+  await gotoReady(page, "/admin/site/krishna");
+  await page.getByLabel("Closing line").filter({ visible: true }).fill("E2E closing line");
+  await page.getByTestId("save-krishna").filter({ visible: true }).click();
+  await expect(page.getByTestId("content-message").filter({ visible: true })).toContainText("Saved");
+  await gotoReady(page, "/krishna-consciousness");
+  await expect(page.getByText("E2E closing line").filter({ visible: true })).toBeVisible();
+
+  await gotoReady(page, "/admin/site/home");
+  await page.getByLabel("Quote").filter({ visible: true }).fill("E2E quote text");
+  await page.getByTestId("save-quote").filter({ visible: true }).click();
+  await expect(page.getByTestId("content-message").filter({ visible: true })).toContainText("Saved");
+  await gotoReady(page, "/");
+  await expect(page.getByTestId("quotes-band").filter({ visible: true })).toContainText("E2E quote text");
+
+  // Put the text back for the other tests.
+  await gotoReady(page, "/admin/site/home");
+  await page.getByLabel("Quote").filter({ visible: true }).fill("Kundali kabhi galat nahi bolti, either human ki ho ya match ki.");
+  await page.getByTestId("save-quote").filter({ visible: true }).click();
+  await expect(page.getByTestId("content-message").filter({ visible: true })).toContainText("Saved");
 });

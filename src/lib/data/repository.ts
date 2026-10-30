@@ -14,6 +14,7 @@ import type {
   VideoFormat,
 } from "../types";
 import { dayBounds } from "../dates";
+import type { SiteContent, SiteContentKey } from "../site-content";
 import type { CompetitionData, ProfileData, TeamData } from "../validation";
 
 /** Episode fields written by the admin form, after validation and slug resolution. */
@@ -64,6 +65,8 @@ export interface Repository {
   listCompetitions(): Promise<Competition[]>;
   listTeams(): Promise<Team[]>;
   getProfile(): Promise<Profile>;
+  /** Page text saved in Admin, or null while the bundled text is still in use. */
+  getSiteContent<K extends SiteContentKey>(key: K): Promise<SiteContent[K] | null>;
 
   queryEpisodes(query: EpisodeQuery): Promise<EpisodePage>;
   getEpisodeBySlug(slug: string, opts?: { includeUnpublished?: boolean }): Promise<EpisodeListing | null>;
@@ -83,6 +86,7 @@ export interface Repository {
   isStoragePathReferenced(path: string): Promise<boolean>;
 
   updateProfile(data: ProfileData): Promise<Profile>;
+  saveSiteContent<K extends SiteContentKey>(key: K, value: SiteContent[K]): Promise<void>;
   saveCompetition(data: CompetitionData): Promise<Competition>;
   deleteCompetition(id: string): Promise<void>;
   saveTeam(data: TeamData): Promise<Team>;

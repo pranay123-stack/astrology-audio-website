@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import type { Category, Competition, Episode, EpisodeListing, EpisodeQuery, Profile, Team } from "../types";
+import type { SiteContent, SiteContentKey } from "../site-content";
 import type { CompetitionData, ProfileData, TeamData } from "../validation";
 import { slugify, uniqueSlug } from "../slug";
 import { LocalDb, type LocalDatabase, type LocalEpisode } from "./local-db";
@@ -75,6 +76,16 @@ export class LocalRepository implements Repository {
 
   async getProfile(): Promise<Profile> {
     return (await this.db.read()).profile;
+  }
+
+  async getSiteContent<K extends SiteContentKey>(key: K): Promise<SiteContent[K] | null> {
+    return ((await this.db.read()).site_content?.[key] as SiteContent[K] | undefined) ?? null;
+  }
+
+  async saveSiteContent<K extends SiteContentKey>(key: K, value: SiteContent[K]): Promise<void> {
+    await this.db.mutate((db) => {
+      db.site_content = { ...db.site_content, [key]: value };
+    });
   }
 
   async queryEpisodes(query: EpisodeQuery) {

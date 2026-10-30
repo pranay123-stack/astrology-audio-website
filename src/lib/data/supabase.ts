@@ -13,6 +13,7 @@ import type {
   Section,
   Team,
 } from "../types";
+import type { SiteContent, SiteContentKey } from "../site-content";
 import type { CompetitionData, ProfileData, TeamData } from "../validation";
 import { dayBounds } from "../dates";
 import { slugify, uniqueSlug } from "../slug";
@@ -337,6 +338,17 @@ export class SupabaseRepository implements Repository {
     ]);
     for (const c of checks) if (c.error) fail(c.error, "isStoragePathReferenced");
     return checks.some((c) => (c.count ?? 0) > 0);
+  }
+
+  async getSiteContent<K extends SiteContentKey>(key: K): Promise<SiteContent[K] | null> {
+    const { data, error } = await this.db.from("site_content").select("value").eq("key", key).maybeSingle();
+    if (error) fail(error, "getSiteContent");
+    return (data?.value as SiteContent[K] | undefined) ?? null;
+  }
+
+  async saveSiteContent<K extends SiteContentKey>(key: K, value: SiteContent[K]): Promise<void> {
+    const { error } = await this.db.from("site_content").upsert({ key, value });
+    if (error) fail(error, "saveSiteContent");
   }
 
   async updateProfile(data: ProfileData): Promise<Profile> {

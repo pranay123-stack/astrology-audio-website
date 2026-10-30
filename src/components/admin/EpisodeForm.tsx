@@ -6,6 +6,7 @@ import { useMemo, useRef, useState, useTransition } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { Loader2, Save } from "lucide-react";
 import { saveEpisode } from "@/app/admin/actions";
+import { categoriesByMenu, type AdminSlot, type PostField } from "@/lib/admin-site";
 import { formatDuration, fromZonedInputValue, toZonedInputValue } from "@/lib/dates";
 import { audioUrl, documentUrl, imageUrl, videoUrl } from "@/lib/media/urls";
 import { parseDriveLink } from "@/lib/media/drive-link";
@@ -54,14 +55,19 @@ export function EpisodeForm({
   competitions,
   teams,
   timeZone,
+  slot,
 }: {
   episode: EpisodeListing | null;
   categories: Category[];
   competitions: Competition[];
   teams: Team[];
   timeZone: string;
+  /** Adding to one place on the website: pre-filled, with only the fields that place uses. */
+  slot?: AdminSlot & { section: { key: string; title: string } };
 }) {
   const router = useRouter();
+  const [allFields, setAllFields] = useState(false);
+  const show = (field: PostField) => !slot || allFields || slot.add.fields.includes(field);
   const [pending, startTransition] = useTransition();
   const [audioPath, setAudioPath] = useState<string | null>(episode?.audio_storage_path ?? null);
   const [coverPath, setCoverPathState] = useState<string | null>(episode?.cover_image_path ?? null);
@@ -101,18 +107,18 @@ export function EpisodeForm({
       excerpt: episode?.excerpt ?? "",
       description: episode?.description ?? "",
       article: episode?.article ?? "",
-      article_lang: episode?.article_lang ?? "hi",
+      article_lang: episode?.article_lang ?? slot?.add.lang ?? "hi",
       title_alt: episode?.title_alt ?? "",
       excerpt_alt: episode?.excerpt_alt ?? "",
       description_alt: episode?.description_alt ?? "",
       article_alt: episode?.article_alt ?? "",
-      category_id: episode?.category_id ?? "",
+      category_id: episode?.category_id ?? categories.find((c) => c.slug === slot?.add.category)?.id ?? "",
       duration_minutes: Math.floor(duration / 60),
       duration_secs: duration % 60,
-      is_published: episode?.is_published ?? false,
+      is_published: episode?.is_published ?? !!slot,
       is_premium: episode?.is_premium ?? false,
       published_at_local: toZonedInputValue(episode?.published_at, timeZone),
-      competition_id: episode?.match?.competition_id ?? competitions[0]?.id ?? "",
+      competition_id: episode?.match?.competition_id ?? competitions.find((c) => c.slug === slot?.add.competition)?.id ?? competitions[0]?.id ?? "",
       team_a_id: episode?.match?.team_a_id ?? "",
       team_b_id: episode?.match?.team_b_id ?? "",
       match_date_local: toZonedInputValue(episode?.match?.match_date, timeZone),
@@ -122,7 +128,7 @@ export function EpisodeForm({
       video_link: episode?.video_link ?? "",
       audio_link: episode?.audio_link ?? "",
       pdf_link: episode?.pdf_link ?? "",
-      is_archived: episode?.is_archived ?? false,
+      is_archived: episode?.is_archived ?? slot?.add.archived ?? false,
     },
   });
 
@@ -225,7 +231,7 @@ export function EpisodeForm({
         setMessage({ kind: "error", text: result.error });
         return;
       }
-      setMessage({ kind: "success", text: "Episode saved." });
+      setMessage({ kind: "success", text: "Post saved." });
       if (!episode) router.replace(`/admin/episodes/${result.data.id}?saved=1`);
       else router.refresh();
     });
@@ -245,6 +251,13 @@ export function EpisodeForm({
         >
           {message.text}
         </p>
+      )}
+
+      {slot && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gold/30 bg-gold/10 px-4 py-3 text-sm" data-testid="slot-banner">
+          <span>This goes on the website under <strong className="text-gold-soft">{slot.section.title} › {slot.title}</strong></span>
+          {!allFields && <button type="button" className="underline" onClick={() => setAllFields(true)}>Show all fields</button>}
+        </div>
       )}
 
       <section className="card space-y-5 p-6">
@@ -275,12 +288,11 @@ export function EpisodeForm({
           <label htmlFor="category_id" className="label">Category</label>
           <select id="category_id" className="input" {...register("category_id")}>
             <option value="">Choose a category…</option>
-            <optgroup label="Cricket Astrology">
-              {categories.filter((c) => c.section === "cricket").map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </optgroup>
-            <optgroup label="General Astrology">
-              {categories.filter((c) => c.section === "general").map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </optgroup>
+            {categoriesByMenu(categories).map((g) => (
+              <optgroup key={g.label} label={g.label}>
+                {g.items.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </optgroup>
+            ))}
           </select>
           {err("category_id")}
         </div>
@@ -351,6 +363,7 @@ export function EpisodeForm({
         </section>
       )}
 
+      {show("article") && (<>
       <section className="card space-y-5 p-6" data-testid="article-fields">
         <h2 className="text-2xl font-semibold">
           Article <span className="text-base font-normal text-muted">(optional, in {langName(articleLang)})</span>
@@ -432,9 +445,11 @@ export function EpisodeForm({
           <p className="text-xs text-gold-soft">Tip: add a {langName(altLang)} heading too, so cards show the {langName(altLang)} title.</p>
         )}
       </section>
+      </>)}
 
       <section className="card space-y-5 p-6">
-        <h2 className="text-2xl font-semibold">Media</h2>
+        <h2 className="text-2xl font-semibold">{show("audio") ? "Media" : "Cover image"}</h2>
+        {show("audio") && (<>
         <FileField
           id="audio"
           kind="audio"
@@ -479,6 +494,7 @@ export function EpisodeForm({
           </div>
           {err("duration_seconds")}
         </div>
+        </>)}
         <FileField
           id="cover"
           kind="cover"
@@ -499,11 +515,13 @@ export function EpisodeForm({
         )}
       </section>
 
+      {(show("video") || show("photos")) && (
       <section className="card space-y-5 p-6" data-testid="video-fields">
         <div className="space-y-1">
           <h2 className="text-2xl font-semibold">Video, reel &amp; photos <span className="text-base font-normal text-muted">(optional)</span></h2>
           <p className="text-sm text-muted">Upload a short clip, or paste a YouTube / Instagram link. Long or popular videos are best as links: they cost nothing to stream.</p>
         </div>
+        {show("video") && (<>
         <fieldset>
           <legend className="label">Video shape</legend>
           <div className="flex flex-wrap gap-5 text-sm">
@@ -552,9 +570,12 @@ export function EpisodeForm({
             <span className="block text-sm text-muted">Listed under Astro Cricket › Old Videos instead of the current videos.</span>
           </span>
         </label>
-        <GalleryField value={galleryPaths} onChange={setGalleryPaths} error={errors.gallery_paths} />
+        </>)}
+        {show("photos") && <GalleryField value={galleryPaths} onChange={setGalleryPaths} error={errors.gallery_paths} />}
       </section>
+      )}
 
+      {show("pdf") && (
       <section className="card space-y-5 p-6" data-testid="pdf-fields">
         <div className="space-y-1">
           <h2 className="text-2xl font-semibold">PDF <span className="text-base font-normal text-muted">(optional)</span></h2>
@@ -578,6 +599,7 @@ export function EpisodeForm({
           {err("pdf_link")}
         </div>
       </section>
+      )}
 
       <section className="card space-y-5 p-6">
         <h2 className="text-2xl font-semibold">Publishing</h2>
@@ -610,9 +632,9 @@ export function EpisodeForm({
       <div className="flex flex-wrap items-center gap-3">
         <button type="submit" className="btn-gold px-6" disabled={pending} data-testid="save-episode">
           {pending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Save className="h-4 w-4" aria-hidden />}
-          {pending ? "Saving…" : "Save episode"}
+          {pending ? "Saving…" : "Save post"}
         </button>
-        <Link href="/admin/episodes" className="btn-ghost">Back to episodes</Link>
+        <Link href={slot ? `/admin/site/${slot.section.key}` : "/admin/episodes"} className="btn-ghost">Back</Link>
       </div>
     </form>
   );

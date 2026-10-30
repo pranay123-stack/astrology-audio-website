@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { QUOTE } from "../../src/content/quote";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -144,6 +145,22 @@ describe("visitors (anon key)", () => {
   it("cannot upload to storage", async () => {
     const up = await anon.storage.from("audio").upload(`audio/${randomUUID()}.mp3`, new Blob(["ID3xxxx"], { type: "audio/mpeg" }));
     expect(up.error).not.toBeNull();
+  });
+});
+
+describe("page text edited in Admin", () => {
+  it("visitors read it; visitors and members cannot change it; an admin can", async () => {
+    const { data: saved, error } = await anon.from("site_content").select("value").eq("key", "quotes").maybeSingle();
+    expect(error).toBeNull();
+    const value = saved?.value ?? QUOTE;
+    for (const client of [anon, member]) {
+      await client.from("site_content").upsert({ key: "quotes", value: { text: "tampered" } });
+      const { data } = await service.from("site_content").select("value").eq("key", "quotes").maybeSingle();
+      expect(data?.value ?? null).toEqual(saved?.value ?? null);
+    }
+    // Writes back what is already shown, so the live site never changes during this test.
+    expect((await admin.from("site_content").upsert({ key: "quotes", value })).error).toBeNull();
+    if (!saved) await service.from("site_content").delete().eq("key", "quotes");
   });
 });
 

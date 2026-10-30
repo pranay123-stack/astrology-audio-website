@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Glasses, Sparkles, Sun } from "lucide-react";
-import { TopicHero } from "@/components/topics/Topic";
-import { KRISHNA } from "@/content/krishna";
+import { countPosts, TopicHero, TopicPosts } from "@/components/topics/Topic";
 import { learnPath } from "@/components/layout/nav";
 import { getDict, localePath } from "@/lib/i18n";
 import { getLang } from "@/lib/i18n/server";
+import { getSiteContent } from "@/lib/queries";
 import { alternatesFor } from "@/lib/seo";
+import { TOPICS } from "@/lib/topics";
 
 export async function generateMetadata(): Promise<Metadata> {
   const l = await getLang();
@@ -24,6 +25,7 @@ export default async function KrishnaConsciousnessPage() {
   const lang = await getLang();
   const d = getDict(lang);
   const t = d.topics.krishna;
+  const [KRISHNA, posts] = await Promise.all([getSiteContent("krishna"), countPosts(TOPICS.krishnaPosts)]);
   return (
     <>
       <TopicHero icon={Sun} eyebrow={t.eyebrow} title={t.title} intro={t.intro} />
@@ -59,7 +61,7 @@ export default async function KrishnaConsciousnessPage() {
         {/* 12% luck, 88% karma */}
         <section aria-label={t.luckVsKarma} className="space-y-4" data-testid="luck-karma">
           <div className="flex h-4 overflow-hidden rounded-full border border-line" aria-hidden>
-            <div className="w-[12%] bg-white/30" />
+            <div className="bg-white/30" style={{ width: `${Math.min(100, parseFloat(KRISHNA.luck.share) || 0)}%` }} />
             <div className="flex-1 bg-gradient-to-r from-gold to-gold-soft" />
           </div>
           <div className="grid gap-5 md:grid-cols-[1fr_2fr]">
@@ -88,6 +90,11 @@ export default async function KrishnaConsciousnessPage() {
           </Link>
         </section>
       </article>
+      {posts > 0 && (
+        <section className="container-page py-10">
+          <TopicPosts query={TOPICS.krishnaPosts} lang={lang} />
+        </section>
+      )}
     </>
   );
 }

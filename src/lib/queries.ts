@@ -1,6 +1,7 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { getPublicRepository } from "./data";
+import { SITE_CONTENT_DEFAULTS, type SiteContentKey } from "./site-content";
 import type { EpisodeQuery } from "./types";
 
 /**
@@ -22,6 +23,12 @@ export async function getProfile() {
   "use cache";
   contentCache();
   return getPublicRepository().getProfile();
+}
+
+export async function getSiteContent<K extends SiteContentKey>(key: K) {
+  "use cache";
+  contentCache();
+  return (await getPublicRepository().getSiteContent(key)) ?? SITE_CONTENT_DEFAULTS[key];
 }
 
 export async function getCategories() {

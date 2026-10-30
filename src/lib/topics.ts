@@ -22,6 +22,8 @@ export const TOPICS = {
   lotteryNumber: { categorySlug: "lottery-number", sort: "latest" },
   bookHindi: { categorySlug: "book-hindi", sort: "latest" },
   bookEnglish: { categorySlug: "book-english", sort: "latest" },
+  rulesPosts: { categorySlug: "rules-posts", sort: "latest" },
+  krishnaPosts: { categorySlug: "krishna-consciousness", sort: "latest" },
 } satisfies Record<string, EpisodeQuery>;
 
 /** The Video / Audio / Read tabs of "12 Planets & 12 Bhav". */

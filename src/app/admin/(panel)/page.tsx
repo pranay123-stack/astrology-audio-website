@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CheckCircle2, Circle, FlaskConical, Inbox, Plus } from "lucide-react";
 import { deleteDemoContent } from "@/app/admin/actions";
+import { ADMIN_SECTIONS } from "@/lib/admin-site";
 import { ActionButton } from "@/components/admin/ConfirmButton";
 import { requireAdmin } from "@/lib/auth/admin";
 import { getAdminRepository } from "@/lib/data";
@@ -43,8 +44,21 @@ async function DashboardContent() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-4xl font-semibold">Dashboard</h1>
-        <Link href="/admin/episodes/new" className="btn-gold"><Plus className="h-4 w-4" aria-hidden /> New episode</Link>
+        <Link href="/admin/episodes/new" className="btn-gold"><Plus className="h-4 w-4" aria-hidden /> New post</Link>
       </div>
+
+      <section aria-labelledby="website-menu" data-testid="website-menu">
+        <h2 id="website-menu" className="mb-1 text-2xl font-semibold">Website menu</h2>
+        <p className="mb-4 text-sm text-muted">Open a menu item to add or change what is on it.</p>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {ADMIN_SECTIONS.map((s) => (
+            <Link key={s.key} href={`/admin/site/${s.key}`} className="card block p-4 hover:border-gold/50">
+              <span className="block font-semibold text-gold-soft">{s.title}</span>
+              <span className="mt-1 block text-xs text-muted">{s.intro}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       <dl className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6" data-testid="stats">
         {tiles.map((t) => (
@@ -103,7 +117,7 @@ async function DashboardContent() {
         </div>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <section className="card p-6">
           <h2 className="mb-4 text-2xl font-semibold">Episodes by category</h2>
           <ul className="divide-y divide-line">

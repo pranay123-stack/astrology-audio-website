@@ -1,5 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
+import type { SiteContent } from "../site-content";
 import type { Category, Competition, ContactMessage, CricketMatch, Episode, Profile, Team } from "../types";
 
 /** Local mode keeps the article bodies on the episode record itself. */
@@ -16,6 +17,8 @@ export interface LocalDatabase {
   contact_messages: ContactMessage[];
   /** Old post slugs that redirect to a post's current address. */
   slug_redirects?: { old_slug: string; episode_id: string }[];
+  /** Page text saved in Admin. */
+  site_content?: Partial<SiteContent>;
 }
 
 /**

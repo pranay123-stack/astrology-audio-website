@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { Flame, HeartHandshake, Orbit, Scale, Trophy } from "lucide-react";
-import { TopicHero } from "@/components/topics/Topic";
-import { CRICKET_RULES, SHANI_RULES, SPIRITUAL_RULES, type Rule } from "@/content/rules";
+import { countPosts, TopicHero, TopicPosts } from "@/components/topics/Topic";
+import type { Rule } from "@/content/rules";
 import { getDict, localePath } from "@/lib/i18n";
 import { getLang } from "@/lib/i18n/server";
+import { getSiteContent } from "@/lib/queries";
 import { alternatesFor } from "@/lib/seo";
+import { TOPICS } from "@/lib/topics";
 
 export async function generateMetadata(): Promise<Metadata> {
   const l = await getLang();
@@ -16,10 +18,11 @@ export default async function RulesPage() {
   const lang = await getLang();
   const d = getDict(lang);
   const t = d.topics.rules;
+  const [rules, posts] = await Promise.all([getSiteContent("rules"), countPosts(TOPICS.rulesPosts)]);
   const sections = [
-    { id: "spiritual", title: t.spiritual, intro: t.spiritualIntro, rules: SPIRITUAL_RULES, icon: Flame },
-    { id: "cricket", title: t.cricket, intro: t.cricketIntro, rules: CRICKET_RULES, icon: Trophy },
-    { id: "shani", title: t.shani, intro: t.shaniIntro, rules: SHANI_RULES, icon: Orbit },
+    { id: "spiritual", title: t.spiritual, intro: t.spiritualIntro, rules: rules.spiritual, icon: Flame },
+    { id: "cricket", title: t.cricket, intro: t.cricketIntro, rules: rules.cricket, icon: Trophy },
+    { id: "shani", title: t.shani, intro: t.shaniIntro, rules: rules.shani, icon: Orbit },
   ];
   return (
     <>
@@ -48,11 +51,12 @@ export default async function RulesPage() {
             </div>
             <ol className="grid gap-5 md:grid-cols-2">
               {s.rules.map((r, i) => (
-                <RuleCard key={r.title} rule={r} n={i + 1} labels={{ planet: t.planet, chakra: t.chakra }} />
+                <RuleCard key={i} rule={r} n={i + 1} labels={{ planet: t.planet, chakra: t.chakra }} />
               ))}
             </ol>
           </section>
         ))}
+        {posts > 0 && <TopicPosts query={TOPICS.rulesPosts} lang={lang} />}
       </section>
     </>
   );
@@ -67,8 +71,8 @@ function RuleCard({ rule, n, labels }: { rule: Rule; n: number; labels: { planet
       </span>
       <div className="min-w-0 space-y-3">
         <h3 className="text-2xl font-semibold leading-snug">{rule.title}</h3>
-        {rule.body?.map((p) => (
-          <p key={p} className="text-ink/85">{p}</p>
+        {rule.body?.map((p, i) => (
+          <p key={i} className="text-ink/85">{p}</p>
         ))}
         {rule.list && (
           <dl className="divide-y divide-line overflow-hidden rounded-xl border border-line">

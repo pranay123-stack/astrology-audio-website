@@ -3,7 +3,23 @@
  * same on the English and Hindi sites. Only spelling and punctuation were tidied.
  */
 
-export const KRISHNA = {
+interface Share {
+  share: string;
+  label: string;
+  text: string;
+}
+
+export interface KrishnaContent {
+  questions: { thought: string; answer: string }[];
+  middle: string[];
+  story: string[];
+  luck: Share;
+  karma: Share;
+  how: { question: string; answer: string[] };
+  closing: string;
+}
+
+export const KRISHNA: KrishnaContent = {
   /** Two questions that show neither "only fate" nor "only effort" is the whole truth. */
   questions: [
     {
@@ -42,4 +58,4 @@ export const KRISHNA = {
     ],
   },
   closing: "Yahi Krishna Consciousness hai.",
-} as const;
+};

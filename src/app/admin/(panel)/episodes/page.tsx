@@ -11,14 +11,14 @@ import { episodeStatus } from "@/lib/data/repository";
 import { formatDate, formatDurationLabel } from "@/lib/dates";
 import { episodeHref } from "@/lib/episodes";
 
-export const metadata: Metadata = { title: "Episodes" };
+export const metadata: Metadata = { title: "All posts" };
 
 export default function EpisodesPage({ searchParams }: PageProps<"/admin/episodes">) {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-4xl font-semibold">Episodes</h1>
-        <Link href="/admin/episodes/new" className="btn-gold"><Plus className="h-4 w-4" aria-hidden /> New episode</Link>
+        <h1 className="text-4xl font-semibold">All posts</h1>
+        <Link href="/admin/episodes/new" className="btn-gold"><Plus className="h-4 w-4" aria-hidden /> New post</Link>
       </div>
       <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-white/5" />}>
         <EpisodeTable searchParams={searchParams} />
@@ -40,7 +40,7 @@ async function EpisodeTable({ searchParams }: Pick<PageProps<"/admin/episodes">,
   return (
     <>
       <Form action="/admin/episodes" className="card grid gap-3 p-4 sm:grid-cols-[2fr_1fr_1fr_auto]">
-        <input name="q" defaultValue={q} placeholder="Search episodes" aria-label="Search episodes" className="input" />
+        <input name="q" defaultValue={q} placeholder="Search posts" aria-label="Search episodes" className="input" />
         <select name="section" defaultValue={section ?? ""} aria-label="Section" className="input">
           <option value="">All sections</option>
           <option value="cricket">Cricket astrology</option>

@@ -30,6 +30,8 @@ export const categories = [
   { slug: "share-market", requires_match: false, name: "Share Market", name_hi: "शेयर बाज़ार", description_hi: "शेयर बाज़ार पर ज्योतिषीय शोध।", section: "general", description: "Astrology research on the share market." },
   { slug: "bitcoin-forex", requires_match: false, name: "Bitcoin & Forex Market", name_hi: "बिटकॉइन और फ़ॉरेक्स बाज़ार", description_hi: "बिटकॉइन और फ़ॉरेक्स बाज़ार पर ज्योतिषीय शोध।", section: "general", description: "Astrology research on bitcoin and forex markets." },
   { slug: "lottery-number", requires_match: false, name: "Lottery Number", name_hi: "लॉटरी नंबर", description_hi: "लॉटरी नंबरों पर ज्योतिषीय शोध।", section: "general", description: "Astrology research on lottery numbers." },
+  { slug: "rules-posts", requires_match: false, name: "Rules", name_hi: "नियम", description_hi: "नियमों पर ऑडियो और वीडियो।", section: "general", description: "Audio and video about the rules." },
+  { slug: "krishna-consciousness", requires_match: false, name: "Krishna Consciousness", name_hi: "कृष्ण चेतना", description_hi: "कृष्ण चेतना पर ऑडियो और वीडियो।", section: "general", description: "Audio and video on Krishna Consciousness." },
   { slug: "book-hindi", requires_match: false, name: "Book (Hindi)", name_hi: "पुस्तक (हिंदी)", description_hi: "A Spiritual Punter, Bookie & Astrologer, हिंदी में।", section: "general", description: "A Spiritual Punter, Bookie & Astrologer, in Hindi." },
   { slug: "book-english", requires_match: false, name: "Book (English)", name_hi: "पुस्तक (अंग्रेज़ी)", description_hi: "A Spiritual Punter, Bookie & Astrologer, अंग्रेज़ी में।", section: "general", description: "A Spiritual Punter, Bookie & Astrologer, in English." },
 ] as const;
