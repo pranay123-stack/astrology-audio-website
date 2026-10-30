@@ -22,16 +22,16 @@ describe("admin follows the website menu", () => {
     expect(adminSlot("book-pdf-hindi")).toMatchObject({ add: { category: "book-hindi", fields: ["pdf"], lang: "hi" }, section: { key: "book" } });
   });
 
-  it("testimonials are grouped by league, each with audio (league preset) and message proof", () => {
-    const slots = ADMIN_SECTIONS.find((s) => s.key === "testimonials")!.slots;
-    expect(slots.map((s) => s.id)).toEqual(["testimonial-bbl-audio", "testimonial-bbl-messages", "testimonial-ipl-audio", "testimonial-ipl-messages"]);
-    expect(adminSlot("testimonial-ipl-audio")).toMatchObject({ add: { category: "testimonial-audio", competition: "ipl" }, query: { competitionSlug: "ipl" } });
-    expect(adminSlot("testimonial-ipl-messages")).toMatchObject({ add: { category: "testimonial-messages-ipl", fields: ["photos"] } });
-    const menu = siteMenu({ showPremium: false }).find((m) => m.key === "testimonials")!;
-    expect(menu.children!.map((c) => [c.key, c.children!.map((g) => g.href)])).toEqual([
-      ["bbl", ["/testimonials#bbl-audio", "/testimonials#bbl-messages"]],
-      ["ipl", ["/testimonials#ipl-audio", "/testimonials#ipl-messages"]],
-    ]);
+  it("Prediction Records holds each league's match audio; Testimonials each league's message proof", () => {
+    const slots = (key: string) => ADMIN_SECTIONS.find((s) => s.key === key)!.slots.map((s) => s.id);
+    expect(slots("predictionRecords")).toEqual(["predictions-bbl", "predictions-ipl"]);
+    expect(slots("testimonials")).toEqual(["testimonials-bbl", "testimonials-ipl"]);
+    expect(adminSlot("predictions-ipl")).toMatchObject({ add: { category: "prediction-records", fields: ["audio"], competition: "ipl" }, query: { competitionSlug: "ipl" } });
+    expect(adminSlot("testimonials-ipl")).toMatchObject({ add: { category: "testimonial-messages-ipl", fields: ["photos"] } });
+    const menu = siteMenu({ showPremium: false });
+    for (const [key, page] of [["predictionRecords", "/prediction-records"], ["testimonials", "/testimonials"]]) {
+      expect(menu.find((m) => m.key === key)!.children!.map((c) => [c.key, c.href])).toEqual([["bbl", `${page}#bbl`], ["ipl", `${page}#ipl`]]);
+    }
   });
 
   it("a category with posts on a menu page is grouped under that menu item", () => {

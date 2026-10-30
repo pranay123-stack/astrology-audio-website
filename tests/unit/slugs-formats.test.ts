@@ -105,7 +105,7 @@ describe("site menu", () => {
   it("follows the astrologer's layout and links YouTube only when it is set", async () => {
     const { siteMenu } = await import("@/components/layout/nav");
     const menu = siteMenu({ showPremium: false });
-    expect(menu.map((m) => m.key)).toEqual(["home", "astrology", "astroCricket", "book", "research", "kpChart", "contact", "rules", "testimonials", "futureResearch", "krishna"]);
+    expect(menu.map((m) => m.key)).toEqual(["home", "astrology", "astroCricket", "book", "research", "kpChart", "contact", "rules", "predictionRecords", "testimonials", "futureResearch", "krishna"]);
     const cricket = menu.find((m) => m.key === "astroCricket")!;
     expect(cricket.children!.map((c) => c.key)).toEqual(["podcast", "oldVideos"]);
     const withYoutube = siteMenu({ showPremium: true, youtube: "https://www.youtube.com/@ASTROCRICKET" });

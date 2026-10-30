@@ -12,7 +12,7 @@ export interface MenuNode {
 
 /**
  * The site menu, as the astrologer laid it out: Home, Astrology, Astro Cricket, Book, Horoscope
- * Research, Make Your KP Chart, Contact, Rules, Testimonials, Future Research Topics, Krishna
+ * Research, Make Your KP Chart, Contact, Rules, Prediction Records, Testimonials, Future Research Topics, Krishna
  * Consciousness. Premium appears only while a premium post is published, so visitors never land
  * on an empty page; YouTube only when the channel link is set.
  */
@@ -84,25 +84,19 @@ export function siteMenu({ showPremium, youtube }: { showPremium: boolean; youtu
       ],
     },
     {
+      key: "predictionRecords",
+      href: "/prediction-records",
+      children: [
+        { key: "bbl", href: "/prediction-records#bbl" },
+        { key: "ipl", href: "/prediction-records#ipl" },
+      ],
+    },
+    {
       key: "testimonials",
       href: "/testimonials",
       children: [
-        {
-          key: "bbl",
-          href: "/testimonials#bbl",
-          children: [
-            { key: "testimonialAudio", href: "/testimonials#bbl-audio" },
-            { key: "messageProof", href: "/testimonials#bbl-messages" },
-          ],
-        },
-        {
-          key: "ipl",
-          href: "/testimonials#ipl",
-          children: [
-            { key: "testimonialAudio", href: "/testimonials#ipl-audio" },
-            { key: "messageProof", href: "/testimonials#ipl-messages" },
-          ],
-        },
+        { key: "bbl", href: "/testimonials#bbl" },
+        { key: "ipl", href: "/testimonials#ipl" },
       ],
     },
     {

@@ -14,7 +14,7 @@ export const TOPICS = {
   oldVideos: { formats: ["video", "reel"], archived: true },
   matches: { categorySlug: "cricket-astrology", withMatch: true, sort: "match_date_desc" },
   players: { categorySlug: "player-horoscopes" },
-  testimonialAudio: { categorySlug: "testimonial-audio", sort: "match_date_desc" },
+  predictionRecords: { categorySlug: "prediction-records", sort: "match_date_desc" },
   footballAstro: { categorySlug: "football-astro", sort: "latest" },
   shareMarket: { categorySlug: "share-market", sort: "latest" },
   bitcoinForex: { categorySlug: "bitcoin-forex", sort: "latest" },
@@ -32,23 +32,22 @@ export const PLANET_FORMATS = ["video", "audio", "article"] as const satisfies r
 export const MATCH_COMPETITIONS = ["bbl", "ipl", "t20i"] as const;
 
 /**
- * Testimonials, by league, in menu order: audio with the match (its league comes from the
- * match) and screenshots of messages (a category per league).
+ * The leagues under Prediction Records and Testimonials, in menu order. Prediction records are
+ * audio with the match, so their league comes from the match; message proof (Testimonials) has
+ * a category per league.
  */
-export const TESTIMONIAL_LEAGUES = [
+export const LEAGUES = [
   { id: "bbl", key: "bbl", messagesCategory: "testimonial-messages-bbl" },
   { id: "ipl", key: "ipl", messagesCategory: "testimonial-messages-ipl" },
 ] as const;
 
-export function testimonialQueries(league: (typeof TESTIMONIAL_LEAGUES)[number]) {
-  return {
-    audio: { ...TOPICS.testimonialAudio, competitionSlug: league.id },
-    messages: { categorySlug: league.messagesCategory, sort: "latest" },
-  } satisfies Record<string, EpisodeQuery>;
-}
+export type League = (typeof LEAGUES)[number];
 
-/** Every testimonial category, for the home page's "What people say". */
-export const TESTIMONIAL_CATEGORIES = [TOPICS.testimonialAudio.categorySlug, ...TESTIMONIAL_LEAGUES.map((l) => l.messagesCategory)];
+export const predictionQuery = (league: League) => ({ ...TOPICS.predictionRecords, competitionSlug: league.id }) satisfies EpisodeQuery;
+export const messagesQuery = (league: League) => ({ categorySlug: league.messagesCategory, sort: "latest" }) satisfies EpisodeQuery;
+
+/** The Testimonials categories, for the home page's "What people say". */
+export const TESTIMONIAL_CATEGORIES = LEAGUES.map((l) => l.messagesCategory);
 
 /** Future Research Topics: menu anchor and query of each topic. */
 export const FUTURE_TOPICS = [

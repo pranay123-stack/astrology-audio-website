@@ -20,6 +20,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/horoscope-research/players",
     "/kp-chart",
     "/rules",
+    "/prediction-records",
     "/testimonials",
     "/future-research",
     "/krishna-consciousness",

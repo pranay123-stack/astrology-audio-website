@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  BookOpen, Compass, ExternalLink, FileStack, FlaskConical, Home, Inbox, LayoutDashboard, LogOut, Phone, Plus, Quote, Scale, Sparkles, Sun, Telescope, Trophy, UserRound,
+  BookOpen, ClipboardList, Compass, ExternalLink, FileStack, FlaskConical, Home, Inbox, LayoutDashboard, LogOut, Phone, Plus, Quote, Scale, Sparkles, Sun, Telescope, Trophy, UserRound,
   type LucideIcon,
 } from "lucide-react";
 import { logoutAction } from "@/app/admin/actions";
@@ -18,6 +18,7 @@ const SECTION_ICONS: Partial<Record<AdminSection["key"], LucideIcon>> = {
   kpChart: Compass,
   contact: Phone,
   rules: Scale,
+  predictionRecords: ClipboardList,
   testimonials: Quote,
   futureResearch: FlaskConical,
   krishna: Sun,

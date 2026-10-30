@@ -534,11 +534,10 @@ test("book PDF post and an old video land on their menu pages", async ({ page, r
   await page.getByTestId("publish-checkbox").check();
   await page.getByTestId("save-episode").click();
   await expect(page).toHaveURL(/\/admin\/episodes\/[0-9a-f-]{36}/);
-  await gotoReady(page, "/testimonials#ipl-messages");
-  const proof = page.getByTestId("testimonials-ipl-messages").getByTestId("message-proof").filter({ hasText: "E2E Messages After The Final" });
+  await gotoReady(page, "/testimonials#ipl");
+  const proof = page.getByTestId("testimonials-ipl").getByTestId("message-proof").filter({ hasText: "E2E Messages After The Final" });
   await expect(proof.locator("img")).toHaveCount(2);
-  await expect(page.getByTestId("testimonials-bbl-messages").getByTestId("message-proof")).toHaveCount(0);
-  await expect(page.getByTestId("testimonials-ipl-audio").getByTestId("empty-state")).toBeVisible();
+  await expect(page.getByTestId("testimonials-bbl").getByTestId("message-proof")).toHaveCount(0);
 });
 
 test("admin is laid out like the website menu: a Book PDF added from its menu item lands on that page", async ({ page }) => {
@@ -615,18 +614,20 @@ test("a Drive folder of chapters becomes one Book audio post with a chapter play
   await expect(player.getByRole("button", { name: "Next chapter" })).toBeDisabled();
 });
 
-test("testimonials are grouped by league: a BBL audio testimonial added from its Add button lands under BBL only", async ({ page }) => {
+test("Prediction Records by league: BBL match audio added from its Add button lands under BBL only", async ({ page }) => {
   await page.setExtraHTTPHeaders({ "x-forwarded-for": "10.0.0.44" });
   await login(page);
   await gotoReady(page, "/admin/site/testimonials");
-  for (const id of ["bbl-audio", "bbl-messages", "ipl-audio", "ipl-messages"]) await expect(page.getByTestId(`slot-testimonial-${id}`).filter({ visible: true })).toBeVisible();
-  await page.getByTestId("add-testimonial-bbl-audio").filter({ visible: true }).click();
+  for (const id of ["bbl", "ipl"]) await expect(page.getByTestId(`slot-testimonials-${id}`).filter({ visible: true })).toContainText("Message proof");
+  await gotoReady(page, "/admin/site/predictionRecords");
+  for (const id of ["bbl", "ipl"]) await expect(page.getByTestId(`slot-predictions-${id}`).filter({ visible: true })).toBeVisible();
+  await page.getByTestId("add-predictions-bbl").filter({ visible: true }).click();
   await page.waitForLoadState("networkidle");
   const form = page.getByTestId("episode-form").filter({ visible: true });
-  await expect(form.getByLabel("Category").locator("option:checked")).toHaveText("Testimonial Audio");
+  await expect(form.getByLabel("Category").locator("option:checked")).toHaveText("Prediction Records");
   await expect(form.getByLabel("Competition").locator("option:checked")).toHaveText(/Big Bash/);
-  await form.getByLabel("Title", { exact: true }).fill("E2E BBL Client Audio");
-  await form.getByLabel("Short description").fill("A client on the Sixers reading.");
+  await form.getByLabel("Title", { exact: true }).fill("E2E BBL Prediction Audio");
+  await form.getByLabel("Short description").fill("The Sixers v Heat prediction.");
   await form.getByTestId("audio-input").setInputFiles({ name: "tone.mp3", mimeType: "audio/mpeg", buffer: readFileSync("seed/media/demo-tone-b.mp3") });
   await expect(form.getByTestId("audio-ready")).toBeVisible();
   await form.getByLabel("Team A").selectOption({ label: "Sydney Sixers" });
@@ -635,11 +636,11 @@ test("testimonials are grouped by league: a BBL audio testimonial added from its
   await form.getByTestId("save-episode").click();
   await expect(page).toHaveURL(/\/admin\/episodes\/[0-9a-f-]{36}/);
 
-  await gotoReady(page, "/testimonials");
+  await gotoReady(page, "/prediction-records");
   const nav = page.getByRole("navigation", { name: "Leagues" }).filter({ visible: true });
   await expect(nav.getByRole("link")).toHaveText([/Big Bash/, /IPL/]);
-  await expect(page.getByTestId("testimonials-bbl-audio").getByTestId("episode-card").filter({ hasText: "E2E BBL Client Audio" }).filter({ visible: true })).toBeVisible();
-  await expect(page.getByTestId("testimonials-ipl-audio")).not.toContainText("E2E BBL Client Audio");
+  await expect(page.getByTestId("predictions-bbl").getByTestId("episode-card").filter({ hasText: "E2E BBL Prediction Audio" }).filter({ visible: true })).toBeVisible();
+  await expect(page.getByTestId("predictions-ipl")).not.toContainText("E2E BBL Prediction Audio");
 });
 
 test("admin edits the Rules page, the Krishna essay and the home quote, and the website shows them", async ({ page }) => {
