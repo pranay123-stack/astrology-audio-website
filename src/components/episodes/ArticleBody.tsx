@@ -1,11 +1,34 @@
 import { Fragment } from "react";
-import { parseArticle, type Inline } from "@/lib/article";
+import { parseArticle, splitLinks, type Inline } from "@/lib/article";
 import type { ArticleLang } from "@/lib/types";
+
+/** Web addresses in the text open as links; the rest stays plain text. */
+function Linked({ text }: { text: string }) {
+  return (
+    <>
+      {splitLinks(text).map((part, i) =>
+        part.link ? (
+          <a key={i} href={part.text} target="_blank" rel="noopener noreferrer" className="break-all text-gold-soft underline">
+            {part.text}
+          </a>
+        ) : (
+          <Fragment key={i}>{part.text}</Fragment>
+        ),
+      )}
+    </>
+  );
+}
 
 function Text({ parts }: { parts: Inline[] }) {
   return (
     <>
-      {parts.map((p, i) => (p.bold ? <strong key={i} className="font-semibold text-ink">{p.text}</strong> : <Fragment key={i}>{p.text}</Fragment>))}
+      {parts.map((p, i) =>
+        p.bold ? (
+          <strong key={i} className="font-semibold text-ink"><Linked text={p.text} /></strong>
+        ) : (
+          <Fragment key={i}><Linked text={p.text} /></Fragment>
+        ),
+      )}
     </>
   );
 }

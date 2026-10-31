@@ -1,6 +1,7 @@
 /**
  * Light article formatting for text the astrologer pastes in (often Hindi from WhatsApp):
- * blank line = new paragraph, "## " / "### " = heading, "- " or "• " = bullet, **bold**.
+ * blank line = new paragraph, "## " / "### " = heading, "- " or "• " = bullet, **bold**, and
+ * http(s) addresses become links.
  * Parsed into a tree and rendered as React elements, so pasted text can never inject HTML.
  */
 export type Inline = { text: string; bold: boolean };
@@ -20,6 +21,20 @@ export function parseInline(text: string): Inline[] {
     last = m.index + m[0].length;
   }
   if (last < text.length) out.push({ text: text.slice(last), bold: false });
+  return out;
+}
+
+/** Splits text around http(s) addresses, leaving sentence punctuation after an address outside it. */
+export function splitLinks(text: string): { text: string; link: boolean }[] {
+  const out: { text: string; link: boolean }[] = [];
+  const re = /https?:\/\/[^\s<>"]+[^\s<>".,;:!?)\]'।]/g;
+  let last = 0;
+  for (let m = re.exec(text); m; m = re.exec(text)) {
+    if (m.index > last) out.push({ text: text.slice(last, m.index), link: false });
+    out.push({ text: m[0], link: true });
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) out.push({ text: text.slice(last), link: false });
   return out;
 }
 

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { parseArticle, parseInline, readingMinutes } from "@/lib/article";
+import { renderToStaticMarkup } from "react-dom/server";
+import { createElement } from "react";
+import { ArticleBody } from "@/components/episodes/ArticleBody";
+import { parseArticle, parseInline, readingMinutes, splitLinks } from "@/lib/article";
 
 describe("article formatting", () => {
   it("splits paragraphs on blank lines and keeps single line breaks", () => {
@@ -35,6 +38,23 @@ describe("article formatting", () => {
 
   it("handles Windows line endings and stray whitespace", () => {
     expect(parseArticle("एक\r\n\r\n   \r\nदो").map((b) => b.kind)).toEqual(["p", "p"]);
+  });
+
+  it("finds web addresses and leaves punctuation after them outside the link", () => {
+    expect(splitLinks("See https://kpastrocric.com/kp-chart/abc-1.")).toEqual([
+      { text: "See ", link: false },
+      { text: "https://kpastrocric.com/kp-chart/abc-1", link: true },
+      { text: ".", link: false },
+    ]);
+    expect(splitLinks("no link javascript:alert(1) here")).toEqual([{ text: "no link javascript:alert(1) here", link: false }]);
+  });
+
+  it("renders an address as a link, also in bold, and never as raw HTML", () => {
+    const html = renderToStaticMarkup(createElement(ArticleBody, { source: '**https://a.example/x** and <b>https://a.example/y"onclick="z</b>', lang: "en" }));
+    expect(html).toContain('<a href="https://a.example/x" target="_blank" rel="noopener noreferrer"');
+    expect(html).toContain('<a href="https://a.example/y"');
+    expect(html).not.toContain("<b>");
+    expect(html).not.toContain('onclick="');
   });
 
   it("estimates reading time with a one-minute floor", () => {
