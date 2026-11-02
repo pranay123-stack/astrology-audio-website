@@ -29,23 +29,9 @@ export const TOPICS = {
 export const PLANET_FORMATS = ["video", "audio", "article"] as const satisfies readonly PostFormat[];
 
 /**
- * The leagues under Testimonials, in menu order: message proof has a category per league.
- */
-export const LEAGUES = [
-  { id: "bbl", key: "bbl", messagesCategory: "testimonial-messages-bbl" },
-  { id: "ipl", key: "ipl", messagesCategory: "testimonial-messages-ipl" },
-] as const;
-
-export type League = (typeof LEAGUES)[number];
-
-export const messagesQuery = (league: League) => ({ categorySlug: league.messagesCategory, sort: "latest" }) satisfies EpisodeQuery;
-
-/** The Testimonials categories, for the home page's "What people say". */
-export const TESTIMONIAL_CATEGORIES = LEAGUES.map((l) => l.messagesCategory);
-
-/**
- * Cricket Matches under Latest Matches, Horoscope Research and Prediction Records: each game, in
- * menu order, with its men's and women's competitions. A post's match says which one it is in.
+ * Cricket Matches under Latest Matches, Horoscope Research, Prediction Records and Testimonials:
+ * each game, in menu order, with its men's and women's competitions. A post's match says which
+ * one it is in; message proof has no match, so each competition has a message category.
  */
 export const CRICKET_SERIES = [
   { id: "bbl", key: "seriesBbl", men: "bbl", women: "wbbl" },
@@ -61,6 +47,11 @@ export const MATCH_COMPETITIONS = CRICKET_SERIES.flatMap((series) => SERIES_GEND
 
 export const latestQuery = (competitionSlug: string) => ({ categorySlug: "latest-matches", competitionSlug, sort: "match_date_desc" }) satisfies EpisodeQuery;
 export const predictionQuery = (competitionSlug: string) => ({ ...TOPICS.predictionRecords, competitionSlug }) satisfies EpisodeQuery;
+export const messagesCategory = (competitionSlug: string) => `testimonial-messages-${competitionSlug}`;
+export const messagesQuery = (competitionSlug: string) => ({ categorySlug: messagesCategory(competitionSlug), sort: "latest" }) satisfies EpisodeQuery;
+
+/** The Testimonials categories, for the home page's "What people say". */
+export const TESTIMONIAL_CATEGORIES = MATCH_COMPETITIONS.map((c) => messagesCategory(c.slug));
 
 /** Future Research Topics: menu anchor and query of each topic. */
 export const FUTURE_TOPICS = [

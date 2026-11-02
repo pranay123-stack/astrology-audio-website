@@ -38,9 +38,9 @@ beforeAll(async () => {
   memberId = created.data.user!.id;
   member = await signedIn(email, "member-Password-1");
 
-  const cats = (await service.from("categories").select("id,section")).data!;
+  const cats = (await service.from("categories").select("id,section,slug")).data!;
   generalCat = cats.find((c) => c.section === "general")!.id;
-  cricketCat = cats.find((c) => c.section === "cricket")!.id;
+  cricketCat = cats.find((c) => c.slug === "cricket-astrology")!.id;
   bbl = (await service.from("competitions").select("id").eq("slug", "bbl").single()).data!.id;
   teams = (await service.from("teams").select("id,name,competition_id")).data!;
 });

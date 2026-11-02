@@ -500,10 +500,10 @@ export const en = {
     testimonials: {
       eyebrow: "Testimonials",
       title: "Testimonials",
-      intro: "What people say about the readings: screenshots of the messages they sent, for each league.",
+      intro: "What people say about the readings: screenshots of the messages they sent, for men's and women's cricket.",
       messages: "Message proof",
       messagesIntro: "Screenshots of messages received. Tap one to see it full size.",
-      leagues: "Leagues",
+      leagues: "Competitions",
     },
   },
 

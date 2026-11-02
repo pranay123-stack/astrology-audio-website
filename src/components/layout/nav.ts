@@ -107,10 +107,7 @@ export function siteMenu({ showPremium, youtube }: { showPremium: boolean; youtu
     {
       key: "testimonials",
       href: "/testimonials",
-      children: [
-        { key: "bbl", href: "/testimonials#bbl" },
-        { key: "ipl", href: "/testimonials#ipl" },
-      ],
+      children: [{ key: "matches", href: "/testimonials#cricket", children: seriesMenu("/testimonials") }],
     },
     {
       key: "futureResearch",

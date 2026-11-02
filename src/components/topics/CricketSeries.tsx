@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 import { Trophy, UserRound } from "lucide-react";
 import { ListingSkeleton } from "@/components/episodes/ListingSkeleton";
 import { TopicPosts } from "@/components/topics/Topic";
@@ -7,7 +7,20 @@ import { CRICKET_SERIES, SERIES_GENDERS } from "@/lib/topics";
 import type { EpisodeQuery, Locale } from "@/lib/types";
 
 /** Cricket Matches on a page: BBL, IPL, T20 and ODI, each with its Men and Women sections. */
-export function CricketSeries({ query, navLabel, testId, lang }: { query: (competitionSlug: string) => EpisodeQuery; navLabel: string; testId: string; lang: Locale }) {
+export function CricketSeries({
+  query,
+  render,
+  navLabel,
+  testId,
+  lang,
+}: {
+  query: (competitionSlug: string) => EpisodeQuery;
+  /** Shows a section's posts some other way than as cards. */
+  render?: (query: EpisodeQuery) => ReactNode;
+  navLabel: string;
+  testId: string;
+  lang: Locale;
+}) {
   const d = getDict(lang);
   return (
     <section id="cricket" aria-labelledby="cricket-heading" className="container-page scroll-mt-24 space-y-14 py-10">
@@ -32,7 +45,7 @@ export function CricketSeries({ query, navLabel, testId, lang }: { query: (compe
                 <UserRound className="h-5 w-5 text-gold-soft" aria-hidden /> {d.menu[series.key]} · {d.menu[gender]}
               </h4>
               <Suspense fallback={<ListingSkeleton lang={lang} count={3} />}>
-                <TopicPosts query={query(series[gender])} lang={lang} limit={60} />
+                {render ? render(query(series[gender])) : <TopicPosts query={query(series[gender])} lang={lang} limit={60} />}
               </Suspense>
             </section>
           ))}

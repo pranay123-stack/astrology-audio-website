@@ -27,11 +27,12 @@ describe("admin follows the website menu", () => {
     expect(slots("predictionRecords")).toEqual(["bbl", "ipl", "t20", "odi"].flatMap((id) => [`predictions-${id}-men`, `predictions-${id}-women`]));
     expect(slots("research").slice(0, 8)).toEqual(["bbl", "ipl", "t20", "odi"].flatMap((id) => [`matches-${id}-men`, `matches-${id}-women`]));
     expect(adminSlot("matches-odi-women")).toMatchObject({ add: { category: "cricket-astrology", competition: "wodi" }, query: { competitionSlug: "wodi" } });
-    expect(slots("testimonials")).toEqual(["testimonials-bbl", "testimonials-ipl"]);
+    expect(slots("testimonials")).toEqual(["bbl", "ipl", "t20", "odi"].flatMap((id) => [`testimonials-${id}-men`, `testimonials-${id}-women`]));
     expect(adminSlot("predictions-ipl-women")).toMatchObject({ add: { category: "prediction-records", fields: ["audio"], competition: "wpl" }, query: { competitionSlug: "wpl" } });
-    expect(adminSlot("testimonials-ipl")).toMatchObject({ add: { category: "testimonial-messages-ipl", fields: ["photos"] } });
+    expect(adminSlot("testimonials-ipl-men")).toMatchObject({ add: { category: "testimonial-messages-ipl", fields: ["photos"] } });
+    expect(adminSlot("testimonials-odi-women")).toMatchObject({ add: { category: "testimonial-messages-wodi", fields: ["photos"] } });
     const menu = siteMenu({ showPremium: false });
-    expect(menu.find((m) => m.key === "testimonials")!.children!.map((c) => [c.key, c.href])).toEqual([["bbl", "/testimonials#bbl"], ["ipl", "/testimonials#ipl"]]);
+    expect(menu.find((m) => m.key === "testimonials")!.children![0].children![1].children!.map((g) => g.href)).toEqual(["/testimonials#ipl-men", "/testimonials#ipl-women"]);
     expect(menu.find((m) => m.key === "predictionRecords")!.children![0].children![3].children!.map((g) => g.href)).toEqual(["/prediction-records#odi-men", "/prediction-records#odi-women"]);
   });
 

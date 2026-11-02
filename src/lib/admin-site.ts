@@ -1,5 +1,5 @@
 import { getDict } from "@/lib/i18n";
-import { BOOK_PARTS, FUTURE_TOPICS, latestQuery, LEAGUES, MATCH_COMPETITIONS, messagesQuery, predictionQuery, TOPICS } from "@/lib/topics";
+import { BOOK_PARTS, FUTURE_TOPICS, latestQuery, MATCH_COMPETITIONS, messagesCategory, messagesQuery, predictionQuery, TOPICS } from "@/lib/topics";
 import type { Category, EpisodeQuery } from "@/lib/types";
 import type { SiteContentKey } from "@/lib/site-content";
 
@@ -244,14 +244,14 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     key: "testimonials",
     title: m.testimonials,
     page: "/testimonials",
-    intro: "Screenshots of messages, for each league.",
-    slots: LEAGUES.map((league) => ({
-      id: `testimonials-${league.id}`,
-      title: `${m[league.key]} › ${m.messageProof}`,
-      page: `/testimonials#${league.id}`,
+    intro: "Screenshots of messages: BBL, IPL, T20 and ODI, each for men and for women.",
+    slots: MATCH_COMPETITIONS.map((c) => ({
+      id: `testimonials-${c.series.id}-${c.gender}`,
+      title: `${seriesTitle(c)} › ${m.messageProof}`,
+      page: `/testimonials#${c.series.id}-${c.gender}`,
       hint: "Screenshots of messages, up to 12 photos in one post.",
-      query: messagesQuery(league),
-      add: { category: league.messagesCategory, fields: ["photos"] },
+      query: messagesQuery(c.slug),
+      add: { category: messagesCategory(c.slug), fields: ["photos"] as PostField[] },
     })),
   },
   {
