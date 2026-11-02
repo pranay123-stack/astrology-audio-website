@@ -679,6 +679,39 @@ test("Latest Matches: a BBL men's match added from its Add button lands under BB
   await expect(page).toHaveURL(/#odi-women$/);
 });
 
+test("Players: the search narrows the cards as a name is typed, even misspelled", async ({ page }) => {
+  await page.setExtraHTTPHeaders({ "x-forwarded-for": "10.0.0.46" });
+  await login(page);
+  for (const name of ["Virat Kohli", "Rohit Sharma"]) {
+    await gotoReady(page, "/admin/episodes/new?for=players");
+    await page.waitForLoadState("networkidle");
+    const form = page.getByTestId("episode-form").filter({ visible: true });
+    await form.getByLabel("Title", { exact: true }).fill(`${name} – KP Horoscope`);
+    await form.getByLabel("Short description").fill(`KP chart summary of ${name}.`);
+    await form.locator("#article").fill("A short chart summary.");
+    await form.getByTestId("save-episode").click();
+    await expect(page).toHaveURL(/\/admin\/episodes\/[0-9a-f-]{36}/);
+  }
+  await gotoReady(page, "/horoscope-research/players");
+  await page.waitForLoadState("networkidle");
+  const search = page.getByTestId("player-search").filter({ visible: true });
+  const cards = page.getByTestId("topic-posts").filter({ visible: true }).getByTestId("episode-card").filter({ visible: true });
+  await expect(cards).toHaveCount(2);
+  await search.fill("v");
+  await expect(cards).toHaveCount(1);
+  await expect(cards).toContainText("Virat Kohli");
+  await search.fill("kholi");
+  await expect(cards).toContainText("Virat Kohli");
+  await search.fill("rohith");
+  await expect(cards).toHaveCount(1);
+  await expect(cards).toContainText("Rohit Sharma");
+  await search.fill("zzzz");
+  await expect(cards).toHaveCount(0);
+  await expect(page.getByTestId("player-count").filter({ visible: true })).toContainText("No player found");
+  await page.getByRole("button", { name: "Clear search" }).filter({ visible: true }).click();
+  await expect(cards).toHaveCount(2);
+});
+
 test("admin edits the Rules page, the Krishna essay and the home quote, and the website shows them", async ({ page }) => {
   await page.setExtraHTTPHeaders({ "x-forwarded-for": "10.0.0.42" });
   await login(page);

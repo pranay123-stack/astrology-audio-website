@@ -2,10 +2,13 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Users } from "lucide-react";
 import { ListingSkeleton } from "@/components/episodes/ListingSkeleton";
-import { TopicHero, TopicPosts } from "@/components/topics/Topic";
-import { getDict, localePath } from "@/lib/i18n";
+import { EpisodeCard } from "@/components/episodes/EpisodeCard";
+import { PlayerSearch } from "@/components/topics/PlayerSearch";
+import { TopicHero } from "@/components/topics/Topic";
+import { EmptyState } from "@/components/ui/SectionHeading";
+import { getDict } from "@/lib/i18n";
 import { getLang } from "@/lib/i18n/server";
-import { parseListParams } from "@/lib/list-params";
+import { getEpisodes } from "@/lib/queries";
 import { alternatesFor } from "@/lib/seo";
 import { TOPICS } from "@/lib/topics";
 import type { Locale } from "@/lib/types";
@@ -16,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t.title, description: t.intro, alternates: alternatesFor(l, "/horoscope-research/players") };
 }
 
-export default async function PlayersPage({ searchParams }: PageProps<"/[lang]/horoscope-research/players">) {
+export default async function PlayersPage() {
   const lang = await getLang();
   const t = getDict(lang).topics.players;
   return (
@@ -24,14 +27,26 @@ export default async function PlayersPage({ searchParams }: PageProps<"/[lang]/h
       <TopicHero icon={Users} eyebrow={t.eyebrow} title={t.title} intro={t.intro} />
       <section className="container-page py-10">
         <Suspense fallback={<ListingSkeleton lang={lang} />}>
-          <Results searchParams={searchParams} lang={lang} />
+          <Players lang={lang} />
         </Suspense>
       </section>
     </>
   );
 }
 
-async function Results({ searchParams, lang }: Pick<PageProps<"/[lang]/horoscope-research/players">, "searchParams"> & { lang: Locale }) {
-  const p = parseListParams(await searchParams);
-  return <TopicPosts query={TOPICS.players} lang={lang} page={p.page} base={localePath(lang, "/horoscope-research/players")} />;
+/** Every player, so the search can narrow them straight away as a name is typed. */
+async function Players({ lang }: { lang: Locale }) {
+  const d = getDict(lang).topics;
+  const { items } = await getEpisodes({ ...TOPICS.players, limit: 500 });
+  if (!items.length) return <EmptyState title={d.emptyTitle}>{d.emptyBody}</EmptyState>;
+  return (
+    <PlayerSearch
+      players={items.map((e, i) => ({
+        id: e.id,
+        name: `${e.title} ${e.title_alt}`.replace(/[–-]\s*KP Horoscope/i, ""),
+        card: <EpisodeCard episode={e} lang={lang} priority={i < 3} />,
+      }))}
+      lang={lang}
+    />
+  );
 }

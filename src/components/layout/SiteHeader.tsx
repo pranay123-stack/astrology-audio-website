@@ -16,8 +16,8 @@ export async function SiteHeader({ lang }: { lang: Locale }) {
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:rounded-lg focus:bg-gold focus:px-3 focus:py-2 focus:text-night">
         {t.nav.skip}
       </a>
-      {/* The full menu fills the row, so "Learn Cricket Astrology" lives in the hero and the phone menu. */}
-      <div className="relative mx-auto flex h-16 w-full max-w-[1840px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+      {/* The full menu fills the row, wrapping to a second line when it must, so "Learn Cricket Astrology" lives in the hero and the phone menu. */}
+      <div className="relative mx-auto flex min-h-16 w-full max-w-[1840px] items-center justify-between gap-3 px-4 py-1 sm:px-6 lg:px-8">
         <Logo lang={lang} />
         <Suspense fallback={<DesktopNav static menu={menu} />}>
           <DesktopNav menu={menu} />

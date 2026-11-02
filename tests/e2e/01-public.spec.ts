@@ -8,6 +8,18 @@ const audioState = (page: Page) =>
     return { paused: a.paused, rate: a.playbackRate, time: a.currentTime, duration: a.duration };
   });
 
+test("the full menu fits wide screens, wrapping instead of pushing the page sideways", async ({ page }) => {
+  for (const width of [1766, 1920, 2100]) {
+    for (const path of ["/en", "/hi"]) {
+      await page.setViewportSize({ width, height: 900 });
+      await gotoReady(page, path);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow, `${path} at ${width}`).toBeLessThanOrEqual(0);
+      await expect(page.locator("header nav").filter({ visible: true }).getByRole("link", { name: path === "/en" ? "Krishna Consciousness" : "कृष्ण चेतना", exact: true }).first()).toBeInViewport();
+    }
+  }
+});
+
 test("home page shows the main sections and the sample-content notice", async ({ page }) => {
   await gotoReady(page, "/");
   // General astrology leads; cricket is further down the page for visitors who scroll.

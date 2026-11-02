@@ -164,8 +164,8 @@ function DesktopNavInner({ pathname, menu }: { pathname: string; menu: MenuNode[
   }, [open]);
 
   return (
-    <nav aria-label={t.nav.main} className="hidden nav:block">
-      <ul className="flex items-center gap-0.5">
+    <nav aria-label={t.nav.main} className="hidden min-w-0 flex-1 nav:block">
+      <ul className="flex flex-wrap items-center justify-center gap-0.5">
         {menu.map((l) => {
           const active = isCurrent(pathname, l);
           const isOpen = open === l.key;

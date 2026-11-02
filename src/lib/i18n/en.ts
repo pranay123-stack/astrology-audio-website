@@ -454,7 +454,15 @@ export const en = {
       playersBody: "Horoscope research on cricket players.",
     },
     matches: { eyebrow: "Horoscope Research", title: "Cricket Matches", intro: "Match kundlis for BBL, IPL, T20 and ODI, men and women." },
-    players: { eyebrow: "Horoscope Research", title: "Players", intro: "Horoscope research on cricket players." },
+    players: {
+      eyebrow: "Horoscope Research",
+      title: "Players",
+      intro: "Horoscope research on cricket players.",
+      search: "Search a player by name",
+      clear: "Clear search",
+      none: "No player found with that name.",
+      found: (n: number, total: number) => `Showing ${n} of ${total} players`,
+    },
     rules: {
       eyebrow: "Rules",
       title: "Rules",
