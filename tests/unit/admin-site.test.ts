@@ -3,7 +3,7 @@ import { siteMenu } from "@/components/layout/nav";
 import { ADMIN_SECTIONS, adminSlot, categoriesByMenu, sectionOfCategory } from "@/lib/admin-site";
 import { SITE_CONTENT_DEFAULTS, siteContentSchemas } from "@/lib/site-content";
 import type { Category } from "@/lib/types";
-import { categories } from "../../seed/content";
+import { categories, competitions } from "../../seed/content";
 
 describe("admin follows the website menu", () => {
   it("has one section per menu item, in menu order", () => {
@@ -22,16 +22,36 @@ describe("admin follows the website menu", () => {
     expect(adminSlot("book-pdf-hindi")).toMatchObject({ add: { category: "book-hindi", fields: ["pdf"], lang: "hi" }, section: { key: "book" } });
   });
 
-  it("Prediction Records holds each league's match audio; Testimonials each league's message proof", () => {
+  it("Prediction Records holds match audio by competition, men and women; Testimonials each league's message proof", () => {
     const slots = (key: string) => ADMIN_SECTIONS.find((s) => s.key === key)!.slots.map((s) => s.id);
-    expect(slots("predictionRecords")).toEqual(["predictions-bbl", "predictions-ipl"]);
+    expect(slots("predictionRecords")).toEqual(["bbl", "ipl", "t20", "odi"].flatMap((id) => [`predictions-${id}-men`, `predictions-${id}-women`]));
+    expect(slots("research").slice(0, 8)).toEqual(["bbl", "ipl", "t20", "odi"].flatMap((id) => [`matches-${id}-men`, `matches-${id}-women`]));
+    expect(adminSlot("matches-odi-women")).toMatchObject({ add: { category: "cricket-astrology", competition: "wodi" }, query: { competitionSlug: "wodi" } });
     expect(slots("testimonials")).toEqual(["testimonials-bbl", "testimonials-ipl"]);
-    expect(adminSlot("predictions-ipl")).toMatchObject({ add: { category: "prediction-records", fields: ["audio"], competition: "ipl" }, query: { competitionSlug: "ipl" } });
+    expect(adminSlot("predictions-ipl-women")).toMatchObject({ add: { category: "prediction-records", fields: ["audio"], competition: "wpl" }, query: { competitionSlug: "wpl" } });
     expect(adminSlot("testimonials-ipl")).toMatchObject({ add: { category: "testimonial-messages-ipl", fields: ["photos"] } });
     const menu = siteMenu({ showPremium: false });
-    for (const [key, page] of [["predictionRecords", "/prediction-records"], ["testimonials", "/testimonials"]]) {
-      expect(menu.find((m) => m.key === key)!.children!.map((c) => [c.key, c.href])).toEqual([["bbl", `${page}#bbl`], ["ipl", `${page}#ipl`]]);
+    expect(menu.find((m) => m.key === "testimonials")!.children!.map((c) => [c.key, c.href])).toEqual([["bbl", "/testimonials#bbl"], ["ipl", "/testimonials#ipl"]]);
+    expect(menu.find((m) => m.key === "predictionRecords")!.children![0].children![3].children!.map((g) => g.href)).toEqual(["/prediction-records#odi-men", "/prediction-records#odi-women"]);
+  });
+
+  it("Latest Matches has a men's and a women's place for BBL, IPL, T20 and ODI, each its own competition", () => {
+    const slots = ADMIN_SECTIONS.find((s) => s.key === "latestMatches")!.slots;
+    expect(slots.map((s) => s.id)).toEqual(["bbl", "ipl", "t20", "odi"].flatMap((id) => [`latest-${id}-men`, `latest-${id}-women`]));
+    expect(slots.map((s) => s.add.competition)).toEqual(["bbl", "wbbl", "ipl", "wpl", "t20i", "wt20i", "odi", "wodi"]);
+    const known = new Set(competitions.map((c) => c.slug));
+    for (const slot of slots) {
+      expect(known, slot.id).toContain(slot.add.competition);
+      expect(slot.query).toMatchObject({ categorySlug: "latest-matches", competitionSlug: slot.add.competition });
     }
+    const cricket = siteMenu({ showPremium: false }).find((m) => m.key === "latestMatches")!.children![0];
+    expect(cricket.key).toBe("matches");
+    expect(cricket.children!.map((c) => [c.key, c.children!.map((g) => g.href)])).toEqual([
+      ["seriesBbl", ["/latest-matches#bbl-men", "/latest-matches#bbl-women"]],
+      ["ipl", ["/latest-matches#ipl-men", "/latest-matches#ipl-women"]],
+      ["seriesT20", ["/latest-matches#t20-men", "/latest-matches#t20-women"]],
+      ["seriesOdi", ["/latest-matches#odi-men", "/latest-matches#odi-women"]],
+    ]);
   });
 
   it("a category with posts on a menu page is grouped under that menu item", () => {

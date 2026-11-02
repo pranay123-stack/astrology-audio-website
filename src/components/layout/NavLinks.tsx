@@ -90,7 +90,7 @@ function MenuLink({ node, className, onNavigate }: { node: MenuNode; className: 
   );
 }
 
-/** A dropdown's contents: plain links, and groups (e.g. "12 Planets & 12 Bhav") with their own sub-links. */
+/** A dropdown's contents: plain links, and groups (e.g. "12 Planets & 12 Bhav") with their own sub-links, which can have sub-links too. */
 function MenuPanel({ items, onNavigate, compact = false }: { items: MenuNode[]; onNavigate?: () => void; compact?: boolean }) {
   const sub = compact ? "block rounded-lg px-3 py-2 text-sm text-ink/80 hover:bg-white/5 hover:text-ink" : "block rounded-lg px-3 py-1.5 text-sm text-ink/80 hover:bg-white/5 hover:text-ink";
   return (
@@ -107,6 +107,15 @@ function MenuPanel({ items, onNavigate, compact = false }: { items: MenuNode[]; 
               {c.children.map((g) => (
                 <li key={g.key + g.href}>
                   <MenuLink node={g} onNavigate={onNavigate} className={sub} />
+                  {g.children && (
+                    <ul className="ml-3 flex flex-wrap border-l border-line pl-2">
+                      {g.children.map((leaf) => (
+                        <li key={leaf.key + leaf.href}>
+                          <MenuLink node={leaf} onNavigate={onNavigate} className={sub} />
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </li>
               ))}
             </ul>

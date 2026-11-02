@@ -34,16 +34,16 @@ export default async function MatchesPage({ searchParams }: PageProps<"/[lang]/h
 async function Results({ searchParams, lang }: Pick<PageProps<"/[lang]/horoscope-research/matches">, "searchParams"> & { lang: Locale }) {
   const d = getDict(lang);
   const p = parseListParams(await searchParams);
-  const competition = (MATCH_COMPETITIONS as readonly string[]).includes(p.competition) ? (p.competition as (typeof MATCH_COMPETITIONS)[number]) : undefined;
+  const competition = MATCH_COMPETITIONS.find((c) => c.slug === p.competition)?.slug;
   const base = localePath(lang, "/horoscope-research/matches");
-  const counts = await Promise.all([countPosts(TOPICS.matches), ...MATCH_COMPETITIONS.map((c) => countPosts({ ...TOPICS.matches, competitionSlug: c }))]);
+  const counts = await Promise.all([countPosts(TOPICS.matches), ...MATCH_COMPETITIONS.map((c) => countPosts({ ...TOPICS.matches, competitionSlug: c.slug }))]);
   return (
     <>
       <TopicTabs
         label={d.menu.matches}
         tabs={[
           { label: d.topics.all, href: base, active: !competition, count: counts[0] },
-          ...MATCH_COMPETITIONS.map((c, i) => ({ label: d.menu[c], href: `${base}?competition=${c}`, active: competition === c, count: counts[i + 1] })),
+          ...MATCH_COMPETITIONS.map((c, i) => ({ label: `${d.menu[c.series.key]} · ${d.menu[c.gender]}`, href: `${base}?competition=${c.slug}`, active: competition === c.slug, count: counts[i + 1] })),
         ]}
       />
       <TopicPosts

@@ -27,6 +27,7 @@ export const categories = [
   { slug: "prediction-records", requires_match: true, name: "Prediction Records", name_hi: "भविष्यवाणी रिकॉर्ड", description_hi: "ऑडियो और मैच डेटा के साथ मैच की भविष्यवाणियाँ।", section: "cricket", description: "Match predictions with audio and the match data." },
   { slug: "testimonial-messages-bbl", requires_match: false, name: "Message Proof (BBL)", name_hi: "संदेश प्रमाण (BBL)", description_hi: "BBL रीडिंग पर आए संदेशों के स्क्रीनशॉट।", section: "cricket", description: "Screenshots of messages about BBL readings." },
   { slug: "testimonial-messages-ipl", requires_match: false, name: "Message Proof (IPL)", name_hi: "संदेश प्रमाण (IPL)", description_hi: "IPL रीडिंग पर आए संदेशों के स्क्रीनशॉट।", section: "cricket", description: "Screenshots of messages about IPL readings." },
+  { slug: "latest-matches", requires_match: true, name: "Latest Matches", name_hi: "ताज़ा मैच", description_hi: "पुरुष और महिला क्रिकेट के ताज़ा मैच।", section: "cricket", description: "The latest cricket matches, men and women." },
   { slug: "football-astro", requires_match: false, name: "Football Astro", name_hi: "फ़ुटबॉल ज्योतिष", description_hi: "फ़ुटबॉल मैचों पर ज्योतिषीय शोध।", section: "general", description: "Astrology research on football matches." },
   { slug: "share-market", requires_match: false, name: "Share Market", name_hi: "शेयर बाज़ार", description_hi: "शेयर बाज़ार पर ज्योतिषीय शोध।", section: "general", description: "Astrology research on the share market." },
   { slug: "bitcoin-forex", requires_match: false, name: "Bitcoin & Forex Market", name_hi: "बिटकॉइन और फ़ॉरेक्स बाज़ार", description_hi: "बिटकॉइन और फ़ॉरेक्स बाज़ार पर ज्योतिषीय शोध।", section: "general", description: "Astrology research on bitcoin and forex markets." },
@@ -41,6 +42,11 @@ export const competitions = [
   { slug: "bbl", name: "Big Bash League", short_name: "BBL", description: "Australia's men's T20 domestic league." },
   { slug: "ipl", name: "Indian Premier League", short_name: "IPL", description: "India's men's T20 league." },
   { slug: "t20i", name: "International T20", short_name: "T20I", description: "Men's T20 internationals." },
+  { slug: "odi", name: "One Day International", short_name: "ODI", description: "Men's one-day internationals." },
+  { slug: "wbbl", name: "Women's Big Bash League", short_name: "WBBL", description: "Australia's women's T20 domestic league." },
+  { slug: "wpl", name: "Women's Premier League", short_name: "WPL", description: "India's women's T20 league." },
+  { slug: "wt20i", name: "Women's International T20", short_name: "WT20I", description: "Women's T20 internationals." },
+  { slug: "wodi", name: "Women's One Day International", short_name: "WODI", description: "Women's one-day internationals." },
 ] as const;
 
 export const bblTeams = [

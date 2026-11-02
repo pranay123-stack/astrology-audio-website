@@ -1,5 +1,5 @@
 import { getDict } from "@/lib/i18n";
-import { BOOK_PARTS, FUTURE_TOPICS, LEAGUES, MATCH_COMPETITIONS, messagesQuery, predictionQuery, TOPICS } from "@/lib/topics";
+import { BOOK_PARTS, FUTURE_TOPICS, latestQuery, LEAGUES, MATCH_COMPETITIONS, messagesQuery, predictionQuery, TOPICS } from "@/lib/topics";
 import type { Category, EpisodeQuery } from "@/lib/types";
 import type { SiteContentKey } from "@/lib/site-content";
 
@@ -58,6 +58,8 @@ const planetSlot = (format: "video" | "audio" | "article", title: string, fields
   add: { category: "planets-grahas", fields },
 });
 
+const seriesTitle = (c: (typeof MATCH_COMPETITIONS)[number]) => `${m[c.series.key]} › ${m[c.gender]}`;
+
 const bookField = { audio: ["audio"], pdf: ["pdf"] } as const;
 
 /**
@@ -74,6 +76,20 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     slots: [],
     editor: "quotes",
     links: [{ href: PROFILE, label: "Your photo, name and tagline", hint: "Shown on the home page and on About." }],
+  },
+  {
+    key: "latestMatches",
+    title: m.latestMatches,
+    page: "/latest-matches",
+    intro: "Cricket Matches: BBL, IPL, T20 and ODI, each for men and for women.",
+    slots: MATCH_COMPETITIONS.map((c) => ({
+      id: `latest-${c.series.id}-${c.gender}`,
+      title: seriesTitle(c),
+      page: `/latest-matches#${c.series.id}-${c.gender}`,
+      hint: "Needs the two teams and the match date.",
+      query: latestQuery(c.slug),
+      add: { category: "latest-matches", fields: ["article", "audio", "video", "photos"] as PostField[], competition: c.slug },
+    })),
   },
   {
     key: "astrology",
@@ -156,12 +172,12 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     intro: "Match readings by competition, and player horoscopes.",
     slots: [
       ...MATCH_COMPETITIONS.map((c) => ({
-        id: `matches-${c}`,
-        title: `${m.matches} › ${m[c]}`,
-        page: `/horoscope-research/matches?competition=${c}`,
+        id: `matches-${c.series.id}-${c.gender}`,
+        title: `${m.matches} › ${seriesTitle(c)}`,
+        page: `/horoscope-research/matches?competition=${c.slug}`,
         hint: "Needs the two teams and the match date.",
-        query: { ...TOPICS.matches, competitionSlug: c },
-        add: { category: TOPICS.matches.categorySlug, fields: ["article", "audio", "video"] as PostField[], competition: c },
+        query: { ...TOPICS.matches, competitionSlug: c.slug },
+        add: { category: TOPICS.matches.categorySlug, fields: ["article", "audio", "video"] as PostField[], competition: c.slug },
       })),
       {
         id: "players",
@@ -215,13 +231,13 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     title: m.predictionRecords,
     page: "/prediction-records",
     intro: "Audio of your match predictions with the match data, for each league.",
-    slots: LEAGUES.map((league) => ({
-      id: `predictions-${league.id}`,
-      title: m[league.key],
-      page: `/prediction-records#${league.id}`,
-      hint: `Audio about a ${m[league.key]} match. It needs the teams and the match date.`,
-      query: predictionQuery(league),
-      add: { category: "prediction-records", fields: ["audio"], competition: league.id },
+    slots: MATCH_COMPETITIONS.map((c) => ({
+      id: `predictions-${c.series.id}-${c.gender}`,
+      title: seriesTitle(c),
+      page: `/prediction-records#${c.series.id}-${c.gender}`,
+      hint: "Audio about a match. It needs the teams and the match date.",
+      query: predictionQuery(c.slug),
+      add: { category: "prediction-records", fields: ["audio"] as PostField[], competition: c.slug },
     })),
   },
   {

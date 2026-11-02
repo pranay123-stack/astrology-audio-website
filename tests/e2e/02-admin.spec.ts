@@ -614,14 +614,14 @@ test("a Drive folder of chapters becomes one Book audio post with a chapter play
   await expect(player.getByRole("button", { name: "Next chapter" })).toBeDisabled();
 });
 
-test("Prediction Records by league: BBL match audio added from its Add button lands under BBL only", async ({ page }) => {
+test("Prediction Records by competition: BBL men's match audio added from its Add button lands under BBL Men only", async ({ page }) => {
   await page.setExtraHTTPHeaders({ "x-forwarded-for": "10.0.0.44" });
   await login(page);
   await gotoReady(page, "/admin/site/testimonials");
   for (const id of ["bbl", "ipl"]) await expect(page.getByTestId(`slot-testimonials-${id}`).filter({ visible: true })).toContainText("Message proof");
   await gotoReady(page, "/admin/site/predictionRecords");
-  for (const id of ["bbl", "ipl"]) await expect(page.getByTestId(`slot-predictions-${id}`).filter({ visible: true })).toBeVisible();
-  await page.getByTestId("add-predictions-bbl").filter({ visible: true }).click();
+  for (const id of ["bbl", "ipl", "t20", "odi"]) for (const gender of ["men", "women"]) await expect(page.getByTestId(`slot-predictions-${id}-${gender}`).filter({ visible: true })).toBeVisible();
+  await page.getByTestId("add-predictions-bbl-men").filter({ visible: true }).click();
   await page.waitForLoadState("networkidle");
   const form = page.getByTestId("episode-form").filter({ visible: true });
   await expect(form.getByLabel("Category").locator("option:checked")).toHaveText("Prediction Records");
@@ -637,10 +637,45 @@ test("Prediction Records by league: BBL match audio added from its Add button la
   await expect(page).toHaveURL(/\/admin\/episodes\/[0-9a-f-]{36}/);
 
   await gotoReady(page, "/prediction-records");
-  const nav = page.getByRole("navigation", { name: "Leagues" }).filter({ visible: true });
-  await expect(nav.getByRole("link")).toHaveText([/Big Bash/, /IPL/]);
-  await expect(page.getByTestId("predictions-bbl").getByTestId("episode-card").filter({ hasText: "E2E BBL Prediction Audio" }).filter({ visible: true })).toBeVisible();
-  await expect(page.getByTestId("predictions-ipl")).not.toContainText("E2E BBL Prediction Audio");
+  const nav = page.getByRole("navigation", { name: "Competitions" }).filter({ visible: true });
+  await expect(nav.getByRole("link")).toHaveText(["BBL", "IPL", "T20", "ODI"]);
+  await expect(page.getByTestId("predictions-bbl-men").getByTestId("episode-card").filter({ hasText: "E2E BBL Prediction Audio" }).filter({ visible: true })).toBeVisible();
+  await expect(page.getByTestId("predictions-bbl-women").filter({ visible: true })).not.toContainText("E2E BBL Prediction Audio");
+});
+
+test("Latest Matches: a BBL men's match added from its Add button lands under BBL Men only", async ({ page }) => {
+  await page.setExtraHTTPHeaders({ "x-forwarded-for": "10.0.0.45" });
+  await login(page);
+  await gotoReady(page, "/admin/site/latestMatches");
+  for (const id of ["bbl", "ipl", "t20", "odi"]) for (const gender of ["men", "women"]) await expect(page.getByTestId(`slot-latest-${id}-${gender}`).filter({ visible: true })).toBeVisible();
+  await expect(page.getByTestId("slot-latest-odi-women").filter({ visible: true })).toContainText("no teams yet");
+  await page.getByTestId("add-latest-bbl-men").filter({ visible: true }).click();
+  await page.waitForLoadState("networkidle");
+  const form = page.getByTestId("episode-form").filter({ visible: true });
+  await expect(form.getByLabel("Category").locator("option:checked")).toHaveText("Latest Matches");
+  await expect(form.getByLabel("Competition").locator("option:checked")).toHaveText(/Big Bash League/);
+  await form.getByLabel("Title", { exact: true }).fill("E2E Latest Sixers v Heat");
+  await form.getByLabel("Short description").fill("A latest match for the menu test.");
+  await form.locator("#article").fill("A short note on this match.");
+  await form.getByLabel("Team A").selectOption({ label: "Sydney Sixers" });
+  await form.getByLabel("Team B").selectOption({ label: "Brisbane Heat" });
+  await form.getByLabel(/Match start/).fill("2030-02-05T19:15");
+  await form.getByTestId("save-episode").click();
+  await expect(page).toHaveURL(/\/admin\/episodes\/[0-9a-f-]{36}/);
+
+  await gotoReady(page, "/latest-matches");
+  await expect(page.getByRole("navigation", { name: "Competitions" }).filter({ visible: true }).getByRole("link")).toHaveText(["BBL", "IPL", "T20", "ODI"]);
+  await expect(page.getByTestId("latest-bbl-men").filter({ visible: true })).toContainText("E2E Latest Sixers v Heat");
+  await expect(page.getByTestId("latest-bbl-women").filter({ visible: true })).not.toContainText("E2E Latest Sixers v Heat");
+  await expect(page.getByTestId("latest-odi-women").filter({ visible: true }).getByTestId("empty-state")).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.getByRole("button", { name: "Open menu" }).click();
+  await page.getByTestId("mobile-toggle-latestMatches").click();
+  const menu = page.locator("#mobile-menu");
+  await expect(menu.getByRole("link", { name: "Cricket Matches", exact: true })).toBeVisible();
+  await menu.locator('a[href$="/latest-matches#odi-women"]').click();
+  await expect(page).toHaveURL(/#odi-women$/);
 });
 
 test("admin edits the Rules page, the Krishna essay and the home quote, and the website shows them", async ({ page }) => {

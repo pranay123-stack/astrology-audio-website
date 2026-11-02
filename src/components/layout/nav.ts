@@ -1,4 +1,5 @@
 import type { Dict } from "@/lib/i18n";
+import { CRICKET_SERIES, SERIES_GENDERS } from "@/lib/topics";
 
 /** One menu entry: paths are language-free (`external` links are absolute); labels come from the dictionary. */
 export interface MenuNode {
@@ -10,8 +11,16 @@ export interface MenuNode {
   also?: string[];
 }
 
+/** BBL, IPL, T20 and ODI with their Men and Women sections on a page. */
+const seriesMenu = (page: string): MenuNode[] =>
+  CRICKET_SERIES.map((series) => ({
+    key: series.key,
+    href: `${page}#${series.id}`,
+    children: SERIES_GENDERS.map((gender) => ({ key: gender, href: `${page}#${series.id}-${gender}` })),
+  }));
+
 /**
- * The site menu, as the astrologer laid it out: Home, Astrology, Astro Cricket, Book, Horoscope
+ * The site menu, as the astrologer laid it out: Home, Latest Matches, Astrology, Astro Cricket, Book, Horoscope
  * Research, Make Your KP Chart, Contact, Rules, Prediction Records, Testimonials, Future Research Topics, Krishna
  * Consciousness. Premium appears only while a premium post is published, so visitors never land
  * on an empty page; YouTube only when the channel link is set.
@@ -19,6 +28,13 @@ export interface MenuNode {
 export function siteMenu({ showPremium, youtube }: { showPremium: boolean; youtube?: string }): MenuNode[] {
   const menu: MenuNode[] = [
     { key: "home", href: "/" },
+    {
+      key: "latestMatches",
+      href: "/latest-matches",
+      children: [
+        { key: "matches", href: "/latest-matches#cricket", children: seriesMenu("/latest-matches") },
+      ],
+    },
     {
       key: "astrology",
       href: "/astrology",
@@ -63,11 +79,11 @@ export function siteMenu({ showPremium, youtube }: { showPremium: boolean; youtu
         {
           key: "matches",
           href: "/horoscope-research/matches",
-          children: [
-            { key: "bbl", href: "/horoscope-research/matches?competition=bbl" },
-            { key: "ipl", href: "/horoscope-research/matches?competition=ipl" },
-            { key: "t20i", href: "/horoscope-research/matches?competition=t20i" },
-          ],
+          children: CRICKET_SERIES.map((series) => ({
+            key: series.key,
+            href: `/horoscope-research/matches?competition=${series.men}`,
+            children: SERIES_GENDERS.map((gender) => ({ key: gender, href: `/horoscope-research/matches?competition=${series[gender]}` })),
+          })),
         },
         { key: "players", href: "/horoscope-research/players" },
       ],
@@ -86,10 +102,7 @@ export function siteMenu({ showPremium, youtube }: { showPremium: boolean; youtu
     {
       key: "predictionRecords",
       href: "/prediction-records",
-      children: [
-        { key: "bbl", href: "/prediction-records#bbl" },
-        { key: "ipl", href: "/prediction-records#ipl" },
-      ],
+      children: [{ key: "matches", href: "/prediction-records#cricket", children: seriesMenu("/prediction-records") }],
     },
     {
       key: "testimonials",
@@ -111,7 +124,7 @@ export function siteMenu({ showPremium, youtube }: { showPremium: boolean; youtu
     },
     { key: "krishna", href: "/krishna-consciousness" },
   ];
-  if (showPremium) menu.splice(5, 0, { key: "premium", href: "/premium" });
+  if (showPremium) menu.splice(6, 0, { key: "premium", href: "/premium" });
   return menu;
 }
 

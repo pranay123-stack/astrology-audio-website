@@ -105,17 +105,15 @@ describe("site menu", () => {
   it("follows the astrologer's layout and links YouTube only when it is set", async () => {
     const { siteMenu } = await import("@/components/layout/nav");
     const menu = siteMenu({ showPremium: false });
-    expect(menu.map((m) => m.key)).toEqual(["home", "astrology", "astroCricket", "book", "research", "kpChart", "contact", "rules", "predictionRecords", "testimonials", "futureResearch", "krishna"]);
+    expect(menu.map((m) => m.key)).toEqual(["home", "latestMatches", "astrology", "astroCricket", "book", "research", "kpChart", "contact", "rules", "predictionRecords", "testimonials", "futureResearch", "krishna"]);
     const cricket = menu.find((m) => m.key === "astroCricket")!;
     expect(cricket.children!.map((c) => c.key)).toEqual(["podcast", "oldVideos"]);
     const withYoutube = siteMenu({ showPremium: true, youtube: "https://www.youtube.com/@ASTROCRICKET" });
     expect(withYoutube.find((m) => m.key === "astroCricket")!.children!.at(-1)).toMatchObject({ key: "youtube", external: true });
     expect(withYoutube.map((m) => m.key)).toContain("premium");
     const research = menu.find((m) => m.key === "research")!;
-    expect(research.children![0].children!.map((c) => c.href)).toEqual([
-      "/horoscope-research/matches?competition=bbl",
-      "/horoscope-research/matches?competition=ipl",
-      "/horoscope-research/matches?competition=t20i",
-    ]);
+    expect(research.children![0].children!.map((c) => c.children!.map((g) => g.href))).toEqual(
+      [["bbl", "wbbl"], ["ipl", "wpl"], ["t20i", "wt20i"], ["odi", "wodi"]].map((pair) => pair.map((c) => `/horoscope-research/matches?competition=${c}`)),
+    );
   });
 });

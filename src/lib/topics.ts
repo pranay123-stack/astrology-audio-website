@@ -28,13 +28,8 @@ export const TOPICS = {
 /** The Video / Audio / Read tabs of "12 Planets & 12 Bhav". */
 export const PLANET_FORMATS = ["video", "audio", "article"] as const satisfies readonly PostFormat[];
 
-/** Competitions listed under Horoscope Research › Cricket Matches, in menu order. */
-export const MATCH_COMPETITIONS = ["bbl", "ipl", "t20i"] as const;
-
 /**
- * The leagues under Prediction Records and Testimonials, in menu order. Prediction records are
- * audio with the match, so their league comes from the match; message proof (Testimonials) has
- * a category per league.
+ * The leagues under Testimonials, in menu order: message proof has a category per league.
  */
 export const LEAGUES = [
   { id: "bbl", key: "bbl", messagesCategory: "testimonial-messages-bbl" },
@@ -43,11 +38,29 @@ export const LEAGUES = [
 
 export type League = (typeof LEAGUES)[number];
 
-export const predictionQuery = (league: League) => ({ ...TOPICS.predictionRecords, competitionSlug: league.id }) satisfies EpisodeQuery;
 export const messagesQuery = (league: League) => ({ categorySlug: league.messagesCategory, sort: "latest" }) satisfies EpisodeQuery;
 
 /** The Testimonials categories, for the home page's "What people say". */
 export const TESTIMONIAL_CATEGORIES = LEAGUES.map((l) => l.messagesCategory);
+
+/**
+ * Cricket Matches under Latest Matches, Horoscope Research and Prediction Records: each game, in
+ * menu order, with its men's and women's competitions. A post's match says which one it is in.
+ */
+export const CRICKET_SERIES = [
+  { id: "bbl", key: "seriesBbl", men: "bbl", women: "wbbl" },
+  { id: "ipl", key: "ipl", men: "ipl", women: "wpl" },
+  { id: "t20", key: "seriesT20", men: "t20i", women: "wt20i" },
+  { id: "odi", key: "seriesOdi", men: "odi", women: "wodi" },
+] as const;
+
+export const SERIES_GENDERS = ["men", "women"] as const;
+
+/** Every men's and women's place, in menu order. */
+export const MATCH_COMPETITIONS = CRICKET_SERIES.flatMap((series) => SERIES_GENDERS.map((gender) => ({ slug: series[gender], series, gender })));
+
+export const latestQuery = (competitionSlug: string) => ({ categorySlug: "latest-matches", competitionSlug, sort: "match_date_desc" }) satisfies EpisodeQuery;
+export const predictionQuery = (competitionSlug: string) => ({ ...TOPICS.predictionRecords, competitionSlug }) satisfies EpisodeQuery;
 
 /** Future Research Topics: menu anchor and query of each topic. */
 export const FUTURE_TOPICS = [

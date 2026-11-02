@@ -37,7 +37,7 @@ async function Hub({ lang }: { lang: Locale }) {
   const href = (p: string) => localePath(lang, p);
   const [matches, byCompetition, players] = await Promise.all([
     countPosts(TOPICS.matches),
-    Promise.all(MATCH_COMPETITIONS.map((c) => countPosts({ ...TOPICS.matches, competitionSlug: c }))),
+    Promise.all(MATCH_COMPETITIONS.map((c) => countPosts({ ...TOPICS.matches, competitionSlug: c.slug }))),
     countPosts(TOPICS.players),
   ]);
   return (
@@ -49,7 +49,7 @@ async function Hub({ lang }: { lang: Locale }) {
           body={t.matchesBody}
           href={href("/horoscope-research/matches")}
           count={matches}
-          links={MATCH_COMPETITIONS.map((c, i) => ({ label: d.menu[c], href: href(`/horoscope-research/matches?competition=${c}`), count: byCompetition[i] }))}
+          links={MATCH_COMPETITIONS.map((c, i) => ({ label: `${d.menu[c.series.key]} · ${d.menu[c.gender]}`, href: href(`/horoscope-research/matches?competition=${c.slug}`), count: byCompetition[i] }))}
           lang={lang}
           testId="hub-matches"
         />
