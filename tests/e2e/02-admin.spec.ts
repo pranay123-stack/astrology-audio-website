@@ -712,6 +712,50 @@ test("Players: the search narrows the cards as a name is typed, even misspelled"
   await expect(cards).toHaveCount(2);
 });
 
+test("offer popup: set up in Admin › Home, shown once to a visitor, and not again after closing", async ({ page, browser }) => {
+  await page.setExtraHTTPHeaders({ "x-forwarded-for": "10.0.0.47" });
+  await login(page);
+  await gotoReady(page, "/admin/site/home");
+  const editor = page.getByTestId("popup-editor").filter({ visible: true });
+  await expect(editor.getByTestId("popup-status")).toHaveText("Off");
+  await editor.getByTestId("popup-enabled").check();
+  await editor.getByLabel("Title, English site").fill("E2E Diwali offer");
+  await editor.getByLabel("Title, Hindi site (optional)").fill("E2E दिवाली ऑफ़र");
+  await editor.getByLabel("Text, English site").fill("20% off KP charts this week.");
+  await editor.getByLabel("Button, English site").fill("Book now");
+  await editor.getByLabel("Button link").fill("/contact");
+  await editor.getByTestId("popup-image-input").setInputFiles("tests/fixtures/reel-frame.png");
+  await expect(editor.getByTestId("popup-image-ready")).toBeVisible();
+  await expect(editor.getByTestId("popup-status")).toHaveText("On: visitors see it now");
+  await editor.getByTestId("save-popup").click();
+  await expect(page.getByTestId("content-message").filter({ visible: true }).first()).toContainText("Saved");
+
+  const visitor = await browser.newPage();
+  await gotoReady(visitor, "/");
+  const popup = visitor.getByTestId("offer-popup");
+  await expect(popup).toBeVisible({ timeout: 10_000 });
+  await expect(popup).toContainText("E2E Diwali offer");
+  await expect(popup.locator("img")).toHaveCount(1);
+  await visitor.getByTestId("offer-close").click();
+  await expect(popup).toHaveCount(0);
+  await gotoReady(visitor, "/rules");
+  await visitor.waitForTimeout(2500);
+  await expect(visitor.getByTestId("offer-popup")).toHaveCount(0);
+  await visitor.close();
+
+  const hindi = await browser.newPage();
+  await gotoReady(hindi, "/hi");
+  await expect(hindi.getByTestId("offer-popup")).toContainText("E2E दिवाली ऑफ़र", { timeout: 10_000 });
+  await hindi.getByTestId("offer-button").click();
+  await expect(hindi).toHaveURL(/\/hi\/contact$/);
+  await hindi.close();
+
+  await gotoReady(page, "/admin/site/home");
+  await page.getByTestId("popup-editor").filter({ visible: true }).getByTestId("popup-enabled").uncheck();
+  await page.getByTestId("save-popup").filter({ visible: true }).click();
+  await expect(page.getByTestId("content-message").filter({ visible: true }).first()).toContainText("Saved");
+});
+
 test("admin edits the Rules page, the Krishna essay and the home quote, and the website shows them", async ({ page }) => {
   await page.setExtraHTTPHeaders({ "x-forwarded-for": "10.0.0.42" });
   await login(page);

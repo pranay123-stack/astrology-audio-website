@@ -5,12 +5,13 @@ import { Suspense } from "react";
 import { ArrowRight, ExternalLink, Pencil, Plus, TriangleAlert } from "lucide-react";
 import { setPublished } from "@/app/admin/actions";
 import { ActionButton } from "@/components/admin/ConfirmButton";
-import { KrishnaEditor, QuoteEditor, RulesEditor } from "@/components/admin/SiteContentEditors";
+import { KrishnaEditor, PopupEditor, QuoteEditor, RulesEditor } from "@/components/admin/SiteContentEditors";
 import { adminSection, type AdminSection, type AdminSlot } from "@/lib/admin-site";
 import { requireAdmin } from "@/lib/auth/admin";
+import { siteConfig } from "@/lib/config";
 import { getAdminRepository } from "@/lib/data";
 import { episodeStatus } from "@/lib/data/repository";
-import { SITE_CONTENT_DEFAULTS } from "@/lib/site-content";
+import { SITE_CONTENT_DEFAULTS, type SiteContentKey } from "@/lib/site-content";
 import type { Competition, Team } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Website content" };
@@ -103,9 +104,16 @@ async function Slot({ slot, competitions, teams }: { slot: AdminSlot; competitio
 }
 
 async function Editor({ section }: { section: AdminSection }) {
-  if (!section.editor) return null;
+  if (!section.editors?.length) return null;
   const repo = await getAdminRepository();
-  if (section.editor === "rules") return <RulesEditor initial={(await repo.getSiteContent("rules")) ?? SITE_CONTENT_DEFAULTS.rules} />;
-  if (section.editor === "krishna") return <KrishnaEditor initial={(await repo.getSiteContent("krishna")) ?? SITE_CONTENT_DEFAULTS.krishna} />;
-  return <QuoteEditor initial={(await repo.getSiteContent("quotes")) ?? SITE_CONTENT_DEFAULTS.quotes} />;
+  const saved = async <K extends SiteContentKey>(key: K) => (await repo.getSiteContent(key)) ?? SITE_CONTENT_DEFAULTS[key];
+  const editors = await Promise.all(
+    section.editors.map(async (key) => {
+      if (key === "rules") return <RulesEditor key={key} initial={await saved("rules")} />;
+      if (key === "krishna") return <KrishnaEditor key={key} initial={await saved("krishna")} />;
+      if (key === "popup") return <PopupEditor key={key} initial={await saved("popup")} timeZone={siteConfig.timeZone} />;
+      return <QuoteEditor key={key} initial={await saved("quotes")} />;
+    }),
+  );
+  return <>{editors}</>;
 }

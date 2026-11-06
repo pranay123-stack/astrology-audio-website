@@ -39,7 +39,8 @@ export interface AdminSection {
   intro: string;
   slots: AdminSlot[];
   /** Page text edited right on this section's page. */
-  editor?: SiteContentKey;
+  /** Page text edited on this item's Admin page, in order. */
+  editors?: SiteContentKey[];
   links?: AdminLink[];
 }
 
@@ -74,7 +75,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     page: "/",
     intro: "The home page fills itself: it shows your newest posts, reels and categories. Here you change the quote at the top.",
     slots: [],
-    editor: "quotes",
+    editors: ["popup", "quotes"],
     links: [{ href: PROFILE, label: "Your photo, name and tagline", hint: "Shown on the home page and on About." }],
   },
   {
@@ -224,7 +225,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
         add: { category: "rules-posts", fields: ["audio", "video"] },
       },
     ],
-    editor: "rules",
+    editors: ["rules"],
   },
   {
     key: "predictionRecords",
@@ -283,7 +284,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
         add: { category: "krishna-consciousness", fields: ["audio", "video"] },
       },
     ],
-    editor: "krishna",
+    editors: ["krishna"],
   },
 ];
 

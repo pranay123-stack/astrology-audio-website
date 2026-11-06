@@ -5,9 +5,13 @@ import { useState, useTransition } from "react";
 import { ArrowDown, ArrowUp, Loader2, Plus, Save, Trash2 } from "lucide-react";
 import { saveSiteContent } from "@/app/admin/actions";
 import type { KrishnaContent } from "@/content/krishna";
+import { popupIsLive, type PopupContent } from "@/content/popup";
 import type { QuoteContent } from "@/content/quote";
 import type { Rule } from "@/content/rules";
+import { fromZonedInputValue, toZonedInputValue } from "@/lib/dates";
+import { imageUrl } from "@/lib/media/urls";
 import type { SiteContent, SiteContentKey } from "@/lib/site-content";
+import { FileField } from "./FileField";
 
 const toLines = (s: string) => s.split("\n").map((l) => l.trim()).filter(Boolean);
 
@@ -48,6 +52,68 @@ function Field({ label, value, onChange, rows = 0, hint }: { label: string; valu
       )}
       {hint && <span className="mt-1 block text-xs text-muted">{hint}</span>}
     </label>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Offer popup
+// ---------------------------------------------------------------------------
+
+export function PopupEditor({ initial, timeZone }: { initial: PopupContent; timeZone: string }) {
+  const [p, setP] = useState({ ...initial, starts_at: toZonedInputValue(initial.starts_at, timeZone), ends_at: toZonedInputValue(initial.ends_at, timeZone) });
+  const { pending, message, save } = useSave("popup");
+  const set = (patch: Partial<PopupContent>) => setP({ ...p, ...patch });
+  const value = (): PopupContent => ({
+    ...p,
+    starts_at: p.starts_at ? fromZonedInputValue(p.starts_at, timeZone) : "",
+    ends_at: p.ends_at ? fromZonedInputValue(p.ends_at, timeZone) : "",
+    version: new Date().toISOString(),
+  });
+  const [now] = useState(() => Date.now());
+  const live = popupIsLive({ ...value(), version: "" }, now);
+  const status = !p.enabled ? "Off" : live ? "On: visitors see it now" : p.starts_at && now < Date.parse(fromZonedInputValue(p.starts_at, timeZone)) ? "Starts later" : "Ended or missing a title";
+  return (
+    <section className="card space-y-4 p-6" data-testid="popup-editor">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-2xl font-semibold">Offer popup</h2>
+        <span className={`chip ${live ? "border border-emerald-400/50 text-emerald-200" : "border border-line text-muted"}`} data-testid="popup-status">{status}</span>
+      </div>
+      <p className="text-sm text-muted">A box shown once to each visitor on any page, e.g. a Diwali or BBL offer. Every save shows it again to people who closed the old one.</p>
+      <label className="flex items-center gap-3">
+        <input type="checkbox" className="h-5 w-5 accent-[#d4af37]" checked={p.enabled} onChange={(e) => set({ enabled: e.target.checked })} data-testid="popup-enabled" />
+        <span className="font-semibold">Show the popup</span>
+      </label>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Title, English site" value={p.title_en} onChange={(title_en) => set({ title_en })} />
+        <Field label="Title, Hindi site (optional)" value={p.title_hi} onChange={(title_hi) => set({ title_hi })} />
+        <Field label="Text, English site" rows={3} value={p.text_en} onChange={(text_en) => set({ text_en })} />
+        <Field label="Text, Hindi site (optional)" rows={3} value={p.text_hi} onChange={(text_hi) => set({ text_hi })} />
+        <Field label="Button, English site" value={p.button_en} onChange={(button_en) => set({ button_en })} hint="e.g. “Book now”. Leave empty for no button." />
+        <Field label="Button, Hindi site (optional)" value={p.button_hi} onChange={(button_hi) => set({ button_hi })} />
+      </div>
+      <Field label="Button link" value={p.link} onChange={(link) => set({ link })} hint="A page of this site such as /contact, or a full link such as a WhatsApp link." />
+      <FileField
+        id="popup-image"
+        kind="cover"
+        label="Picture (optional)"
+        hint="JPG, PNG or WebP, up to 5 MB."
+        value={p.image_path}
+        previewUrl={initial.image_path ? imageUrl(initial.image_path) : null}
+        onChange={(image_path) => set({ image_path })}
+      />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block">
+          <span className="label">Show from (optional)</span>
+          <input type="datetime-local" className="input" value={p.starts_at} onChange={(e) => set({ starts_at: e.target.value })} />
+        </label>
+        <label className="block">
+          <span className="label">Show until (optional)</span>
+          <input type="datetime-local" className="input" value={p.ends_at} onChange={(e) => set({ ends_at: e.target.value })} />
+          <span className="mt-1 block text-xs text-muted">After this time it hides by itself.</span>
+        </label>
+      </div>
+      <SaveBar pending={pending} message={message} onSave={() => save(value())} testId="save-popup" />
+    </section>
   );
 }
 

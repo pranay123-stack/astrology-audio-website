@@ -5,13 +5,15 @@ import { AudioPlayerProvider } from "@/components/audio/AudioPlayerProvider";
 import { MiniPlayer } from "@/components/audio/MiniPlayer";
 import { DemoBanner } from "@/components/layout/DemoBanner";
 import { FloatingWhatsApp } from "@/components/layout/FloatingWhatsApp";
+import { OfferPopup } from "@/components/layout/OfferPopup";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { siteConfig } from "@/lib/config";
 import { getDict, isLocale, LOCALES } from "@/lib/i18n";
 import { I18nProvider } from "@/lib/i18n/client";
 import { getLang } from "@/lib/i18n/server";
-import { getProfile } from "@/lib/queries";
+import { imageUrl } from "@/lib/media/urls";
+import { getProfile, getSiteContent } from "@/lib/queries";
 import { fontVariables } from "../fonts";
 import { baseMetadata } from "../root-metadata";
 import "../globals.css";
@@ -45,7 +47,8 @@ export default async function SiteRootLayout({ children }: LayoutProps<"/[lang]"
   const value = await rootLang();
   if (!isLocale(value)) notFound();
   const lang = value;
-  const whatsapp = (await getProfile()).social_links?.whatsapp;
+  const [profile, popup] = await Promise.all([getProfile(), getSiteContent("popup")]);
+  const whatsapp = profile.social_links?.whatsapp;
   return (
     <html lang={lang} className={`${fontVariables}${lang === "hi" ? " locale-hi" : ""}`}>
       {lang === "en" && (
@@ -63,6 +66,7 @@ export default async function SiteRootLayout({ children }: LayoutProps<"/[lang]"
             <SiteFooter lang={lang} />
             <MiniPlayer />
             {whatsapp && <FloatingWhatsApp href={whatsapp} />}
+            {popup.enabled && <OfferPopup popup={popup} imageSrc={imageUrl(popup.image_path)} />}
           </AudioPlayerProvider>
         </I18nProvider>
       </body>
