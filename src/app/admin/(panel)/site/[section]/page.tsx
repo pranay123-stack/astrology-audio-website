@@ -9,6 +9,7 @@ import { KrishnaEditor, PopupEditor, QuoteEditor, RulesEditor } from "@/componen
 import { adminSection, type AdminSection, type AdminSlot } from "@/lib/admin-site";
 import { requireAdmin } from "@/lib/auth/admin";
 import { siteConfig } from "@/lib/config";
+import { withPopupDefaults } from "@/content/popup";
 import { getAdminRepository } from "@/lib/data";
 import { episodeStatus } from "@/lib/data/repository";
 import { SITE_CONTENT_DEFAULTS, type SiteContentKey } from "@/lib/site-content";
@@ -111,7 +112,7 @@ async function Editor({ section }: { section: AdminSection }) {
     section.editors.map(async (key) => {
       if (key === "rules") return <RulesEditor key={key} initial={await saved("rules")} />;
       if (key === "krishna") return <KrishnaEditor key={key} initial={await saved("krishna")} />;
-      if (key === "popup") return <PopupEditor key={key} initial={await saved("popup")} timeZone={siteConfig.timeZone} />;
+      if (key === "popup") return <PopupEditor key={key} initial={withPopupDefaults(await saved("popup"))} timeZone={siteConfig.timeZone} />;
       return <QuoteEditor key={key} initial={await saved("quotes")} />;
     }),
   );

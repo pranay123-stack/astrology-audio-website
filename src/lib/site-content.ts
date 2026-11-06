@@ -65,6 +65,8 @@ export const siteContentSchemas = {
         .refine((v) => v === "" || /^\/(?!\/)/.test(v) || /^https?:\/\/[^\s]+$/.test(v), "Use a page of this site (/contact) or a full link (https://…)"),
       starts_at: z.string().refine((v) => v === "" || !Number.isNaN(Date.parse(v)), "Invalid start date"),
       ends_at: z.string().refine((v) => v === "" || !Number.isNaN(Date.parse(v)), "Invalid end date"),
+      delay_seconds: z.number().int().min(0).max(600),
+      repeat_hours: z.number().int().min(0).max(24 * 30),
       version: z.string().max(40),
     })
     .refine((p) => !p.enabled || p.title_en.length > 0, { message: "Add a title to switch the popup on", path: ["title_en"] })

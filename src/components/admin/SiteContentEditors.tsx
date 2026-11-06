@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { ArrowDown, ArrowUp, Loader2, Plus, Save, Trash2 } from "lucide-react";
 import { saveSiteContent } from "@/app/admin/actions";
 import type { KrishnaContent } from "@/content/krishna";
-import { popupIsLive, type PopupContent } from "@/content/popup";
+import { POPUP_DELAYS, POPUP_REPEATS, popupIsLive, type PopupContent } from "@/content/popup";
 import type { QuoteContent } from "@/content/quote";
 import type { Rule } from "@/content/rules";
 import { fromZonedInputValue, toZonedInputValue } from "@/lib/dates";
@@ -78,7 +78,7 @@ export function PopupEditor({ initial, timeZone }: { initial: PopupContent; time
         <h2 className="text-2xl font-semibold">Offer popup</h2>
         <span className={`chip ${live ? "border border-emerald-400/50 text-emerald-200" : "border border-line text-muted"}`} data-testid="popup-status">{status}</span>
       </div>
-      <p className="text-sm text-muted">A box shown once to each visitor on any page, e.g. a Diwali or BBL offer. Every save shows it again to people who closed the old one.</p>
+      <p className="text-sm text-muted">A box shown to visitors on any page, e.g. a Diwali or BBL offer, after they have spent a while on the website.</p>
       <label className="flex items-center gap-3">
         <input type="checkbox" className="h-5 w-5 accent-[#d4af37]" checked={p.enabled} onChange={(e) => set({ enabled: e.target.checked })} data-testid="popup-enabled" />
         <span className="font-semibold">Show the popup</span>
@@ -101,6 +101,26 @@ export function PopupEditor({ initial, timeZone }: { initial: PopupContent; time
         previewUrl={initial.image_path ? imageUrl(initial.image_path) : null}
         onChange={(image_path) => set({ image_path })}
       />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block">
+          <span className="label">Show after</span>
+          <select className="input" value={p.delay_seconds} onChange={(e) => set({ delay_seconds: Number(e.target.value) })} data-testid="popup-delay">
+            {POPUP_DELAYS.map((s) => (
+              <option key={s} value={s}>{s < 60 ? `${s} seconds` : `${s / 60} minute${s > 60 ? "s" : ""}`} on the website</option>
+            ))}
+          </select>
+          <span className="mt-1 block text-xs text-muted">Counted while the visitor moves between pages.</span>
+        </label>
+        <label className="block">
+          <span className="label">After it is closed, show it again</span>
+          <select className="input" value={p.repeat_hours} onChange={(e) => set({ repeat_hours: Number(e.target.value) })} data-testid="popup-repeat">
+            {POPUP_REPEATS.map((h) => (
+              <option key={h} value={h}>{h === 0 ? "Never (only once)" : h === 1 ? "After 1 hour" : h < 48 ? `After ${h} hours` : `After ${h / 24} days`}</option>
+            ))}
+          </select>
+          <span className="mt-1 block text-xs text-muted">Saving a new offer shows it again to everyone.</span>
+        </label>
+      </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
           <span className="label">Show from (optional)</span>

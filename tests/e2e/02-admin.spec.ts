@@ -724,6 +724,8 @@ test("offer popup: set up in Admin › Home, shown once to a visitor, and not ag
   await editor.getByLabel("Text, English site").fill("20% off KP charts this week.");
   await editor.getByLabel("Button, English site").fill("Book now");
   await editor.getByLabel("Button link").fill("/contact");
+  await editor.getByTestId("popup-delay").selectOption("5");
+  await editor.getByTestId("popup-repeat").selectOption("24");
   await editor.getByTestId("popup-image-input").setInputFiles("tests/fixtures/reel-frame.png");
   await expect(editor.getByTestId("popup-image-ready")).toBeVisible();
   await expect(editor.getByTestId("popup-status")).toHaveText("On: visitors see it now");
@@ -733,13 +735,17 @@ test("offer popup: set up in Admin › Home, shown once to a visitor, and not ag
   const visitor = await browser.newPage();
   await gotoReady(visitor, "/");
   const popup = visitor.getByTestId("offer-popup");
-  await expect(popup).toBeVisible({ timeout: 10_000 });
+  // Not straight away: only after 5 seconds on the website, counted across pages.
+  await visitor.waitForTimeout(2000);
+  await expect(popup).toHaveCount(0);
+  await gotoReady(visitor, "/book");
+  await expect(popup).toBeVisible({ timeout: 6_000 });
   await expect(popup).toContainText("E2E Diwali offer");
   await expect(popup.locator("img")).toHaveCount(1);
   await visitor.getByTestId("offer-close").click();
   await expect(popup).toHaveCount(0);
   await gotoReady(visitor, "/rules");
-  await visitor.waitForTimeout(2500);
+  await visitor.waitForTimeout(6500);
   await expect(visitor.getByTestId("offer-popup")).toHaveCount(0);
   await visitor.close();
 

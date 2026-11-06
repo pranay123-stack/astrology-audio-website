@@ -4,29 +4,48 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
-import { popupIsLive, type PopupContent } from "@/content/popup";
+import { popupDueAgain, popupIsLive, type PopupClosed, type PopupContent } from "@/content/popup";
 import { localePath } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n/client";
 
-/** localStorage: the version of the offer this visitor closed. */
+/** localStorage: the offer this visitor closed, and when. */
 const CLOSED_KEY = "offer-popup-closed";
+/** sessionStorage: when this visit to the site began, so the wait counts across pages. */
+const VISIT_KEY = "offer-popup-visit";
 
-/** The offer set in Admin › Home, shown once per visitor after a short pause. */
+function readClosed(): PopupClosed | null {
+  try {
+    const raw = window.localStorage.getItem(CLOSED_KEY);
+    if (!raw) return null;
+    const v = JSON.parse(raw) as Partial<PopupClosed>;
+    return typeof v.version === "string" && typeof v.at === "number" ? { version: v.version, at: v.at } : null;
+  } catch {
+    return null;
+  }
+}
+
+function visitStart(now: number): number {
+  try {
+    const seen = Number(window.sessionStorage.getItem(VISIT_KEY));
+    if (seen > 0 && seen <= now) return seen;
+    window.sessionStorage.setItem(VISIT_KEY, String(now));
+  } catch {
+    /* storage blocked: count from this page */
+  }
+  return now;
+}
+
+/** The offer set in Admin › Home, shown once a visitor has spent a while on the site, and again after the set wait. */
 export function OfferPopup({ popup, imageSrc }: { popup: PopupContent; imageSrc: string | null }) {
   const { lang } = useI18n();
   const dialog = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    if (!popupIsLive(popup, Date.now())) return;
-    let closed: string | null = null;
-    try {
-      closed = window.localStorage.getItem(CLOSED_KEY);
-    } catch {
-      /* storage blocked: show it, it can still be closed */
-    }
-    if (closed === popup.version) return;
-    const t = window.setTimeout(() => setOpen(true), 1500);
+    const now = Date.now();
+    if (!popupIsLive(popup, now) || !popupDueAgain(popup, readClosed(), now)) return;
+    const wait = Math.max(0, popup.delay_seconds * 1000 - (now - visitStart(now)));
+    const t = window.setTimeout(() => setOpen(true), wait);
     return () => window.clearTimeout(t);
   }, [popup]);
 
@@ -37,7 +56,7 @@ export function OfferPopup({ popup, imageSrc }: { popup: PopupContent; imageSrc:
 
   const close = () => {
     try {
-      window.localStorage.setItem(CLOSED_KEY, popup.version);
+      window.localStorage.setItem(CLOSED_KEY, JSON.stringify({ version: popup.version, at: Date.now() } satisfies PopupClosed));
     } catch {
       /* storage blocked */
     }

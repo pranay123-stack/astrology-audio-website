@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { POPUP, popupIsLive } from "@/content/popup";
+import { POPUP, popupDueAgain, popupIsLive, withPopupDefaults } from "@/content/popup";
 import { siteContentSchemas } from "@/lib/site-content";
 
 const diwali = { ...POPUP, enabled: true, title_en: "Diwali offer", text_en: "20% off KP charts this week.", button_en: "Book now", link: "/contact", version: "v1" };
@@ -34,5 +34,22 @@ describe("offer popup", () => {
     expect(bad({ link: "https://wa.me/918961568049" })).toBe(true);
     expect(bad({ image_path: "../secret.png" })).toBe(false);
     expect(bad({ enabled: false, title_en: "" })).toBe(true);
+  });
+
+  it("shows again after the set wait, at once for a new offer, and never again when set to once", () => {
+    const t0 = at("2026-11-06T10:00:00Z");
+    const daily = { ...diwali, repeat_hours: 24 };
+    expect(popupDueAgain(daily, null, t0)).toBe(true);
+    expect(popupDueAgain(daily, { version: "v1", at: t0 }, t0 + 23 * 3_600_000)).toBe(false);
+    expect(popupDueAgain(daily, { version: "v1", at: t0 }, t0 + 24 * 3_600_000)).toBe(true);
+    expect(popupDueAgain(daily, { version: "old", at: t0 }, t0 + 60_000)).toBe(true);
+    expect(popupDueAgain({ ...daily, repeat_hours: 0 }, { version: "v1", at: t0 }, t0 + 365 * 24 * 3_600_000)).toBe(false);
+  });
+
+  it("an offer saved before these settings existed gets the defaults", () => {
+    const { delay_seconds, repeat_hours, ...old } = diwali;
+    void delay_seconds;
+    void repeat_hours;
+    expect(withPopupDefaults(old)).toMatchObject({ delay_seconds: 15, repeat_hours: 24, title_en: "Diwali offer" });
   });
 });

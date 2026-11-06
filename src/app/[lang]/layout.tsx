@@ -6,6 +6,7 @@ import { MiniPlayer } from "@/components/audio/MiniPlayer";
 import { DemoBanner } from "@/components/layout/DemoBanner";
 import { FloatingWhatsApp } from "@/components/layout/FloatingWhatsApp";
 import { OfferPopup } from "@/components/layout/OfferPopup";
+import { withPopupDefaults } from "@/content/popup";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { siteConfig } from "@/lib/config";
@@ -66,7 +67,7 @@ export default async function SiteRootLayout({ children }: LayoutProps<"/[lang]"
             <SiteFooter lang={lang} />
             <MiniPlayer />
             {whatsapp && <FloatingWhatsApp href={whatsapp} />}
-            {popup.enabled && <OfferPopup popup={popup} imageSrc={imageUrl(popup.image_path)} />}
+            {popup.enabled && <OfferPopup popup={withPopupDefaults(popup)} imageSrc={imageUrl(popup.image_path)} />}
           </AudioPlayerProvider>
         </I18nProvider>
       </body>
