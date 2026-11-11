@@ -1,6 +1,6 @@
 import "server-only";
 import sweph from "sweph";
-import { describe, norm360, type KpPoint } from "./lords";
+import { DASHA_ORDER, describe, NAK_SPAN, norm360, type DashaLord, type KpPoint } from "./lords";
 
 /**
  * KP chart engine on the Swiss Ephemeris (AGPL-3.0; see LICENSE). Settings reproduce the
@@ -104,4 +104,49 @@ export function computeKpChart(utcMs: number, lat: number, lon: number): KpChart
 
   const ayanamsaShown = Math.floor(kpNewMeanAyanamsa(jd) * 3600 - 0.6) / 3600;
   return { jdUt: jd, utcMs, lat, lon, ayanamsa, ayanamsaShown, planets, cusps };
+}
+
+/** The Moon's sidereal longitude (KP New ayanamsa, same settings as the chart) at a moment. */
+export function moonSiderealLon(utcMs: number): number {
+  const jd = julianDayUt(utcMs);
+  const nutation = sweph.calc_ut(jd, C.SE_ECL_NUT, EPHE).data[2];
+  return norm360(calc(jd, C.SE_MOON)[0] - (kpNewMeanAyanamsa(jd) + nutation));
+}
+
+export interface NakshatraWindow {
+  /** 0 = Ashwini … 26 = Revati. */
+  index: number;
+  lord: DashaLord;
+  /** When the Moon entered and leaves this nakshatra (UTC ms, to the millisecond). */
+  start: number;
+  end: number;
+}
+
+const HOUR_MS = 3_600_000;
+const nakAt = (utcMs: number) => Math.min(26, Math.floor(moonSiderealLon(utcMs) / NAK_SPAN));
+
+/**
+ * The nakshatra the Moon is in at `utcMs`, and when it entered and leaves it. The Moon never
+ * moves backwards and covers a nakshatra in 20–27 hours, so stepping an hour at a time cannot
+ * skip one; each boundary is then narrowed by halving to under a millisecond.
+ */
+export function nakshatraWindow(utcMs: number): NakshatraWindow {
+  const index = nakAt(utcMs);
+  const edge = (dir: -1 | 1) => {
+    // Whole milliseconds, so the two ends finish next to each other.
+    let inside = Math.round(utcMs);
+    let outside = utcMs + dir * HOUR_MS;
+    while (nakAt(outside) === index) {
+      inside = outside;
+      outside += dir * HOUR_MS;
+    }
+    while (Math.abs(outside - inside) > 1) {
+      const mid = Math.floor((inside + outside) / 2);
+      if (nakAt(mid) === index) inside = mid;
+      else outside = mid;
+    }
+    // Start: the first millisecond inside the nakshatra. End: the first millisecond after it.
+    return dir < 0 ? inside : outside;
+  };
+  return { index, lord: DASHA_ORDER[index % 9], start: edge(-1), end: edge(1) };
 }

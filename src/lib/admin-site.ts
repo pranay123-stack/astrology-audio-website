@@ -200,6 +200,13 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     links: [{ href: "/kp-chart/all", label: "See all charts", hint: "Opens the public list of charts." }],
   },
   {
+    key: "nakshatraDasha",
+    title: m.nakshatraDasha,
+    page: "/nakshatra-dasha",
+    intro: "Nothing to upload: the page works out the Moon's nakshatra and its dasha breakdown for any date and time.",
+    slots: [],
+  },
+  {
     key: "contact",
     title: m.contact,
     page: "/contact",

@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     // Keys are globs, so the brackets of the [lang] segment are escaped.
     "/\\[lang\\]/kp-chart": ["./node_modules/sweph/prebuilds/linux-x64/**"],
+    "/\\[lang\\]/nakshatra-dasha": ["./node_modules/sweph/prebuilds/linux-x64/**"],
     "/api/kp/places": ["./data/places.tsv.gz"],
   },
   partialPrefetching: true,

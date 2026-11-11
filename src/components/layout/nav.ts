@@ -89,6 +89,7 @@ export function siteMenu({ showPremium, youtube }: { showPremium: boolean; youtu
       ],
     },
     { key: "kpChart", href: "/kp-chart" },
+    { key: "nakshatraDasha", href: "/nakshatra-dasha" },
     { key: "contact", href: "/contact" },
     {
       key: "rules",

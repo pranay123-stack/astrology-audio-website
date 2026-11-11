@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { computeKpChart, kpNewMeanAyanamsa } from "@/lib/kp/engine";
-import { DASHA_YEAR_DAYS, describe as kp, formatDms, NAK_SPAN, vimshottari } from "@/lib/kp/lords";
+import { computeKpChart, kpNewMeanAyanamsa, moonSiderealLon, nakshatraWindow } from "@/lib/kp/engine";
+import { DASHA_YEAR_DAYS, describe as kp, formatDms, NAK_SPAN, nakshatraDashaTree, vimshottari } from "@/lib/kp/lords";
 import { ASPECT_ORB, computeAspects, separation } from "@/lib/kp/aspects";
 import { rankHouseSignificators } from "@/lib/kp/house-rank";
 import { computeSignificators, houseOf, KP9 } from "@/lib/kp/significators";
@@ -164,5 +164,58 @@ describe("house significators ranking", () => {
       const entry = rankHouseSignificators(occ, sig, aspects).find((r) => r.planet === k)!;
       expect(entry.level).toBeLessThanOrEqual(2);
     }
+  });
+});
+
+describe("Nakshatra dasha", () => {
+  // The astrologer's own example (voice note, 10 Nov 2026 12:51 IST): "Shani's period started today and
+  // runs till about half past eleven tomorrow morning, about 26 hours". The Moon was in Anuradha (Saturn).
+  const IST = 330 * 60_000;
+  const istMs = (y: number, mo: number, d: number, h: number, mi: number) => Date.UTC(y, mo - 1, d, h, mi) - IST;
+
+  it("finds the Moon's nakshatra window from the astrologer's example", () => {
+    const w = nakshatraWindow(istMs(2026, 11, 10, 12, 51));
+    expect(w.index).toBe(16); // Anuradha
+    expect(w.lord).toBe("Sa");
+    expect(w.start).toBeGreaterThan(istMs(2026, 11, 10, 9, 8));
+    expect(w.start).toBeLessThan(istMs(2026, 11, 10, 9, 10));
+    expect(w.end).toBeGreaterThan(istMs(2026, 11, 11, 11, 27));
+    expect(w.end).toBeLessThan(istMs(2026, 11, 11, 11, 29));
+    const hours = (w.end - w.start) / 3_600_000;
+    expect(hours).toBeGreaterThan(26);
+    expect(hours).toBeLessThan(26.5);
+  });
+
+  it("puts the window edges exactly on the nakshatra boundaries, and windows follow each other", () => {
+    let t = Date.UTC(2026, 0, 1);
+    for (let i = 0; i < 30; i++) {
+      const w = nakshatraWindow(t);
+      expect(Math.floor(moonSiderealLon(w.start) / NAK_SPAN)).toBe(w.index);
+      expect(Math.floor(moonSiderealLon(w.start - 1) / NAK_SPAN)).not.toBe(w.index);
+      expect(Math.floor(moonSiderealLon(w.end - 1) / NAK_SPAN)).toBe(w.index);
+      expect(Math.floor(moonSiderealLon(w.end) / NAK_SPAN)).not.toBe(w.index);
+      const hours = (w.end - w.start) / 3_600_000;
+      expect(hours).toBeGreaterThan(20);
+      expect(hours).toBeLessThan(28);
+      const next = nakshatraWindow(w.end);
+      expect(next.start).toBe(w.end);
+      expect(next.index).toBe((w.index + 1) % 27); // includes Revati -> Ashwini across 0°
+      t = w.end;
+    }
+  });
+
+  it("divides the window in Vimshottari proportion, starting with the nakshatra lord", () => {
+    const start = 0;
+    const end = 26 * 3_600_000;
+    const tree = nakshatraDashaTree("Sa", start, end, 3);
+    expect(tree.map((p) => p.lord)).toEqual(["Sa", "Me", "Ke", "Ve", "Su", "Mo", "Ma", "Ra", "Ju"]);
+    expect(tree[0].end - tree[0].start).toBeCloseTo((end * 19) / 120, 3); // Saturn: 19/120 of 26 h = 4 h 07 m
+    expect(tree[8].end).toBeCloseTo(end, 3);
+    const meInSa = tree[0].children![1];
+    expect(meInSa.lord).toBe("Me");
+    expect(meInSa.end - meInSa.start).toBeCloseTo((end * 19 * 17) / (120 * 120), 3);
+    expect(meInSa.children![0].lord).toBe("Me");
+    expect(meInSa.children![0].children).toBeUndefined();
+    expect(nakshatraDashaTree("Ke", 0, 1, 4)[0].children![0].children![0].children).toHaveLength(9);
   });
 });

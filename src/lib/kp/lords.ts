@@ -106,7 +106,7 @@ export interface DashaPeriod {
 }
 
 /** Splits a period into its Vimshottari sub-periods, starting with the period's own lord. */
-function subPeriods(lord: DashaLord, start: number, end: number): DashaPeriod[] {
+export function subPeriods(lord: DashaLord, start: number, end: number): DashaPeriod[] {
   const total = end - start;
   const i = DASHA_ORDER.indexOf(lord);
   const out: DashaPeriod[] = [];
@@ -144,4 +144,17 @@ export function vimshottari(birthUtcMs: number, moonLon: number, levels: 1 | 2 |
     start = end;
   }
   return out;
+}
+
+/**
+ * The Moon's stay in one nakshatra (about 20 to 27 hours, depending on its speed) divided like a
+ * 120-year Vimshottari cycle: the window starts with the nakshatra lord's period and each period
+ * gets lord-years / 120 of the window, then splits again the same way (lord in lord, …).
+ */
+export function nakshatraDashaTree(lord: DashaLord, start: number, end: number, levels: number): DashaPeriod[] {
+  const split = (p: DashaPeriod, depth: number): DashaPeriod => {
+    if (depth < levels) p.children = subPeriods(p.lord, p.start, p.end).map((c) => split(c, depth + 1));
+    return p;
+  };
+  return subPeriods(lord, start, end).map((p) => split(p, 1));
 }
