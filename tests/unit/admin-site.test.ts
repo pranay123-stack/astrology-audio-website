@@ -37,15 +37,21 @@ describe("admin follows the website menu", () => {
   });
 
   it("Latest Matches has a men's and a women's place for BBL, IPL, T20 and ODI, each its own competition", () => {
-    const slots = ADMIN_SECTIONS.find((s) => s.key === "latestMatches")!.slots;
-    expect(slots.map((s) => s.id)).toEqual(["bbl", "ipl", "t20", "odi"].flatMap((id) => [`latest-${id}-men`, `latest-${id}-women`]));
+    const all = ADMIN_SECTIONS.find((s) => s.key === "latestMatches")!.slots;
+    expect(all.map((s) => s.id)).toEqual([...["bbl", "ipl", "t20", "odi"].flatMap((id) => [`latest-${id}-men`, `latest-${id}-women`]), "course-teaching"]);
+    // Course Teaching: lessons in posting order, any competition (chosen on the form).
+    expect(adminSlot("course-teaching")).toMatchObject({ add: { category: "course-teaching" }, query: { categorySlug: "course-teaching", sort: "oldest" } });
+    expect(adminSlot("course-teaching")!.add.competition).toBeUndefined();
+    const slots = all.filter((s) => s.id.startsWith("latest-"));
     expect(slots.map((s) => s.add.competition)).toEqual(["bbl", "wbbl", "ipl", "wpl", "t20i", "wt20i", "odi", "wodi"]);
     const known = new Set(competitions.map((c) => c.slug));
     for (const slot of slots) {
       expect(known, slot.id).toContain(slot.add.competition);
       expect(slot.query).toMatchObject({ categorySlug: "latest-matches", competitionSlug: slot.add.competition });
     }
-    const cricket = siteMenu({ showPremium: false }).find((m) => m.key === "latestMatches")!.children![0];
+    const latest = siteMenu({ showPremium: false }).find((m) => m.key === "latestMatches")!.children!;
+    expect(latest[1]).toMatchObject({ key: "courseTeaching", href: "/latest-matches#course-teaching" });
+    const cricket = latest[0];
     expect(cricket.key).toBe("matches");
     expect(cricket.children!.map((c) => [c.key, c.children!.map((g) => g.href)])).toEqual([
       ["seriesBbl", ["/latest-matches#bbl-men", "/latest-matches#bbl-women"]],

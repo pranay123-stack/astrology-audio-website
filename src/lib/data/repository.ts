@@ -226,6 +226,9 @@ export function filterAndSort(rows: EpisodeListing[], q: EpisodeQuery, now = Dat
     case "popular":
       sorted.sort((a, b) => b.play_count - a.play_count || byPublished(a, b));
       break;
+    case "oldest":
+      sorted.sort((a, b) => byPublished(b, a));
+      break;
     case "match_date_asc":
       sorted.sort((a, b) => matchTime(a) - matchTime(b) || byPublished(a, b));
       break;

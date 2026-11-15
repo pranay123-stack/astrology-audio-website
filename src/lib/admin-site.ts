@@ -83,14 +83,21 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     title: m.latestMatches,
     page: "/latest-matches",
     intro: "Cricket Matches: BBL, IPL, T20 and ODI, each for men and for women.",
-    slots: MATCH_COMPETITIONS.map((c) => ({
+    slots: MATCH_COMPETITIONS.map((c): AdminSlot => ({
       id: `latest-${c.series.id}-${c.gender}`,
       title: seriesTitle(c),
       page: `/latest-matches#${c.series.id}-${c.gender}`,
       hint: "Needs the two teams and the match date.",
       query: latestQuery(c.slug),
       add: { category: "latest-matches", fields: ["article", "audio", "video", "photos"] as PostField[], competition: c.slug },
-    })),
+    })).concat({
+      id: "course-teaching",
+      title: m.courseTeaching,
+      page: "/latest-matches#course-teaching",
+      hint: "One lesson per match: the teams, the match date, the match details and the KP chart link. Lessons are listed in the order you post them.",
+      query: TOPICS.courseTeaching,
+      add: { category: "course-teaching", fields: ["article", "audio", "video", "photos"] as PostField[] },
+    }),
   },
   {
     key: "astrology",

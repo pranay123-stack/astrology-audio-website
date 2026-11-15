@@ -33,6 +33,7 @@ export function siteMenu({ showPremium, youtube }: { showPremium: boolean; youtu
       href: "/latest-matches",
       children: [
         { key: "matches", href: "/latest-matches#cricket", children: seriesMenu("/latest-matches") },
+        { key: "courseTeaching", href: "/latest-matches#course-teaching" },
       ],
     },
     {

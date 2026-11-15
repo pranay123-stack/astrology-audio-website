@@ -402,6 +402,7 @@ export const hi: Dict = {
     pdfEn: "PDF (अंग्रेज़ी)",
     research: "कुंडली शोध",
     latestMatches: "ताज़ा मैच",
+    courseTeaching: "कोर्स टीचिंग",
     seriesBbl: "BBL",
     seriesT20: "T20",
     seriesOdi: "ODI",
@@ -530,6 +531,7 @@ export const hi: Dict = {
       title: "ताज़ा मैच",
       intro: "क्रिकेट के ताज़ा मैच: BBL, IPL, T20 और ODI, पुरुषों और महिलाओं के।",
       series: "प्रतियोगिताएँ",
+      teachingIntro: "मैच दर मैच तरीका सीखें: हर पाठ में एक मैच का विवरण और उसकी KP कुंडली, कोर्स के क्रम में।",
     },
     predictionRecords: {
       eyebrow: "भविष्यवाणी रिकॉर्ड",

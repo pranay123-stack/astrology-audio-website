@@ -199,7 +199,8 @@ export interface EpisodeListing extends Episode {
   }) | null;
 }
 
-export type SortOrder = "latest" | "popular" | "match_date_asc" | "match_date_desc";
+/** "oldest" = first posted first (course order). */
+export type SortOrder = "latest" | "oldest" | "popular" | "match_date_asc" | "match_date_desc";
 
 export interface EpisodeQuery {
   section?: Section;

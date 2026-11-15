@@ -23,6 +23,8 @@ export const TOPICS = {
   bookEnglish: { categorySlug: "book-english", sort: "latest" },
   rulesPosts: { categorySlug: "rules-posts", sort: "latest" },
   krishnaPosts: { categorySlug: "krishna-consciousness", sort: "latest" },
+  /** Latest Matches › Course Teaching: lessons in the order they were posted (lesson 1 first). */
+  courseTeaching: { categorySlug: "course-teaching", sort: "oldest" },
 } satisfies Record<string, EpisodeQuery>;
 
 /** The Video / Audio / Read tabs of "12 Planets & 12 Bhav". */

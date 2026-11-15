@@ -225,6 +225,9 @@ export class SupabaseRepository implements Repository {
       case "popular":
         query = query.order("play_count", { ascending: false }).order("published_at", { ascending: false, nullsFirst: false });
         break;
+      case "oldest":
+        query = query.order("published_at", { ascending: true, nullsFirst: false }).order("created_at", { ascending: true });
+        break;
       case "match_date_asc":
         query = query.order("match_date", { ascending: true, nullsFirst: false });
         break;

@@ -404,6 +404,7 @@ export const en = {
     pdfEn: "PDF (English)",
     research: "Horoscope Research",
     latestMatches: "Latest Matches",
+    courseTeaching: "Course Teaching",
     seriesBbl: "BBL",
     seriesT20: "T20",
     seriesOdi: "ODI",
@@ -532,6 +533,7 @@ export const en = {
       title: "Latest Matches",
       intro: "The latest cricket matches: BBL, IPL, T20 and ODI, for men and for women.",
       series: "Competitions",
+      teachingIntro: "Learn the method match by match: each lesson gives a match's details and its KP chart, in course order.",
     },
     predictionRecords: {
       eyebrow: "Prediction Records",
