@@ -87,6 +87,7 @@ export function siteMenu({ showPremium, youtube }: { showPremium: boolean; youtu
           })),
         },
         { key: "players", href: "/horoscope-research/players" },
+        { key: "fixing", href: "/horoscope-research/fixing" },
       ],
     },
     { key: "kpChart", href: "/kp-chart" },

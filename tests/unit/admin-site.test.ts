@@ -36,6 +36,14 @@ describe("admin follows the website menu", () => {
     expect(menu.find((m) => m.key === "predictionRecords")!.children![0].children![3].children!.map((g) => g.href)).toEqual(["/prediction-records#odi-men", "/prediction-records#odi-women"]);
   });
 
+  it("Fixing sits under Horoscope Research: match posts newest first", () => {
+    expect(adminSlot("fixing")).toMatchObject({ page: "/horoscope-research/fixing", add: { category: "fixing" }, query: { categorySlug: "fixing", sort: "match_date_desc" }, section: { key: "research" } });
+    const research = siteMenu({ showPremium: false }).find((m) => m.key === "research")!.children!;
+    expect(research.map((c) => c.key)).toEqual(["matches", "players", "fixing"]);
+    expect(research[2]).toEqual({ key: "fixing", href: "/horoscope-research/fixing" });
+    expect(siteMenu({ showPremium: false }).some((m) => m.key === "fixing")).toBe(false);
+  });
+
   it("Latest Matches has a men's and a women's place for BBL, IPL, T20 and ODI, each its own competition", () => {
     const all = ADMIN_SECTIONS.find((s) => s.key === "latestMatches")!.slots;
     expect(all.map((s) => s.id)).toEqual([...["bbl", "ipl", "t20", "odi"].flatMap((id) => [`latest-${id}-men`, `latest-${id}-women`]), "course-teaching"]);

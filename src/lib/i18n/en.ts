@@ -426,6 +426,7 @@ export const en = {
     shaniRules: "Shani Rules",
     testimonials: "Testimonials",
     predictionRecords: "Prediction Records",
+    fixing: "Fixing",
     messageProof: "Message proof",
     futureResearch: "Future Research Topics",
     footballAstro: "Football Astro",
@@ -487,6 +488,7 @@ export const en = {
       intro: "Match horoscopes for the Big Bash, IPL and international T20 games, and horoscope research on cricket players.",
       matchesBody: "Match kundlis by competition.",
       playersBody: "Horoscope research on cricket players.",
+      fixingBody: "Matches where Rahu's impact showed, each with its Kundli link.",
     },
     matches: { eyebrow: "Horoscope Research", title: "Cricket Matches", intro: "Match kundlis for BBL, IPL, T20 and ODI, men and women." },
     players: {
@@ -534,6 +536,11 @@ export const en = {
       intro: "The latest cricket matches: BBL, IPL, T20 and ODI, for men and for women.",
       series: "Competitions",
       teachingIntro: "Learn the method match by match: each lesson gives a match's details and its KP chart, in course order.",
+    },
+    fixing: {
+      eyebrow: "Fixing",
+      title: "Fixing",
+      intro: "Matches where Rahu's impact showed, each with its Kundli (KP chart) link, newest match first.",
     },
     predictionRecords: {
       eyebrow: "Prediction Records",

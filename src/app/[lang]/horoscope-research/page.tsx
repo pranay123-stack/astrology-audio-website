@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { ScrollText, Trophy, Users } from "lucide-react";
+import { Orbit, ScrollText, Trophy, Users } from "lucide-react";
 import { ListingSkeleton } from "@/components/episodes/ListingSkeleton";
 import { countPosts, HubCard, TopicHero, TopicPosts } from "@/components/topics/Topic";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -35,10 +35,11 @@ async function Hub({ lang }: { lang: Locale }) {
   const d = getDict(lang);
   const t = d.topics.research;
   const href = (p: string) => localePath(lang, p);
-  const [matches, byCompetition, players] = await Promise.all([
+  const [matches, byCompetition, players, fixing] = await Promise.all([
     countPosts(TOPICS.matches),
     Promise.all(MATCH_COMPETITIONS.map((c) => countPosts({ ...TOPICS.matches, competitionSlug: c.slug }))),
     countPosts(TOPICS.players),
+    countPosts(TOPICS.fixing),
   ]);
   return (
     <>
@@ -54,6 +55,7 @@ async function Hub({ lang }: { lang: Locale }) {
           testId="hub-matches"
         />
         <HubCard icon={Users} title={d.menu.players} body={t.playersBody} href={href("/horoscope-research/players")} count={players} lang={lang} testId="hub-players" />
+        <HubCard icon={Orbit} title={d.menu.fixing} body={t.fixingBody} href={href("/horoscope-research/fixing")} count={fixing} lang={lang} testId="hub-fixing" />
       </div>
       <section aria-labelledby="research-latest">
         <SectionHeading id="research-latest" eyebrow={d.topics.latest} title={d.menu.matches} />

@@ -18,6 +18,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/horoscope-research",
     "/horoscope-research/matches",
     "/horoscope-research/players",
+    "/horoscope-research/fixing",
     "/kp-chart",
     "/nakshatra-dasha",
     "/rules",

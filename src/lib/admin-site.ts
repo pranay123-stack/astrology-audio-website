@@ -177,7 +177,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     key: "research",
     title: m.research,
     page: "/horoscope-research",
-    intro: "Match readings by competition, and player horoscopes.",
+    intro: "Match readings by competition, player horoscopes, and Fixing (matches where Rahu's impact showed).",
     slots: [
       ...MATCH_COMPETITIONS.map((c) => ({
         id: `matches-${c.series.id}-${c.gender}`,
@@ -194,6 +194,14 @@ export const ADMIN_SECTIONS: AdminSection[] = [
         hint: "A player's horoscope reading.",
         query: TOPICS.players,
         add: { category: "player-horoscopes", fields: ["article", "audio", "video", "photos"] },
+      },
+      {
+        id: "fixing",
+        title: m.fixing,
+        page: "/horoscope-research/fixing",
+        hint: "One post per match where Rahu's impact showed: the teams, the match date, the reading, and the Kundli link (paste the KP chart link in the text; it becomes clickable). Newest match first.",
+        query: TOPICS.fixing,
+        add: { category: "fixing", fields: ["article", "audio", "video", "photos"] },
       },
     ],
     links: [{ href: "/admin/leagues", label: "Leagues & teams", hint: "Add the teams of a competition before posting its matches." }],
