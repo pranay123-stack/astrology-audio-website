@@ -11,7 +11,7 @@ import { KP9, type Kp9, type Signification } from "@/lib/kp/significators";
 import { formatOffset } from "@/lib/kp/time";
 import { useI18n } from "@/lib/i18n/client";
 import { intlLocale } from "@/lib/i18n";
-import { PLANET_NAMES, ROMAN, SIGN_GLYPHS, SIGN_NAMES, SOUTH_INDIAN_CELL } from "./names";
+import { PLANET_NAMES, ROMAN, SIGN_GLYPHS, SIGN_NAMES, readsUpward, SOUTH_INDIAN_CELL } from "./names";
 
 type Item = { kind: "planet"; p: KpPlanet } | { kind: "cusp"; c: KpCusp };
 type Selected = { kind: "planet"; key: string } | { kind: "cusp"; house: number };
@@ -370,13 +370,15 @@ function ChartGrid({
         data-testid="kp-grid"
       >
         {SOUTH_INDIAN_CELL.map(([row, col], signIndex) => {
-          const items = bySign[signIndex];
+          const upward = readsUpward(signIndex);
+          const items = upward ? [...bySign[signIndex]].reverse() : bySign[signIndex];
           return (
             <div
               key={signIndex}
               style={{ gridRow: row + 1, gridColumn: col + 1 }}
-              className="flex min-w-0 flex-col overflow-hidden border border-gold/25 p-1 sm:p-1.5"
+              className={`flex min-w-0 overflow-hidden border border-gold/25 p-1 sm:p-1.5 ${upward ? "flex-col-reverse" : "flex-col"}`}
               data-testid={`kp-box-${signIndex}`}
+              data-reads={upward ? "up" : "down"}
               data-cusps={items.flatMap((it) => (it.kind === "cusp" ? [it.c.house] : [])).join(" ")}
             >
               <div className="flex items-baseline justify-between gap-1 text-[8px] uppercase tracking-wide text-muted sm:text-[11px] xl:text-xs">

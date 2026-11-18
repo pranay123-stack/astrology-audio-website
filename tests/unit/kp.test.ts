@@ -219,3 +219,11 @@ describe("Nakshatra dasha", () => {
     expect(nakshatraDashaTree("Ke", 0, 1, 4)[0].children![0].children![0].children).toHaveLength(9);
   });
 });
+
+describe("South Indian chart reading direction", () => {
+  it("reads the left column and the bottom row left of Virgo from the bottom up, as in the reference chart", async () => {
+    const { readsUpward } = await import("@/components/kp/names");
+    const signs = ["Ar", "Ta", "Ge", "Cn", "Le", "Vi", "Li", "Sc", "Sg", "Cp", "Aq", "Pi"];
+    expect(signs.filter((_, i) => readsUpward(i))).toEqual(["Li", "Sc", "Sg", "Cp", "Aq", "Pi"]);
+  });
+});

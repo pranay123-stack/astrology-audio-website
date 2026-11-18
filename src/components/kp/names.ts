@@ -39,3 +39,13 @@ export const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X
 export const SOUTH_INDIAN_CELL: [number, number][] = [
   [0, 1], [0, 2], [0, 3], [1, 3], [2, 3], [3, 3], [3, 2], [3, 1], [3, 0], [2, 0], [1, 0], [0, 0],
 ];
+
+/**
+ * Boxes read from the bottom up, as in the astrologer's reference chart: the left column (Sagittarius to
+ * Pisces) and the bottom row left of Virgo (Libra, Scorpio). There the sign name sits at the bottom and the
+ * lowest degree just above it, so degrees rise going up; everywhere else they rise going down.
+ */
+export function readsUpward(signIndex: number): boolean {
+  const [row, col] = SOUTH_INDIAN_CELL[signIndex];
+  return col === 0 || (row === 3 && col < 3);
+}
