@@ -25,7 +25,7 @@ export default async function LatestMatchesPage() {
   return (
     <>
       <TopicHero icon={Radio} eyebrow={t.eyebrow} title={t.title} intro={t.intro} />
-      <CricketSeries query={latestQuery} navLabel={t.series} testId="latest" lang={lang} />
+      <CricketSeries query={latestQuery} navLabel={t.series} testId="latest" page="/latest-matches" lang={lang} />
       <section id="course-teaching" aria-labelledby="course-teaching-heading" className="container-page scroll-mt-24 space-y-4 pb-14" data-testid="latest-course-teaching">
         <h2 id="course-teaching-heading" className="flex items-center gap-3 border-b border-line pb-3 text-4xl font-semibold">
           <GraduationCap className="h-7 w-7 text-gold-soft" aria-hidden /> {getDict(lang).menu.courseTeaching}

@@ -46,6 +46,14 @@ export const CRICKET_SERIES = [
 
 export const SERIES_GENDERS = ["men", "women"] as const;
 
+export type CricketSeriesInfo = (typeof CRICKET_SERIES)[number];
+
+/** A series by its id (the last part of a series page's address, e.g. "ipl"), or undefined. */
+export const findSeries = (id: string): CricketSeriesInfo | undefined => CRICKET_SERIES.find((s) => s.id === id);
+
+/** The static params of a series page: one page per series. */
+export const seriesStaticParams = () => CRICKET_SERIES.map((s) => ({ series: s.id }));
+
 /** Every men's and women's place, in menu order. */
 export const MATCH_COMPETITIONS = CRICKET_SERIES.flatMap((series) => SERIES_GENDERS.map((gender) => ({ slug: series[gender], series, gender })));
 

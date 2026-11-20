@@ -38,6 +38,6 @@ describe("grouped header menu", () => {
 
   it("offers a page's competitions as quick links instead of a 'Cricket Matches' level", () => {
     const latest = menu.find((m) => m.key === "latestMatches")!;
-    expect(quickLinks(latest).map((n) => n.href)).toEqual(["/latest-matches#bbl", "/latest-matches#ipl", "/latest-matches#t20", "/latest-matches#odi", "/latest-matches#course-teaching"]);
+    expect(quickLinks(latest).map((n) => n.href)).toEqual(["/latest-matches/bbl", "/latest-matches/ipl", "/latest-matches/t20", "/latest-matches/odi", "/latest-matches#course-teaching"]);
   });
 });

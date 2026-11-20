@@ -11,12 +11,12 @@ export interface MenuNode {
   also?: string[];
 }
 
-/** BBL, IPL, T20 and ODI with their Men and Women sections on a page. */
+/** BBL, IPL, T20 and ODI, each on its own page (e.g. /latest-matches/ipl) with its Men and Women sections. */
 const seriesMenu = (page: string): MenuNode[] =>
   CRICKET_SERIES.map((series) => ({
     key: series.key,
-    href: `${page}#${series.id}`,
-    children: SERIES_GENDERS.map((gender) => ({ key: gender, href: `${page}#${series.id}-${gender}` })),
+    href: `${page}/${series.id}`,
+    children: SERIES_GENDERS.map((gender) => ({ key: gender, href: `${page}/${series.id}#${series.id}-${gender}` })),
   }));
 
 /**

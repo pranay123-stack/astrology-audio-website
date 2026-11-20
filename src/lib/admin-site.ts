@@ -86,7 +86,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     slots: MATCH_COMPETITIONS.map((c): AdminSlot => ({
       id: `latest-${c.series.id}-${c.gender}`,
       title: seriesTitle(c),
-      page: `/latest-matches#${c.series.id}-${c.gender}`,
+      page: `/latest-matches/${c.series.id}#${c.series.id}-${c.gender}`,
       hint: "Needs the two teams and the match date.",
       query: latestQuery(c.slug),
       add: { category: "latest-matches", fields: ["article", "audio", "video", "photos"] as PostField[], competition: c.slug },
@@ -257,7 +257,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     slots: MATCH_COMPETITIONS.map((c) => ({
       id: `predictions-${c.series.id}-${c.gender}`,
       title: seriesTitle(c),
-      page: `/prediction-records#${c.series.id}-${c.gender}`,
+      page: `/prediction-records/${c.series.id}#${c.series.id}-${c.gender}`,
       hint: "Audio about a match. It needs the teams and the match date.",
       query: predictionQuery(c.slug),
       add: { category: "prediction-records", fields: ["audio"] as PostField[], competition: c.slug },
@@ -271,7 +271,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
     slots: MATCH_COMPETITIONS.map((c) => ({
       id: `testimonials-${c.series.id}-${c.gender}`,
       title: `${seriesTitle(c)} › ${m.messageProof}`,
-      page: `/testimonials#${c.series.id}-${c.gender}`,
+      page: `/testimonials/${c.series.id}#${c.series.id}-${c.gender}`,
       hint: "Screenshots of messages, up to 12 photos in one post.",
       query: messagesQuery(c.slug),
       add: { category: messagesCategory(c.slug), fields: ["photos"] as PostField[] },

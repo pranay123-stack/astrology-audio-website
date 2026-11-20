@@ -3,6 +3,7 @@ import { siteConfig } from "@/lib/config";
 import { episodeHref } from "@/lib/episodes";
 import { localePath, LOCALES } from "@/lib/i18n";
 import { getEpisodes } from "@/lib/queries";
+import { CRICKET_SERIES } from "@/lib/topics";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteConfig.url;
@@ -35,6 +36,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/privacy",
     "/terms",
     "/disclaimer",
+    ...["/latest-matches", "/prediction-records", "/testimonials"].flatMap((page) => CRICKET_SERIES.map((s) => `${page}/${s.id}`)),
   ];
   const { items } = await getEpisodes({ sort: "latest" });
   // Every page exists in English and Hindi; each entry lists both versions as alternates.

@@ -534,10 +534,11 @@ test("book PDF post and an old video land on their menu pages", async ({ page, r
   await page.getByTestId("publish-checkbox").check();
   await page.getByTestId("save-episode").click();
   await expect(page).toHaveURL(/\/admin\/episodes\/[0-9a-f-]{36}/);
-  await gotoReady(page, "/testimonials#ipl-men");
+  await gotoReady(page, "/testimonials/ipl#ipl-men");
   const proof = page.getByTestId("testimonials-ipl-men").getByTestId("message-proof").filter({ hasText: "E2E Messages After The Final" });
   await expect(proof.locator("img")).toHaveCount(2);
-  await expect(page.getByTestId("testimonials-bbl-men").getByTestId("message-proof")).toHaveCount(0);
+  // The IPL page holds IPL only.
+  await expect(page.getByTestId("testimonials-bbl-men")).toHaveCount(0);
   await expect(page.getByTestId("testimonials-ipl-women").getByTestId("message-proof")).toHaveCount(0);
 });
 
@@ -675,8 +676,13 @@ test("Latest Matches: a BBL men's match added from its Add button lands under BB
   await page.getByTestId("mobile-toggle-latestMatches").click();
   const menu = page.locator("#mobile-menu");
   await expect(menu.getByRole("link", { name: "Course Teaching", exact: true })).toBeVisible();
-  await menu.locator('a[href$="/latest-matches#odi"]').click();
-  await expect(page).toHaveURL(/#odi$/);
+  await menu.locator('a[href$="/latest-matches/odi"]').click();
+  // ODI opens its own page: ODI men and women, no other series.
+  await expect(page).toHaveURL(/\/latest-matches\/odi$/);
+  // (Next keeps the previous page hidden in the document, so look at what is visible.)
+  await expect(page.getByTestId("latest-odi-women").filter({ visible: true }).getByTestId("empty-state")).toBeVisible();
+  await expect(page.getByTestId("latest-bbl-men").filter({ visible: true })).toHaveCount(0);
+  await expect(page.getByTestId("latest-series-odi").filter({ visible: true })).toHaveAttribute("aria-current", "page");
 });
 
 test("Players: the search narrows the cards as a name is typed, even misspelled", async ({ page }) => {

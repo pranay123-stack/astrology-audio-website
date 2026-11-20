@@ -20,7 +20,7 @@ export default async function PredictionRecordsPage() {
   return (
     <>
       <TopicHero icon={ClipboardList} eyebrow={t.eyebrow} title={t.title} intro={t.intro} />
-      <CricketSeries query={predictionQuery} navLabel={t.leagues} testId="predictions" lang={lang} />
+      <CricketSeries query={predictionQuery} navLabel={t.leagues} testId="predictions" page="/prediction-records" lang={lang} />
     </>
   );
 }

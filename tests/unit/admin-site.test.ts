@@ -32,8 +32,8 @@ describe("admin follows the website menu", () => {
     expect(adminSlot("testimonials-ipl-men")).toMatchObject({ add: { category: "testimonial-messages-ipl", fields: ["photos"] } });
     expect(adminSlot("testimonials-odi-women")).toMatchObject({ add: { category: "testimonial-messages-wodi", fields: ["photos"] } });
     const menu = siteMenu({ showPremium: false });
-    expect(menu.find((m) => m.key === "testimonials")!.children![0].children![1].children!.map((g) => g.href)).toEqual(["/testimonials#ipl-men", "/testimonials#ipl-women"]);
-    expect(menu.find((m) => m.key === "predictionRecords")!.children![0].children![3].children!.map((g) => g.href)).toEqual(["/prediction-records#odi-men", "/prediction-records#odi-women"]);
+    expect(menu.find((m) => m.key === "testimonials")!.children![0].children![1].children!.map((g) => g.href)).toEqual(["/testimonials/ipl#ipl-men", "/testimonials/ipl#ipl-women"]);
+    expect(menu.find((m) => m.key === "predictionRecords")!.children![0].children![3].children!.map((g) => g.href)).toEqual(["/prediction-records/odi#odi-men", "/prediction-records/odi#odi-women"]);
   });
 
   it("Fixing sits under Horoscope Research: match posts newest first", () => {
@@ -62,10 +62,10 @@ describe("admin follows the website menu", () => {
     const cricket = latest[0];
     expect(cricket.key).toBe("matches");
     expect(cricket.children!.map((c) => [c.key, c.children!.map((g) => g.href)])).toEqual([
-      ["seriesBbl", ["/latest-matches#bbl-men", "/latest-matches#bbl-women"]],
-      ["ipl", ["/latest-matches#ipl-men", "/latest-matches#ipl-women"]],
-      ["seriesT20", ["/latest-matches#t20-men", "/latest-matches#t20-women"]],
-      ["seriesOdi", ["/latest-matches#odi-men", "/latest-matches#odi-women"]],
+      ["seriesBbl", ["/latest-matches/bbl#bbl-men", "/latest-matches/bbl#bbl-women"]],
+      ["ipl", ["/latest-matches/ipl#ipl-men", "/latest-matches/ipl#ipl-women"]],
+      ["seriesT20", ["/latest-matches/t20#t20-men", "/latest-matches/t20#t20-women"]],
+      ["seriesOdi", ["/latest-matches/odi#odi-men", "/latest-matches/odi#odi-women"]],
     ]);
   });
 
