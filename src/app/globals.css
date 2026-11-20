@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 @theme {
-  /* Width from which the whole menu fits on one line in the header (narrower: the ☰ Menu button). */
-  --breakpoint-nav: 1760px;
+  /* Width from which the grouped menu (Home, Matches, Learn, Research, Free Tools, Contact) shows in the header; narrower: the ☰ Menu button and the bottom bar. */
+  --breakpoint-nav: 64rem;
   /* Red and yellow theme: deep crimson surfaces, saffron/yellow accents.
      Token names are historical (navy/plum/gold) so components stay untouched. */
   --color-night: #2a0505;
@@ -199,4 +199,22 @@
 }
 .locale-hi .eyebrow {
   letter-spacing: 0.08em;
+}
+
+/* Home page match ticker: slides one full copy of the list, then repeats. */
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ticker-track {
+    animation: ticker 60s linear infinite;
+  }
+  .ticker-mask:hover .ticker-track,
+  .ticker-mask:focus-within .ticker-track {
+    animation-play-state: paused;
+  }
+}
+.ticker-mask {
+  mask-image: linear-gradient(to right, transparent, black 4%, black 96%, transparent);
 }

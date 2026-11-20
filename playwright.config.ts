@@ -19,7 +19,7 @@ export default defineConfig({
   retries: 0,
   timeout: 60_000,
   use: { baseURL: `http://localhost:${PORT}`, trace: "retain-on-failure" },
-  // A wide desktop window, where the whole menu fits in the header (narrower windows get the ☰ Menu button).
+  // A wide desktop window; the grouped menu shows in the header from 1024px (narrower: the ☰ Menu button and the bottom bar).
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"], viewport: { width: 1800, height: 900 } } }],
   webServer: {
     // Build against the freshly seeded test data so prerendered pages match the data under test.

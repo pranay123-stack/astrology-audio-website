@@ -8,30 +8,37 @@ const audioState = (page: Page) =>
     return { paused: a.paused, rate: a.playbackRate, time: a.currentTime, duration: a.duration };
   });
 
-test("the full menu fits wide screens, wrapping instead of pushing the page sideways", async ({ page }) => {
-  for (const width of [1766, 1920, 2100]) {
+test("the grouped menu fits one line from laptop width up, without pushing the page sideways", async ({ page }) => {
+  for (const width of [1024, 1280, 1920]) {
     for (const path of ["/en", "/hi"]) {
       await page.setViewportSize({ width, height: 900 });
       await gotoReady(page, path);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       expect(overflow, `${path} at ${width}`).toBeLessThanOrEqual(0);
-      await expect(page.locator("header nav").filter({ visible: true }).getByRole("link", { name: path === "/en" ? "Krishna Consciousness" : "कृष्ण चेतना", exact: true }).first()).toBeInViewport();
+      const nav = page.locator("header nav").filter({ visible: true });
+      await expect(nav.getByRole("link", { name: path === "/en" ? "Contact" : "संपर्क", exact: true })).toBeInViewport();
+      // One line: the header stays as tall as the logo row.
+      expect((await nav.boundingBox())!.height, `${path} at ${width}`).toBeLessThan(56);
     }
   }
 });
 
 test("home page shows the main sections and the sample-content notice", async ({ page }) => {
   await gotoReady(page, "/");
-  // General astrology leads; cricket is further down the page for visitors who scroll.
+  // Cricket leads: the hero's card is the newest match reading, then a ticker of match readings,
+  // "Start here" tiles for a first visit, the match readings, and the rest of the site below.
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Cricket Predictions & Life Astrology");
-  await expect(page.getByTestId("hero-latest").filter({ visible: true })).toContainText("Latest reading");
+  await expect(page.getByTestId("hero-latest").filter({ visible: true })).toContainText("Latest match reading");
+  await expect(page.getByTestId("match-ticker")).toBeVisible();
   const order = await page.evaluate(() =>
-    ["featured-heading", "cricket-heading", "kp-promo-heading", "mantra-heading", "about-heading"].map((id) => document.getElementById(id)?.getBoundingClientRect().top ?? -1),
+    ["start-heading", "cricket-heading", "featured-heading", "kp-promo-heading", "mantra-heading", "about-heading"].map((id) => document.getElementById(id)?.getBoundingClientRect().top ?? -1),
   );
   expect(order.every((y, i) => y > 0 && (i === 0 || y > order[i - 1]))).toBe(true);
-  // The astrologer's menu; Premium shows only because the sample content has premium posts.
-  const nav = await page.getByRole("navigation", { name: "Main" }).filter({ visible: true }).getByRole("link").allInnerTexts();
-  expect(nav).toEqual(["Home", "Latest Matches", "Astrology", "Astro Cricket", "Book", "Horoscope Research", "Premium", "Make Your KP Chart", "Contact", "Rules", "Prediction Records", "Testimonials", "Future Research Topics", "Krishna Consciousness"]);
+  await expect(page.getByTestId("start-here").getByRole("link")).toHaveCount(8);
+  // The menu, grouped so it fits one line: Home and Contact as links, four dropdowns between them.
+  const main = page.getByRole("navigation", { name: "Main" }).filter({ visible: true });
+  expect(await main.getByRole("link").allInnerTexts()).toEqual(["Home", "Contact"]);
+  expect(await main.getByRole("button").allInnerTexts()).toEqual(["Matches", "Learn", "Research", "Free Tools"]);
   // The hero's main button is the course; the KP chart has its own invitation.
   await expect(page.getByTestId("hero-learn")).toHaveAttribute("href", "/contact?subject=Learning%20cricket%20astrology#questionnaire");
   await expect(page.getByTestId("kp-promo").getByRole("link")).toHaveAttribute("href", "/kp-chart");
@@ -39,11 +46,9 @@ test("home page shows the main sections and the sample-content notice", async ({
   await expect(page.getByRole("heading", { name: "Latest in Astrology" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Cricket Astrology", exact: true })).toBeVisible();
   await expect(page.getByTestId("match-card").filter({ visible: true })).toHaveCount(3);
-  // The menu lists every section, so the page doesn't repeat it: one featured post with the next ones beside it,
-  // the KP chart and the book side by side, and the daily mantra.
-  await expect(page.getByTestId("home-explore")).toHaveCount(0);
+  // One featured post with the next ones beside it, the KP chart and the book side by side, and the daily mantra.
   await expect(page.getByTestId("hero-kp")).toHaveAttribute("href", "/kp-chart");
-  await expect(page.getByTestId("hero-stats")).toContainText("lessons & videos");
+  await expect(page.getByTestId("hero-stats")).toContainText("Lessons & videos");
   await expect(page.getByTestId("home-more-latest").locator("li")).toHaveCount(4);
   await expect(page.getByTestId("home-book").getByRole("link", { name: "Listen & read" })).toHaveAttribute("href", "/book");
   await expect(page.getByTestId("home-mantra").getByRole("link")).toHaveAttribute("href", "/rules");
@@ -54,8 +59,9 @@ test("Hindi site: translated interface at /hi, and the switch keeps the page and
   await gotoReady(page, "/hi");
   await expect(page.locator("html")).toHaveAttribute("lang", "hi");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("क्रिकेट भविष्यवाणी और जीवन ज्योतिष");
-  const nav = await page.getByRole("navigation", { name: "मुख्य" }).filter({ visible: true }).getByRole("link").allInnerTexts();
-  expect(nav).toEqual(["होम", "ताज़ा मैच", "ज्योतिष", "एस्ट्रो क्रिकेट", "पुस्तक", "कुंडली शोध", "प्रीमियम", "अपनी KP कुंडली बनाएँ", "संपर्क", "नियम", "भविष्यवाणी रिकॉर्ड", "प्रशंसापत्र", "भविष्य के शोध विषय", "कृष्ण चेतना"]);
+  const nav = page.getByRole("navigation", { name: "मुख्य" }).filter({ visible: true });
+  expect(await nav.getByRole("link").allInnerTexts()).toEqual(["होम", "संपर्क"]);
+  expect(await nav.getByRole("button").allInnerTexts()).toEqual(["मैच", "सीखें", "शोध", "मुफ़्त टूल"]);
   // Menu links stay inside /hi.
   await expect(page.getByTestId("home-book").getByRole("link", { name: "सुनें और पढ़ें" })).toHaveAttribute("href", "/hi/book");
   await expect(page.getByTestId("hero-kp")).toHaveAttribute("href", "/hi/kp-chart");
@@ -224,51 +230,64 @@ test("a missing audio file shows a helpful error", async ({ page }) => {
   await expect(page.getByTestId("player-error")).toContainText("unavailable");
 });
 
-test("laptop widths get the Menu button, with Home first", async ({ page }) => {
-  await page.setViewportSize({ width: 1366, height: 800 });
+test("laptops get the grouped menu; narrower screens the Menu button and the bottom bar", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
   await gotoReady(page, "/kp-chart");
-  await expect(page.getByRole("navigation", { name: "Main" }).filter({ visible: true })).toHaveCount(0);
-  await expect(page.getByRole("link", { name: /home/i }).filter({ hasText: "Astro Cricket" }).first()).toBeVisible();
+  const main = page.getByRole("navigation", { name: "Main" }).filter({ visible: true });
+  await expect(main.getByTestId("menu-toggle-tools")).toHaveClass(/text-gold-soft/);
+  await expect(page.getByTestId("bottom-bar")).toBeHidden();
+  await page.setViewportSize({ width: 900, height: 800 });
+  await expect(main).toHaveCount(0);
   await page.getByRole("button", { name: "Open menu" }).click();
-  const links = page.locator("#mobile-menu").getByRole("link");
-  await expect(links.nth(1)).toHaveText("Home");
-  await links.nth(1).click();
+  await page.locator("#mobile-menu").getByRole("link", { name: "Home", exact: true }).click();
   await expect(page).toHaveURL(/localhost:\d+\/$/);
 });
 
 test("mobile menu opens and navigates", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await gotoReady(page, "/");
+  // The bottom bar: the places people go most, one tap away.
+  const bar = page.getByTestId("bottom-bar");
+  await expect(bar.getByRole("link")).toHaveText(["Home", "Matches", "KP Chart", "Learn"]);
+  await bar.getByRole("link", { name: "KP Chart" }).click();
+  await expect(page).toHaveURL(/\/kp-chart$/);
+  await expect(bar.getByRole("link", { name: "KP Chart" })).toHaveAttribute("aria-current", "page");
+  // The menu, grouped like the header, each page with a line on what it holds.
   await page.getByRole("button", { name: "Open menu" }).click();
   await expect(page.getByTestId("mobile-learn")).toBeVisible();
-  await page.locator("#mobile-menu").getByRole("link", { name: "Astro Cricket", exact: true }).click();
+  for (const g of ["matches", "learn", "research", "tools"]) await expect(page.getByTestId(`mobile-group-${g}`)).toBeVisible();
+  await page.locator("#mobile-menu").getByTestId("menu-item-astroCricket").click();
   await expect(page).toHaveURL(/\/astro-cricket$/);
   await expect(page.locator("#mobile-menu")).toHaveCount(0);
-  // Sub-menus open as an accordion.
-  await page.getByRole("button", { name: "Open menu" }).click();
+  // Quick links open under a page.
+  await page.getByTestId("bottom-menu").click();
   await page.getByTestId("mobile-toggle-research").click();
-  await page.locator('#mobile-menu a[href$="/horoscope-research/matches?competition=wpl"]').click();
-  await expect(page).toHaveURL(/\/horoscope-research\/matches\?competition=wpl$/);
-  await expect(page.getByTestId("topic-tabs").getByRole("link", { name: /IPL · Women/ })).toHaveAttribute("aria-current", "page");
+  await page.locator('#mobile-menu a[href$="/horoscope-research/matches?competition=ipl"]').click();
+  await expect(page).toHaveURL(/\/horoscope-research\/matches\?competition=ipl$/);
+  await expect(page.getByTestId("topic-tabs").getByRole("link", { name: /IPL · Men/ })).toHaveAttribute("aria-current", "page");
 });
 
 test("site menu: dropdowns lead to each section's pages, with their content", async ({ page }) => {
   await gotoReady(page, "/");
   const main = page.getByRole("navigation", { name: "Main" }).filter({ visible: true });
-  await main.getByRole("listitem").filter({ hasText: "Astrology" }).first().hover();
-  const panel = page.getByTestId("menu-panel-astrology");
-  await expect(panel.getByRole("link")).toHaveText(["Overview", "12 Planets & 12 Bhav", "Video", "Audio", "Read", "KP Astrology", "Research Kundli with Match Data"]);
-  await panel.getByRole("link", { name: "Read", exact: true }).click();
-  await expect(page).toHaveURL(/\/astrology\/planets-bhav\?format=article$/);
+  await main.getByTestId("menu-toggle-learn").hover();
+  const panel = page.getByTestId("menu-panel-learn");
+  await expect(panel.getByTestId("menu-item-astrology")).toContainText("12 planets, 12 bhav and KP astrology");
+  await panel.getByRole("link", { name: "12 Planets & 12 Bhav", exact: true }).click();
+  await expect(page).toHaveURL(/\/astrology\/planets-bhav$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("12 Planets & 12 Bhav");
-  await expect(page.getByTestId("topic-tabs").getByRole("link", { name: /Read/ })).toHaveAttribute("aria-current", "page");
   await expect(page.getByTestId("topic-posts").getByTestId("episode-card").first()).toBeVisible();
 
-  // The arrow button opens a menu on touch screens too.
-  await page.getByTestId("menu-toggle-book").click();
-  await expect(page.getByTestId("menu-panel-book").getByRole("link")).toHaveText(["Overview", "Audio (Hindi)", "Audio (English)", "PDF (Hindi)", "PDF (English)"]);
+  // The button opens a menu on touch screens too; Matches holds the match pages, Fixing included.
+  await page.mouse.move(0, 600);
+  await page.getByTestId("menu-toggle-matches").click();
+  await expect(page.getByTestId("menu-panel-matches").getByTestId(/^menu-item-/)).toHaveCount(4);
+  await expect(page.getByTestId("menu-panel-matches").getByTestId("menu-item-fixing")).toHaveAttribute("href", "/horoscope-research/fixing");
   await page.keyboard.press("Escape");
-  await expect(page.getByTestId("menu-panel-book")).toHaveCount(0);
+  await expect(page.getByTestId("menu-panel-matches")).toHaveCount(0);
+  await page.getByTestId("menu-toggle-learn").click();
+  await expect(page.getByTestId("menu-panel-learn").getByRole("link", { name: /^(Audio|PDF) \(/ })).toHaveText(["Audio (Hindi)", "Audio (English)", "PDF (Hindi)", "PDF (English)"]);
+  await page.keyboard.press("Escape");
 
   // Each section has a page with a hero and cards for its sub-pages.
   await gotoReady(page, "/astrology");
@@ -285,8 +304,8 @@ test("site menu: dropdowns lead to each section's pages, with their content", as
   await expect(page.getByTestId("empty-state")).toBeVisible();
 
   // The astrologer's rules, in his words: 7 spiritual (with planet and chakra), 9 cricket, 9 Shani.
-  await page.getByTestId("menu-toggle-rules").click();
-  await page.getByTestId("menu-panel-rules").getByRole("link", { name: "Shani Rules" }).click();
+  await page.getByTestId("menu-toggle-learn").click();
+  await page.getByTestId("menu-panel-learn").getByRole("link", { name: "Shani Rules", exact: true }).click();
   await expect(page).toHaveURL(/\/rules#shani$/);
   await expect(page.getByTestId("rules-spiritual").getByTestId("rule")).toHaveCount(7);
   await expect(page.getByTestId("rules-cricket").getByTestId("rule")).toHaveCount(9);
@@ -296,13 +315,14 @@ test("site menu: dropdowns lead to each section's pages, with their content", as
   await expect(page.getByTestId("rules-shani").getByTestId("rule").last()).toContainText("Sab ho raha hai, I am doing nothing.");
 
   // Future Research Topics: four topics, each "coming soon" until the astrologer posts.
-  await page.getByTestId("menu-toggle-futureResearch").click();
-  await page.getByTestId("menu-panel-futureResearch").getByRole("link", { name: "Bitcoin & Forex Market" }).click();
+  await page.getByTestId("menu-toggle-research").click();
+  await page.getByTestId("menu-panel-research").getByRole("link", { name: "Bitcoin & Forex Market" }).click();
   await expect(page).toHaveURL(/\/future-research#bitcoin-forex$/);
   for (const id of ["football", "share-market", "bitcoin-forex", "lottery"]) await expect(page.getByTestId(`future-${id}`).getByTestId("future-soon")).toBeVisible();
 
   // Krishna Consciousness: the astrologer's essay, with 12% luck and 88% karma.
-  await page.getByRole("navigation", { name: "Main" }).filter({ visible: true }).getByRole("link", { name: "Krishna Consciousness" }).click();
+  await page.getByTestId("menu-toggle-learn").click();
+  await page.getByTestId("menu-panel-learn").getByTestId("menu-item-krishna").click();
   await expect(page).toHaveURL(/\/krishna-consciousness$/);
   await expect(page.getByTestId("luck-karma")).toContainText("12%");
   await expect(page.getByTestId("luck-karma")).toContainText("88%");

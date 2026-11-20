@@ -65,6 +65,8 @@ export default async function SiteRootLayout({ children }: LayoutProps<"/[lang]"
             <DemoBanner lang={lang} />
             <main id="main">{children}</main>
             <SiteFooter lang={lang} />
+            {/* Room for the phone bottom bar, so it never covers the end of the footer. */}
+            <div className="h-16 nav:hidden" aria-hidden />
             <MiniPlayer />
             {whatsapp && <FloatingWhatsApp href={whatsapp} />}
             {popup.enabled && <OfferPopup popup={withPopupDefaults(popup)} imageSrc={imageUrl(popup.image_path)} />}

@@ -15,7 +15,7 @@ export function FloatingWhatsApp({ href }: { href: string }) {
       aria-label={t.whatsappFloat}
       title={t.whatsappFloat}
       className={`fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#25d366] text-white shadow-[0_8px_30px_-6px_rgb(0_0_0/0.6)] transition hover:scale-105 sm:right-6 ${
-        track ? "bottom-36 sm:bottom-28" : "bottom-5 sm:bottom-6"
+        track ? "bottom-36 sm:bottom-28" : "bottom-20 nav:bottom-6"
       }`}
       data-testid="whatsapp-float"
     >

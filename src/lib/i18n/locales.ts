@@ -25,9 +25,15 @@ export function localePath(lang: Locale, path: string): string {
   return `/hi${path}`;
 }
 
-/** Splits a public pathname into its language and the language-free path. */
+/**
+ * Splits a pathname into its language and the language-free path. English pages are served from
+ * /en/... behind the proxy's rewrite, and since Next.js 16.4.6 the server render sees that internal
+ * path (the browser sees /...), so /en is read as English too: otherwise the menu marks no current page.
+ */
 export function splitLocale(pathname: string): { lang: Locale; path: string } {
   if (pathname === "/hi") return { lang: "hi", path: "/" };
   if (pathname.startsWith("/hi/")) return { lang: "hi", path: pathname.slice(3) };
+  if (pathname === "/en") return { lang: "en", path: "/" };
+  if (pathname.startsWith("/en/")) return { lang: "en", path: pathname.slice(3) };
   return { lang: "en", path: pathname || "/" };
 }

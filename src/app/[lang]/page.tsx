@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, BookOpen, Compass, ExternalLink, GraduationCap, Headphones, Languages, Library, Quote, Sparkles } from "lucide-react";
+import { ArrowRight, BookOpen, Compass, ExternalLink, GraduationCap, Headphones, Quote, Radio, Sparkles } from "lucide-react";
 import { EpisodeCard } from "@/components/episodes/EpisodeCard";
 import { MatchCard } from "@/components/episodes/MatchCard";
 import { MediaAction } from "@/components/episodes/MediaAction";
+import { TeamBadge } from "@/components/episodes/TeamBadge";
+import { MatchTicker } from "@/components/home/MatchTicker";
+import { StartHere } from "@/components/home/StartHere";
 import { ReelsStrip } from "@/components/episodes/ReelsStrip";
 import { learnPath } from "@/components/layout/nav";
 import { QuotesBand } from "@/components/layout/QuotesBand";
@@ -18,7 +21,7 @@ import { imageUrl } from "@/lib/media/urls";
 import { alternatesFor } from "@/lib/seo";
 import { getEpisodes, getProfile } from "@/lib/queries";
 import { getLang } from "@/lib/i18n/server";
-import { TESTIMONIAL_CATEGORIES } from "@/lib/topics";
+import { TESTIMONIAL_CATEGORIES, TOPICS } from "@/lib/topics";
 import type { EpisodeListing, Locale } from "@/lib/types";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -26,34 +29,41 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * Home page, top to bottom: quotes, hero, the latest posts (one featured), cricket predictions,
- * the KP chart and the book side by side, the daily mantra, testimonials and reels when there
- * are any, and the astrologer. The menu already lists every section, so the page does not.
+ * Home page, top to bottom: quotes, hero (with a scoreboard and the latest match reading), a ticker of
+ * recent match readings, "Start here" tiles for every main section, cricket predictions, the latest
+ * posts (one featured), the KP chart and the book, the daily mantra, testimonials and reels when there
+ * are any, and the astrologer. Cricket comes first: it is what the site is known for.
  */
 export default async function HomePage() {
   const lang = await getLang();
   const t = getDict(lang);
   const href = (path: string) => localePath(lang, path);
-  const [latest, upcoming, recentCricket, guide, testimonials, all, rawProfile] = await Promise.all([
+  const [latest, upcoming, recentCricket, guide, testimonials, all, players, predictions, rawProfile] = await Promise.all([
     getEpisodes({ section: "general", limit: 5, sort: "latest" }),
     getEpisodes({ section: "cricket", withMatch: true, timing: "upcoming", sort: "match_date_asc", limit: 3 }),
-    getEpisodes({ section: "cricket", withMatch: true, sort: "latest", limit: 3 }),
+    // Newest match first (not newest post): course lessons on old matches must not crowd out this week's games.
+    getEpisodes({ section: "cricket", withMatch: true, sort: "match_date_desc", limit: 12 }),
     getEpisodes({ categorySlug: "cricket-astrology-guide", sort: "latest", limit: 3 }),
     getEpisodes({ categorySlugs: TESTIMONIAL_CATEGORIES, sort: "latest", limit: 3 }),
     getEpisodes({ limit: 1 }),
+    getEpisodes({ ...TOPICS.players, limit: 1 }),
+    getEpisodes({ ...TOPICS.predictionRecords, limit: 1 }),
     getProfile(),
   ]);
-  const cricket = upcoming.items.length > 0 ? upcoming.items : recentCricket.items;
+  const cricket = upcoming.items.length > 0 ? upcoming.items : recentCricket.items.slice(0, 3);
+  const heroMatch = upcoming.items[0] ?? recentCricket.items[0];
   const profile = localizeProfile(rawProfile, lang);
   const portrait = imageUrl(profile.profile_image_path);
   const amazon = profile.social_links?.amazon;
   const [featured, ...more] = latest.items;
   const heroEpisode = featured ? localizeEpisode(featured, lang) : null;
-  const stats = [
-    { icon: Library, text: t.home.statPosts(all.total) },
-    { icon: Compass, text: t.home.statKp },
-    { icon: Languages, text: t.home.statLangs },
-  ];
+  // The scoreboard: what the site holds, counted live.
+  const score = [
+    { n: recentCricket.total, label: t.home.scoreMatches },
+    { n: predictions.total, label: t.home.scorePredictions },
+    { n: players.total, label: t.home.scorePlayers },
+    { n: all.total, label: t.home.scorePosts },
+  ].filter((s) => s.n > 0);
 
   return (
     <>
@@ -80,13 +90,19 @@ export default async function HomePage() {
                 <Compass className="h-5 w-5" aria-hidden /> {t.menu.kpChart}
               </Link>
             </div>
-            <ul className="flex flex-wrap gap-x-6 gap-y-2 border-t border-line pt-5 text-sm text-ink/75" data-testid="hero-stats">
-              {stats.map((s) => (
-                <li key={s.text} className="inline-flex items-center gap-2">
-                  <s.icon className="h-4 w-4 text-gold-soft" aria-hidden /> {s.text}
-                </li>
-              ))}
-            </ul>
+            {score.length > 0 && (
+              <ul className="grid max-w-xl grid-cols-2 gap-2 sm:grid-cols-4" data-testid="hero-stats">
+                {score.map((s) => (
+                  <li key={s.label} className="rounded-xl border border-gold/30 bg-black/30 px-3 py-2.5 text-center shadow-inner">
+                    <span className="block font-mono text-2xl font-bold text-gold-soft tabular-nums sm:text-3xl">{s.n}</span>
+                    <span className="block text-[11px] leading-tight font-semibold tracking-wide text-ink/75 uppercase">{s.label}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="text-sm text-ink/70">
+              {t.home.statKp} · {t.home.statLangs}
+            </p>
           </div>
 
           <div className="relative mx-auto w-full max-w-md lg:max-w-lg">
@@ -101,7 +117,9 @@ export default async function HomePage() {
               className="h-auto w-full drop-shadow-[0_0_60px_rgb(252_196_25/0.35)] [mask-image:radial-gradient(circle,black_70%,transparent_80%)]"
               data-testid="hero-image"
             />
-            {heroEpisode && (
+            {heroMatch?.match ? (
+              <HeroMatchCard episode={heroMatch} lang={lang} />
+            ) : heroEpisode && (
               <div
                 className="relative mx-4 -mt-2 flex items-center gap-4 rounded-2xl border border-gold/30 bg-night/85 p-4 shadow-[var(--shadow-glow)] backdrop-blur-md sm:mx-10"
                 data-testid="hero-latest"
@@ -119,6 +137,41 @@ export default async function HomePage() {
               </div>
             )}
           </div>
+        </div>
+      </section>
+
+      <MatchTicker episodes={recentCricket.items} lang={lang} />
+
+      <StartHere lang={lang} />
+
+      {/* Cricket predictions: match readings when there are any, otherwise the guide */}
+      <section className="relative py-16" aria-labelledby="cricket-heading">
+        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-transparent via-plum/30 to-transparent" />
+        <div className="container-page">
+          <SectionHeading
+            id="cricket-heading"
+            eyebrow={t.home.cricketEyebrow}
+            title={t.home.cricketTitle}
+            description={upcoming.items.length ? t.home.cricketUpcoming : recentCricket.items.length ? t.home.cricketRecent : t.home.cricketGuide}
+            href={href(cricket.length ? "/horoscope-research/matches" : "/astrology/kp-research")}
+            linkLabel={cricket.length ? t.home.allMatchReadings : t.home.seeAll}
+          />
+          {cricket.length > 0 ? (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {cricket.map((e) => (
+                <MatchCard key={e.id} episode={e} lang={lang} />
+              ))}
+            </div>
+          ) : guide.items.length > 0 ? (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-testid="home-cricket-guide">
+              {guide.items.map((e) => (
+                <EpisodeCard key={e.id} episode={e} lang={lang} />
+              ))}
+            </div>
+          ) : (
+            <EmptyState title={t.home.matchSoon}>{t.home.matchSoonBody}</EmptyState>
+          )}
+          <CricketDisclaimer lang={lang} className="mt-8" />
         </div>
       </section>
 
@@ -151,37 +204,6 @@ export default async function HomePage() {
         ) : (
           <EmptyState title={t.home.noEpisodes}>{t.home.noEpisodesBody}</EmptyState>
         )}
-      </section>
-
-      {/* Cricket predictions: match readings when there are any, otherwise the guide */}
-      <section className="relative py-16" aria-labelledby="cricket-heading">
-        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-transparent via-plum/30 to-transparent" />
-        <div className="container-page">
-          <SectionHeading
-            id="cricket-heading"
-            eyebrow={t.home.cricketEyebrow}
-            title={t.home.cricketTitle}
-            description={upcoming.items.length ? t.home.cricketUpcoming : recentCricket.items.length ? t.home.cricketRecent : t.home.cricketGuide}
-            href={href(cricket.length ? "/horoscope-research/matches" : "/astrology/kp-research")}
-            linkLabel={cricket.length ? t.home.allMatchReadings : t.home.seeAll}
-          />
-          {cricket.length > 0 ? (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {cricket.map((e) => (
-                <MatchCard key={e.id} episode={e} lang={lang} />
-              ))}
-            </div>
-          ) : guide.items.length > 0 ? (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-testid="home-cricket-guide">
-              {guide.items.map((e) => (
-                <EpisodeCard key={e.id} episode={e} lang={lang} />
-              ))}
-            </div>
-          ) : (
-            <EmptyState title={t.home.matchSoon}>{t.home.matchSoonBody}</EmptyState>
-          )}
-          <CricketDisclaimer lang={lang} className="mt-8" />
-        </div>
       </section>
 
       {/* Spotlights: the free KP chart and the book */}
@@ -307,6 +329,39 @@ function CompactPost({ episode: raw, lang }: { episode: EpisodeListing; lang: Lo
           {e.category.name} · {lengthLabel(e, lang)}
         </span>
       </span>
+    </Link>
+  );
+}
+
+/** The hero's card: the newest match reading, as a fixture (both teams), linking to the reading. */
+function HeroMatchCard({ episode: raw, lang }: { episode: EpisodeListing; lang: Locale }) {
+  const e = localizeEpisode(raw, lang);
+  const t = getDict(lang);
+  const m = e.match!;
+  return (
+    <Link
+      href={episodeHref(e, lang)}
+      className="group relative mx-4 -mt-2 block rounded-2xl border border-gold/40 bg-night/85 p-4 shadow-[var(--shadow-glow)] backdrop-blur-md transition hover:border-gold sm:mx-10"
+      data-testid="hero-latest"
+    >
+      <p className="flex items-center justify-between gap-2 text-[11px] font-semibold tracking-[0.2em] text-gold uppercase">
+        <span className="inline-flex items-center gap-1.5">
+          <Radio className="h-3.5 w-3.5 animate-pulse" aria-hidden /> {t.home.latestMatch}
+        </span>
+        <span className="tracking-wider text-muted">{m.competition.short_name || m.competition.name}</span>
+      </p>
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <span className="flex min-w-0 flex-1 items-center gap-2">
+          <TeamBadge team={m.team_a} size={40} />
+          <span className="truncate text-sm font-semibold">{m.team_a.short_name || m.team_a.name}</span>
+        </span>
+        <span className="font-display text-xl text-gold-soft italic">{t.common.vs}</span>
+        <span className="flex min-w-0 flex-1 items-center justify-end gap-2">
+          <span className="truncate text-right text-sm font-semibold">{m.team_b.short_name || m.team_b.name}</span>
+          <TeamBadge team={m.team_b} size={40} />
+        </span>
+      </div>
+      <p lang={e.text_lang} className="mt-3 line-clamp-1 text-xs text-ink/75 group-hover:text-gold-soft">{e.title}</p>
     </Link>
   );
 }

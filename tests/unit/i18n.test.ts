@@ -56,6 +56,10 @@ describe("locale paths", () => {
   it("splits a public pathname into language and path", () => {
     expect(splitLocale("/")).toEqual({ lang: "en", path: "/" });
     expect(splitLocale("/hi")).toEqual({ lang: "hi", path: "/" });
+    // The proxy's internal English paths (what the server render sees) read like the public ones.
+    expect(splitLocale("/en")).toEqual({ lang: "en", path: "/" });
+    expect(splitLocale("/en/kp-chart")).toEqual({ lang: "en", path: "/kp-chart" });
+    expect(splitLocale("/enquiry")).toEqual({ lang: "en", path: "/enquiry" });
     expect(splitLocale("/hi/astrology-audios/budh")).toEqual({ lang: "hi", path: "/astrology-audios/budh" });
     // A page that merely starts with "hi" is not Hindi.
     expect(splitLocale("/history")).toEqual({ lang: "en", path: "/history" });

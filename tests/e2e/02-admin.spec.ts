@@ -674,9 +674,9 @@ test("Latest Matches: a BBL men's match added from its Add button lands under BB
   await page.getByRole("button", { name: "Open menu" }).click();
   await page.getByTestId("mobile-toggle-latestMatches").click();
   const menu = page.locator("#mobile-menu");
-  await expect(menu.getByRole("link", { name: "Cricket Matches", exact: true })).toBeVisible();
-  await menu.locator('a[href$="/latest-matches#odi-women"]').click();
-  await expect(page).toHaveURL(/#odi-women$/);
+  await expect(menu.getByRole("link", { name: "Course Teaching", exact: true })).toBeVisible();
+  await menu.locator('a[href$="/latest-matches#odi"]').click();
+  await expect(page).toHaveURL(/#odi$/);
 });
 
 test("Players: the search narrows the cards as a name is typed, even misspelled", async ({ page }) => {
