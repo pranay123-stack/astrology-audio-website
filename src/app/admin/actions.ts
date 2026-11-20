@@ -321,8 +321,13 @@ export async function saveTeam(input: unknown): Promise<ActionResult> {
     if (logo && logo !== before?.logo_path && (!logo.startsWith("teams/") || !(await verifyStoredFile(logo)))) {
       return { ok: false, error: "The logo could not be verified. Please upload it again.", fields: { logo_path: "Upload failed verification" } };
     }
+    const photo = parsed.data.captain_photo_path;
+    if (photo && photo !== before?.captain_photo_path && (!photo.startsWith("teams/") || !(await verifyStoredFile(photo)))) {
+      return { ok: false, error: "The captain's photo could not be verified. Please upload it again.", fields: { captain_photo_path: "Upload failed verification" } };
+    }
     await repo.saveTeam(parsed.data);
     if (before?.logo_path && before.logo_path !== logo) await cleanup(before.logo_path);
+    if (before?.captain_photo_path && before.captain_photo_path !== photo) await cleanup(before.captain_photo_path);
     updateTag(CONTENT_TAG);
     return { ok: true };
   } catch (err) {
@@ -335,6 +340,7 @@ export async function deleteTeam(id: string): Promise<ActionResult> {
   try {
     const removed = await (await getAdminRepository()).deleteTeam(id);
     await cleanup(removed?.logo_path);
+    await cleanup(removed?.captain_photo_path);
     updateTag(CONTENT_TAG);
     return { ok: true };
   } catch (err) {

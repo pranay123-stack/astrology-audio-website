@@ -47,6 +47,10 @@ type ListingRow = Episode & {
   team_b_short_name: string | null;
   team_b_logo_path: string | null;
   team_b_color: string | null;
+  team_a_captain_name: string | null;
+  team_a_captain_photo_path: string | null;
+  team_b_captain_name: string | null;
+  team_b_captain_photo_path: string | null;
 };
 
 /** PostgREST `or` filters for EpisodeQuery.format; keep in step with hasFormat() in repository.ts. */
@@ -117,6 +121,8 @@ function toListing(r: ListingRow): EpisodeListing {
             short_name: r.team_a_short_name ?? "",
             logo_path: r.team_a_logo_path,
             primary_color: r.team_a_color ?? "#4c1d95",
+            captain_name: r.team_a_captain_name ?? null,
+            captain_photo_path: r.team_a_captain_photo_path ?? null,
           },
           team_b: {
             id: r.match_team_b_id,
@@ -124,6 +130,8 @@ function toListing(r: ListingRow): EpisodeListing {
             short_name: r.team_b_short_name ?? "",
             logo_path: r.team_b_logo_path,
             primary_color: r.team_b_color ?? "#4c1d95",
+            captain_name: r.team_b_captain_name ?? null,
+            captain_photo_path: r.team_b_captain_photo_path ?? null,
           },
         }
       : null;
@@ -337,7 +345,7 @@ export class SupabaseRepository implements Repository {
   async isStoragePathReferenced(p: string): Promise<boolean> {
     const checks = await Promise.all([
       this.db.from("episodes").select("id", { count: "exact", head: true }).or(`audio_storage_path.eq."${p}",cover_image_path.eq."${p}",video_storage_path.eq."${p}",pdf_storage_path.eq."${p}",gallery_paths.cs.{"${p}"}`),
-      this.db.from("teams").select("id", { count: "exact", head: true }).eq("logo_path", p),
+      this.db.from("teams").select("id", { count: "exact", head: true }).or(`logo_path.eq."${p}",captain_photo_path.eq."${p}"`),
       this.db.from("profiles").select("id", { count: "exact", head: true }).eq("profile_image_path", p),
     ]);
     for (const c of checks) if (c.error) fail(c.error, "isStoragePathReferenced");

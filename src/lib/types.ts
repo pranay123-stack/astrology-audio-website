@@ -52,6 +52,9 @@ export interface Team {
   short_name: string;
   logo_path: string | null;
   primary_color: string;
+  /** The current captain, shown with the team on the home page's latest-match stage. */
+  captain_name?: string | null;
+  captain_photo_path?: string | null;
 }
 
 /** One chapter of an audiobook kept in Google Drive. */
@@ -180,6 +183,8 @@ export interface TeamSummary {
   short_name: string;
   logo_path: string | null;
   primary_color: string;
+  captain_name?: string | null;
+  captain_photo_path?: string | null;
 }
 
 /** An episode joined with its category and (for cricket) match details. */

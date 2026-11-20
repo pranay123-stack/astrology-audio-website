@@ -37,6 +37,8 @@ function TeamEditor({ competitionId, team, onDone }: { competitionId: string; te
   const [short, setShort] = useState(team?.short_name ?? "");
   const [color, setColor] = useState(team?.primary_color ?? "#4c1d95");
   const [logo, setLogo] = useState<string | null>(team?.logo_path ?? null);
+  const [captain, setCaptain] = useState(team?.captain_name ?? "");
+  const [captainPhoto, setCaptainPhoto] = useState<string | null>(team?.captain_photo_path ?? null);
   const idp = team?.id ?? `new-${competitionId}`;
   return (
     <div className="space-y-4 rounded-xl border border-line bg-night/40 p-4" data-testid="team-editor">
@@ -63,6 +65,19 @@ function TeamEditor({ competitionId, team, onDone }: { competitionId: string; te
         previewUrl={imageUrl(team?.logo_path)}
         onChange={setLogo}
       />
+      <div>
+        <label htmlFor={`${idp}-captain`} className="label">Captain (optional)</label>
+        <input id={`${idp}-captain`} className="input" maxLength={80} placeholder="e.g. Suryakumar Yadav" value={captain} onChange={(e) => setCaptain(e.target.value)} />
+      </div>
+      <FileField
+        id={`${idp}-captain-photo`}
+        kind="team"
+        label="Captain's photo (optional)"
+        hint="Shown with the team on the home page's latest match. Only upload photos you have the right to use."
+        value={captainPhoto}
+        previewUrl={imageUrl(team?.captain_photo_path)}
+        onChange={setCaptainPhoto}
+      />
       {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
       <div className="flex gap-2">
         <button
@@ -71,7 +86,16 @@ function TeamEditor({ competitionId, team, onDone }: { competitionId: string; te
           disabled={pending}
           onClick={() =>
             run(
-              () => saveTeam({ id: team?.id, competition_id: competitionId, name, short_name: short, primary_color: color, logo_path: logo }),
+              () => saveTeam({
+                  id: team?.id,
+                  competition_id: competitionId,
+                  name,
+                  short_name: short,
+                  primary_color: color,
+                  logo_path: logo,
+                  captain_name: captain,
+                  captain_photo_path: captainPhoto,
+                }),
               onDone,
             )
           }

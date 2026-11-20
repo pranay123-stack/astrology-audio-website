@@ -797,3 +797,29 @@ test("admin edits the Rules page, the Krishna essay and the home quote, and the 
   await page.getByTestId("save-quote").filter({ visible: true }).click();
   await expect(page.getByTestId("content-message").filter({ visible: true })).toContainText("Saved");
 });
+
+test("a team's captain (name and photo) shows with the team on the home page's latest-match stage", async ({ page }) => {
+  await page.setExtraHTTPHeaders({ "x-forwarded-for": "10.0.0.48" });
+  // Which match the stage shows depends on the other tests' posts, so read the team from the stage.
+  await gotoReady(page, "/");
+  const stage = page.getByTestId("hero-latest").filter({ visible: true });
+  const label = (await stage.getAttribute("aria-label"))!;
+  const team = label.replace(/^Latest match reading: /, "").split(" vs ")[0];
+  await expect(stage.getByRole("img", { name: "E2E Captain" })).toHaveCount(0);
+
+  await login(page);
+  await gotoReady(page, "/admin/leagues");
+  await page.getByRole("button", { name: `Edit ${team}`, exact: true }).first().click();
+  const editor = page.getByTestId("team-editor");
+  await editor.getByLabel("Captain (optional)").fill("E2E Captain");
+  await editor.locator('[data-testid$="-captain-photo-input"]').setInputFiles({ name: "captain.jpg", mimeType: "image/jpeg", buffer: readFileSync("tests/fixtures/wide-frame.jpg") });
+  await expect(editor.locator('[data-testid$="-captain-photo-ready"]')).toBeVisible({ timeout: 30_000 });
+  await editor.getByRole("button", { name: "Save team" }).click();
+  await expect(page.getByTestId("team-editor")).toHaveCount(0);
+
+  // No networkidle wait here: link prefetches can keep the network busy for 30 s; the assertions wait instead.
+  await page.goto("/");
+  const after = page.getByTestId("hero-latest").filter({ visible: true });
+  await expect(after).toContainText("E2E Captain");
+  await expect(after.getByRole("img", { name: "E2E Captain" })).toBeVisible();
+});

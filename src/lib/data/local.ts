@@ -16,7 +16,15 @@ import {
 } from "./repository";
 
 function teamSummary(t: Team) {
-  return { id: t.id, name: t.name, short_name: t.short_name, logo_path: t.logo_path, primary_color: t.primary_color };
+  return {
+    id: t.id,
+    name: t.name,
+    short_name: t.short_name,
+    logo_path: t.logo_path,
+    primary_color: t.primary_color,
+    captain_name: t.captain_name ?? null,
+    captain_photo_path: t.captain_photo_path ?? null,
+  };
 }
 
 export function buildListings(db: LocalDatabase): EpisodeListing[] {
@@ -244,7 +252,7 @@ export class LocalRepository implements Repository {
         (e) =>
           e.audio_storage_path === p || e.cover_image_path === p || e.video_storage_path === p || e.pdf_storage_path === p || e.gallery_paths.includes(p),
       ) ||
-      db.teams.some((t) => t.logo_path === p) ||
+      db.teams.some((t) => t.logo_path === p || t.captain_photo_path === p) ||
       db.profile.profile_image_path === p
     );
   }

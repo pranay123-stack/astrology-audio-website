@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, BookOpen, Compass, ExternalLink, GraduationCap, Headphones, Quote, Radio, Sparkles } from "lucide-react";
+import { ArrowRight, BookOpen, Compass, ExternalLink, GraduationCap, Headphones, Quote, Sparkles } from "lucide-react";
 import { EpisodeCard } from "@/components/episodes/EpisodeCard";
 import { MatchCard } from "@/components/episodes/MatchCard";
 import { MediaAction } from "@/components/episodes/MediaAction";
-import { TeamBadge } from "@/components/episodes/TeamBadge";
+import { HeroMatchStage } from "@/components/home/HeroMatchStage";
 import { MatchTicker } from "@/components/home/MatchTicker";
 import { StartHere } from "@/components/home/StartHere";
 import { ReelsStrip } from "@/components/episodes/ReelsStrip";
@@ -105,38 +105,41 @@ export default async function HomePage() {
             </p>
           </div>
 
-          <div className="relative mx-auto w-full max-w-md lg:max-w-lg">
-            {/* The wheel of planets around a match; its square corners fade into the page. */}
-            <Image
-              src="/hero-cricket-astrology.webp"
-              alt={t.home.heroImageAlt}
-              width={1254}
-              height={1254}
-              priority
-              sizes="(min-width: 1024px) 512px, 90vw"
-              className="h-auto w-full drop-shadow-[0_0_60px_rgb(252_196_25/0.35)] [mask-image:radial-gradient(circle,black_70%,transparent_80%)]"
-              data-testid="hero-image"
-            />
-            {heroMatch?.match ? (
-              <HeroMatchCard episode={heroMatch} lang={lang} />
-            ) : heroEpisode && (
-              <div
-                className="relative mx-4 -mt-2 flex items-center gap-4 rounded-2xl border border-gold/30 bg-night/85 p-4 shadow-[var(--shadow-glow)] backdrop-blur-md sm:mx-10"
-                data-testid="hero-latest"
-              >
-                <MediaAction episode={heroEpisode} lang={lang} label={heroEpisode.title} />
-                <div className="min-w-0">
-                  <p className="text-[11px] font-semibold tracking-[0.2em] text-gold uppercase">{t.home.latestReading}</p>
-                  <Link href={episodeHref(heroEpisode, lang)} lang={heroEpisode.text_lang} className="line-clamp-1 text-sm font-semibold hover:text-gold-soft">
-                    {heroEpisode.title}
-                  </Link>
-                  <p className="text-xs text-muted">
-                    {heroEpisode.category.name} · {lengthLabel(heroEpisode, lang)}
-                  </p>
+          {heroMatch?.match ? (
+            // The latest match on a turning zodiac wheel: the two teams, their captains and logos.
+            <HeroMatchStage episode={heroMatch} lang={lang} />
+          ) : (
+            <div className="relative mx-auto w-full max-w-md lg:max-w-lg">
+              {/* The wheel of planets around a match; its square corners fade into the page. */}
+              <Image
+                src="/hero-cricket-astrology.webp"
+                alt={t.home.heroImageAlt}
+                width={1254}
+                height={1254}
+                priority
+                sizes="(min-width: 1024px) 512px, 90vw"
+                className="h-auto w-full drop-shadow-[0_0_60px_rgb(252_196_25/0.35)] [mask-image:radial-gradient(circle,black_70%,transparent_80%)]"
+                data-testid="hero-image"
+              />
+              {heroEpisode && (
+                <div
+                  className="relative mx-4 -mt-2 flex items-center gap-4 rounded-2xl border border-gold/30 bg-night/85 p-4 shadow-[var(--shadow-glow)] backdrop-blur-md sm:mx-10"
+                  data-testid="hero-latest"
+                >
+                  <MediaAction episode={heroEpisode} lang={lang} label={heroEpisode.title} />
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold tracking-[0.2em] text-gold uppercase">{t.home.latestReading}</p>
+                    <Link href={episodeHref(heroEpisode, lang)} lang={heroEpisode.text_lang} className="line-clamp-1 text-sm font-semibold hover:text-gold-soft">
+                      {heroEpisode.title}
+                    </Link>
+                    <p className="text-xs text-muted">
+                      {heroEpisode.category.name} · {lengthLabel(heroEpisode, lang)}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
       </section>
 
@@ -333,35 +336,3 @@ function CompactPost({ episode: raw, lang }: { episode: EpisodeListing; lang: Lo
   );
 }
 
-/** The hero's card: the newest match reading, as a fixture (both teams), linking to the reading. */
-function HeroMatchCard({ episode: raw, lang }: { episode: EpisodeListing; lang: Locale }) {
-  const e = localizeEpisode(raw, lang);
-  const t = getDict(lang);
-  const m = e.match!;
-  return (
-    <Link
-      href={episodeHref(e, lang)}
-      className="group relative mx-4 -mt-2 block rounded-2xl border border-gold/40 bg-night/85 p-4 shadow-[var(--shadow-glow)] backdrop-blur-md transition hover:border-gold sm:mx-10"
-      data-testid="hero-latest"
-    >
-      <p className="flex items-center justify-between gap-2 text-[11px] font-semibold tracking-[0.2em] text-gold uppercase">
-        <span className="inline-flex items-center gap-1.5">
-          <Radio className="h-3.5 w-3.5 animate-pulse" aria-hidden /> {t.home.latestMatch}
-        </span>
-        <span className="tracking-wider text-muted">{m.competition.short_name || m.competition.name}</span>
-      </p>
-      <div className="mt-3 flex items-center justify-between gap-2">
-        <span className="flex min-w-0 flex-1 items-center gap-2">
-          <TeamBadge team={m.team_a} size={40} />
-          <span className="truncate text-sm font-semibold">{m.team_a.short_name || m.team_a.name}</span>
-        </span>
-        <span className="font-display text-xl text-gold-soft italic">{t.common.vs}</span>
-        <span className="flex min-w-0 flex-1 items-center justify-end gap-2">
-          <span className="truncate text-right text-sm font-semibold">{m.team_b.short_name || m.team_b.name}</span>
-          <TeamBadge team={m.team_b} size={40} />
-        </span>
-      </div>
-      <p lang={e.text_lang} className="mt-3 line-clamp-1 text-xs text-ink/75 group-hover:text-gold-soft">{e.title}</p>
-    </Link>
-  );
-}

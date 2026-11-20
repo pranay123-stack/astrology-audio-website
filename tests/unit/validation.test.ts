@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseListParams, toQueryString } from "@/lib/list-params";
-import { contactInputSchema, episodeInputSchema, fieldErrors, profileInputSchema } from "@/lib/validation";
+import { contactInputSchema, episodeInputSchema, fieldErrors, profileInputSchema, teamInputSchema } from "@/lib/validation";
 
 const validEpisode = {
   title: "A valid title",
@@ -65,5 +65,18 @@ describe("list params", () => {
   it("omits defaults from query strings", () => {
     expect(toQueryString({ q: "", page: 1, when: "upcoming", sort: "latest" })).toBe("");
     expect(toQueryString({ q: "heat", page: 2, when: "past" })).toBe("?q=heat&page=2&when=past");
+  });
+});
+
+describe("team captain", () => {
+  const team = { competition_id: "c", name: "India", short_name: "IND" };
+  it("is optional, and an empty name is stored as none", () => {
+    expect(teamInputSchema.parse(team)).toMatchObject({ captain_name: null, captain_photo_path: null });
+    expect(teamInputSchema.parse({ ...team, captain_name: "   " }).captain_name).toBeNull();
+  });
+  it("keeps a trimmed name and an uploaded photo path, and rejects a one-letter name", () => {
+    const path = "teams/0f8fad5b-d9cb-469f-a165-70867728950e.webp";
+    expect(teamInputSchema.parse({ ...team, captain_name: "  Suryakumar Yadav ", captain_photo_path: path })).toMatchObject({ captain_name: "Suryakumar Yadav", captain_photo_path: path });
+    expect(teamInputSchema.safeParse({ ...team, captain_name: "S" }).success).toBe(false);
   });
 });

@@ -218,3 +218,24 @@
 .ticker-mask {
   mask-image: linear-gradient(to right, transparent, black 4%, black 96%, transparent);
 }
+
+/* Home hero: the latest-match stage (sign ring, orbiting planets, comet, spinning ball, glow). */
+@keyframes stage-spin { to { transform: rotate(360deg); } }
+@keyframes stage-spin-rev { to { transform: rotate(-360deg); } }
+@keyframes stage-comet { to { stroke-dashoffset: -874; } }
+@keyframes stage-pulse {
+  0%, 100% { opacity: 0.65; transform: scale(0.97); }
+  50% { opacity: 1; transform: scale(1.03); }
+}
+@keyframes stage-ball {
+  0% { transform: rotate(0deg) translateY(0); }
+  50% { transform: rotate(180deg) translateY(-3px); }
+  100% { transform: rotate(360deg) translateY(0); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .stage-spin { animation: stage-spin 60s linear infinite; }
+  .stage-spin-rev { animation: stage-spin-rev 90s linear infinite; }
+  .stage-comet { animation: stage-comet 6s linear infinite; }
+  .stage-pulse { animation: stage-pulse 4s ease-in-out infinite; }
+  .stage-ball { animation: stage-ball 2.4s linear infinite; transform-origin: center; transform-box: fill-box; }
+}

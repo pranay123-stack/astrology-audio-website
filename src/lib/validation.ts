@@ -178,6 +178,14 @@ export const teamInputSchema = z.object({
   short_name: z.string().trim().min(2).max(6),
   primary_color: z.string().regex(HEX_RE, "Use a hex colour such as #1d4ed8").default("#4c1d95"),
   logo_path: storagePathSchema.nullable().default(null),
+  captain_name: z
+    .string()
+    .trim()
+    .max(80)
+    .nullish()
+    .transform((v) => (v ? v : null))
+    .refine((v) => v === null || v.length >= 2, "At least 2 letters"),
+  captain_photo_path: storagePathSchema.nullable().default(null),
 });
 export type TeamData = z.output<typeof teamInputSchema>;
 
