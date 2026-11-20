@@ -8,6 +8,7 @@ import { MediaAction } from "@/components/episodes/MediaAction";
 import { HeroMatchStage } from "@/components/home/HeroMatchStage";
 import { MatchTicker } from "@/components/home/MatchTicker";
 import { StartHere } from "@/components/home/StartHere";
+import { TestimonialCard } from "@/components/home/TestimonialCard";
 import { ReelsStrip } from "@/components/episodes/ReelsStrip";
 import { learnPath } from "@/components/layout/nav";
 import { QuotesBand } from "@/components/layout/QuotesBand";
@@ -261,7 +262,10 @@ export default async function HomePage() {
       </section>
 
       {testimonials.items.length > 0 && (
-        <section className="container-page py-16" aria-labelledby="testimonials-heading">
+        <section className="relative overflow-hidden py-16" aria-labelledby="testimonials-heading">
+          {/* A warm band of light behind the testimonials. */}
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgb(252_196_25/0.12),transparent_65%)]" aria-hidden />
+          <div className="container-page relative">
           <SectionHeading
             id="testimonials-heading"
             eyebrow={t.home.testimonialsEyebrow}
@@ -270,9 +274,10 @@ export default async function HomePage() {
             linkLabel={t.home.seeAll}
           />
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {testimonials.items.map((e) => (
-              <EpisodeCard key={e.id} episode={e} lang={lang} />
+            {testimonials.items.map((e, i) => (
+              <TestimonialCard key={e.id} episode={e} lang={lang} index={i} />
             ))}
+          </div>
           </div>
         </section>
       )}
